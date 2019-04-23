@@ -1037,13 +1037,13 @@ func (t *Table) readRows(ctx context.Context, arg RowSet, f func(Row) bool, mt *
 		}
 
 		if arg != nil {
-			if !arg.valid() {
+			if !arg.Valid() {
 				// Empty row set, no need to make an API call.
 				// NOTE: we must return early if arg == RowList{} because reading
 				// an empty RowList from bigtable returns all rows from that table.
 				return nil
 			}
-			req.Rows = arg.proto()
+			req.Rows = arg.Proto()
 		}
 		settings := makeReadSettings(req, numRowsRead)
 		for _, opt := range opts {
@@ -1088,9 +1088,9 @@ func (t *Table) readRows(ctx context.Context, arg RowSet, f func(Row) bool, mt *
 					arg = InfiniteRange("")
 				}
 				if req.Reversed {
-					arg = arg.retainRowsBefore(prevRowKey)
+					arg = arg.RetainRowsBefore(prevRowKey)
 				} else {
-					arg = arg.retainRowsAfter(prevRowKey)
+					arg = arg.RetainRowsAfter(prevRowKey)
 				}
 				attrMap["rowKey"] = prevRowKey
 				attrMap["error"] = err.Error()
@@ -1186,24 +1186,24 @@ func decodeFamilyProto(r Row, row string, f *btpb.Family) {
 // RowSet is a set of rows to be read. It is satisfied by RowList, RowRange and RowRangeList.
 // The serialized size of the RowSet must be no larger than 1MiB.
 type RowSet interface {
-	proto() *btpb.RowSet
+	Proto() *btpb.RowSet
 
-	// retainRowsAfter returns a new RowSet that does not include the
+	// RetainRowsAfter returns a new RowSet that does not include the
 	// given row key or any row key lexicographically less than it.
-	retainRowsAfter(lastRowKey string) RowSet
+	RetainRowsAfter(lastRowKey string) RowSet
 
-	// retainRowsBefore returns a new RowSet that does not include the
+	// RetainRowsBefore returns a new RowSet that does not include the
 	// given row key or any row key lexicographically greater than it.
-	retainRowsBefore(lastRowKey string) RowSet
+	RetainRowsBefore(lastRowKey string) RowSet
 
 	// Valid reports whether this set can cover at least one row.
-	valid() bool
+	Valid() bool
 }
 
 // RowList is a sequence of row keys.
 type RowList []string
 
-func (r RowList) proto() *btpb.RowSet {
+func (r RowList) Proto() *btpb.RowSet {
 	keys := make([][]byte, len(r))
 	for i, row := range r {
 		keys[i] = []byte(row)
@@ -1211,7 +1211,7 @@ func (r RowList) proto() *btpb.RowSet {
 	return &btpb.RowSet{RowKeys: keys}
 }
 
-func (r RowList) retainRowsAfter(lastRowKey string) RowSet {
+func (r RowList) RetainRowsAfter(lastRowKey string) RowSet {
 	var retryKeys RowList
 	for _, key := range r {
 		if key > lastRowKey {
@@ -1221,7 +1221,7 @@ func (r RowList) retainRowsAfter(lastRowKey string) RowSet {
 	return retryKeys
 }
 
-func (r RowList) retainRowsBefore(lastRowKey string) RowSet {
+func (r RowList) RetainRowsBefore(lastRowKey string) RowSet {
 	var retryKeys RowList
 	for _, key := range r {
 		if key < lastRowKey {
@@ -1231,7 +1231,7 @@ func (r RowList) retainRowsBefore(lastRowKey string) RowSet {
 	return retryKeys
 }
 
-func (r RowList) valid() bool {
+func (r RowList) Valid() bool {
 	return len(r) > 0
 }
 
@@ -1378,7 +1378,7 @@ func (r RowRange) String() string {
 	return fmt.Sprintf("%s,%s", startStr, endStr)
 }
 
-func (r RowRange) proto() *btpb.RowSet {
+func (r RowRange) Proto() *btpb.RowSet {
 	rr := &btpb.RowRange{}
 
 	switch r.startBound {
@@ -1402,7 +1402,7 @@ func (r RowRange) proto() *btpb.RowSet {
 	return &btpb.RowSet{RowRanges: []*btpb.RowRange{rr}}
 }
 
-func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
+func (r RowRange) RetainRowsAfter(lastRowKey string) RowSet {
 	if lastRowKey == "" || lastRowKey < r.start {
 		return r
 	}
@@ -1416,7 +1416,7 @@ func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
 	}
 }
 
-func (r RowRange) retainRowsBefore(lastRowKey string) RowSet {
+func (r RowRange) RetainRowsBefore(lastRowKey string) RowSet {
 	if lastRowKey == "" || (r.endBound != rangeUnbounded && r.end < lastRowKey) {
 		return r
 	}
@@ -1429,7 +1429,7 @@ func (r RowRange) retainRowsBefore(lastRowKey string) RowSet {
 	}
 }
 
-func (r RowRange) valid() bool {
+func (r RowRange) Valid() bool {
 	// If either end is unbounded, then the range is always valid.
 	if r.Unbounded() {
 		return true
@@ -1450,48 +1450,48 @@ func (r RowRange) valid() bool {
 // RowRangeList is a sequence of RowRanges representing the union of the ranges.
 type RowRangeList []RowRange
 
-func (r RowRangeList) proto() *btpb.RowSet {
+func (r RowRangeList) Proto() *btpb.RowSet {
 	ranges := make([]*btpb.RowRange, len(r))
 	for i, rr := range r {
 		// RowRange.proto() returns a RowSet with a single element RowRange array
-		ranges[i] = rr.proto().RowRanges[0]
+		ranges[i] = rr.Proto().RowRanges[0]
 	}
 	return &btpb.RowSet{RowRanges: ranges}
 }
 
-func (r RowRangeList) retainRowsAfter(lastRowKey string) RowSet {
+func (r RowRangeList) RetainRowsAfter(lastRowKey string) RowSet {
 	if lastRowKey == "" {
 		return r
 	}
 	// Return a list of any range that has not yet been completely processed
 	var ranges RowRangeList
 	for _, rr := range r {
-		retained := rr.retainRowsAfter(lastRowKey)
-		if retained.valid() {
+		retained := rr.RetainRowsAfter(lastRowKey)
+		if retained.Valid() {
 			ranges = append(ranges, retained.(RowRange))
 		}
 	}
 	return ranges
 }
 
-func (r RowRangeList) retainRowsBefore(lastRowKey string) RowSet {
+func (r RowRangeList) RetainRowsBefore(lastRowKey string) RowSet {
 	if lastRowKey == "" {
 		return r
 	}
 	// Return a list of any range that has not yet been completely processed
 	var ranges RowRangeList
 	for _, rr := range r {
-		retained := rr.retainRowsBefore(lastRowKey)
-		if retained.valid() {
+		retained := rr.RetainRowsBefore(lastRowKey)
+		if retained.Valid() {
 			ranges = append(ranges, retained.(RowRange))
 		}
 	}
 	return ranges
 }
 
-func (r RowRangeList) valid() bool {
+func (r RowRangeList) Valid() bool {
 	for _, rr := range r {
-		if rr.valid() {
+		if rr.Valid() {
 			return true
 		}
 	}

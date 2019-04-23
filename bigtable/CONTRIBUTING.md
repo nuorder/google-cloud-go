@@ -16,6 +16,12 @@ go test -test.run="TestIntegration_*" -v \
     -it.instance="your-test-instance"
 ```
 
+go test -test.run="TestIntegration_*" -v \
+-it.use-prod \
+-it.project="nuorder-staging" \
+-it.cluster="bta-staging-nuorder-zone" \
+-it.instance="bta-staging-nuorder-zone"
+
 > **Note**: More flags exist and can be found in `export_test.go`
 
 If you do not have a cluster and instance to target, you can create one via `cbt`:

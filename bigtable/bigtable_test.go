@@ -100,7 +100,7 @@ func TestNewClosedOpenRange(t *testing.T) {
 		{"a", "b", true},
 	} {
 		r := NewClosedOpenRange(test.start, test.limit)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("%s.valid() = %t, want %t", r.String(), got, want)
 		}
 	}
@@ -134,7 +134,7 @@ func TestNewOpenClosedRange(t *testing.T) {
 		{"a", "b", true},
 	} {
 		r := NewOpenClosedRange(test.start, test.limit)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("%s.valid() = %t, want %t", r.String(), got, want)
 		}
 	}
@@ -167,7 +167,7 @@ func TestNewClosedRange(t *testing.T) {
 		{"b\x00", "b", false},
 	} {
 		r := NewClosedRange(test.start, test.limit)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("NewClosedRange(%q, %q).valid() = %t, want %t", test.start, test.limit, got, want)
 		}
 	}
@@ -202,7 +202,7 @@ func TestNewOpenRange(t *testing.T) {
 		{"a", "a\x01", true},
 	} {
 		r := NewOpenRange(test.start, test.limit)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("NewOpenRange(%q, %q).valid() = %t, want %t", test.start, test.limit, got, want)
 		}
 	}
@@ -232,7 +232,7 @@ func TestInfiniteRange(t *testing.T) {
 		{"", true},
 	} {
 		r := InfiniteRange(test.start)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("%s.valid() = %t, want %t", r.String(), got, want)
 		}
 	}
@@ -261,7 +261,7 @@ func TestInfiniteReverseRange(t *testing.T) {
 		{"", true},
 	} {
 		r := InfiniteReverseRange(test.start)
-		if want, got := test.valid, r.valid(); want != got {
+		if want, got := test.valid, r.Valid(); want != got {
 			t.Errorf("%s.valid() = %t, want %t", r.String(), got, want)
 		}
 	}
@@ -457,7 +457,7 @@ func TestRowRangeProto(t *testing.T) {
 		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
-			got := test.rr.proto()
+			got := test.rr.Proto()
 			want := test.proto
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("Bad proto for %s: got %v, want %v", test.rr.String(), got, want)
@@ -474,7 +474,7 @@ func TestRowRangeRetainRowsBefore(t *testing.T) {
 	}{
 		{
 			desc: "retain rows before",
-			rr:   NewRange("a", "c").retainRowsBefore("b"),
+			rr:   NewRange("a", "c").RetainRowsBefore("b"),
 			proto: &btpb.RowSet{RowRanges: []*btpb.RowRange{{
 				StartKey: &btpb.RowRange_StartKeyClosed{StartKeyClosed: []byte("a")},
 				EndKey:   &btpb.RowRange_EndKeyOpen{EndKeyOpen: []byte("b")},
@@ -482,7 +482,7 @@ func TestRowRangeRetainRowsBefore(t *testing.T) {
 		},
 		{
 			desc: "retain rows before empty key",
-			rr:   NewRange("a", "c").retainRowsBefore(""),
+			rr:   NewRange("a", "c").RetainRowsBefore(""),
 			proto: &btpb.RowSet{RowRanges: []*btpb.RowRange{{
 				StartKey: &btpb.RowRange_StartKeyClosed{StartKeyClosed: []byte("a")},
 				EndKey:   &btpb.RowRange_EndKeyOpen{EndKeyOpen: []byte("c")},
@@ -490,7 +490,7 @@ func TestRowRangeRetainRowsBefore(t *testing.T) {
 		},
 		{
 			desc: "retain rows before key greater than range end",
-			rr:   NewClosedRange("a", "c").retainRowsBefore("d"),
+			rr:   NewClosedRange("a", "c").RetainRowsBefore("d"),
 			proto: &btpb.RowSet{RowRanges: []*btpb.RowRange{{
 				StartKey: &btpb.RowRange_StartKeyClosed{StartKeyClosed: []byte("a")},
 				EndKey:   &btpb.RowRange_EndKeyClosed{EndKeyClosed: []byte("c")},
@@ -498,7 +498,7 @@ func TestRowRangeRetainRowsBefore(t *testing.T) {
 		},
 		{
 			desc: "retain rows before key same as closed end key",
-			rr:   NewClosedRange("a", "c").retainRowsBefore("c"),
+			rr:   NewClosedRange("a", "c").RetainRowsBefore("c"),
 			proto: &btpb.RowSet{RowRanges: []*btpb.RowRange{{
 				StartKey: &btpb.RowRange_StartKeyClosed{StartKeyClosed: []byte("a")},
 				EndKey:   &btpb.RowRange_EndKeyOpen{EndKeyOpen: []byte("c")},
@@ -506,14 +506,14 @@ func TestRowRangeRetainRowsBefore(t *testing.T) {
 		},
 		{
 			desc: "retain rows before on unbounded range",
-			rr:   InfiniteRange("").retainRowsBefore("z"),
+			rr:   InfiniteRange("").RetainRowsBefore("z"),
 			proto: &btpb.RowSet{RowRanges: []*btpb.RowRange{{
 				EndKey: &btpb.RowRange_EndKeyOpen{EndKeyOpen: []byte("z")},
 			}}},
 		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
-			got := test.rr.proto()
+			got := test.rr.Proto()
 			want := test.proto
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("Bad retain rows before proto: got %v, want %v", got, want)
