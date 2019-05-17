@@ -1605,7 +1605,7 @@ func RowFilter(f Filter) ReadOption { return rowFilter{f} }
 
 type rowFilter struct{ f Filter }
 
-func (rf rowFilter) set(settings *readSettings) { settings.req.Filter = rf.f.proto() }
+func (rf rowFilter) set(settings *readSettings) { settings.req.Filter = rf.f.Proto() }
 
 // LimitRows returns a ReadOption that will end the number of rows to be read.
 func LimitRows(limit int64) ReadOption { return limitRows{limit} }
@@ -1721,7 +1721,7 @@ func (t *Table) apply(ctx context.Context, mt *builtinMetricsTracer, row string,
 		RowKey:       []byte(row),
 	}
 	if m.cond != nil {
-		req.PredicateFilter = m.cond.proto()
+		req.PredicateFilter = m.cond.Proto()
 	}
 	if t.authorizedView == "" {
 		req.TableName = t.c.fullTableName(t.table)
