@@ -14,9 +14,12 @@
     "ignoreDeps": [
         "google.golang.org/genproto"
     ],
+    "ignorePaths": [
+        "**/snippets/**"
+    ],
     "force": {
         "constraints": {
-          "go": "1.17"
+        "go": "1.18"
         }
       }
 }
