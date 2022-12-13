@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,31 +20,44 @@ import (
 	"context"
 
 	talent "cloud.google.com/go/talent/apiv4"
+	talentpb "cloud.google.com/go/talent/apiv4/talentpb"
 	"google.golang.org/api/iterator"
-	talentpb "google.golang.org/genproto/googleapis/cloud/talent/v4"
+	longrunningpb "google.golang.org/genproto/googleapis/longrunning"
 )
 
 func ExampleNewCompanyClient() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
+
 	// TODO: Use client.
 	_ = c
 }
 
 func ExampleCompanyClient_CreateCompany() {
-	// import talentpb "google.golang.org/genproto/googleapis/cloud/talent/v4"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &talentpb.CreateCompanyRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/talent/apiv4/talentpb#CreateCompanyRequest.
 	}
 	resp, err := c.CreateCompany(ctx, req)
 	if err != nil {
@@ -55,16 +68,21 @@ func ExampleCompanyClient_CreateCompany() {
 }
 
 func ExampleCompanyClient_GetCompany() {
-	// import talentpb "google.golang.org/genproto/googleapis/cloud/talent/v4"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &talentpb.GetCompanyRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/talent/apiv4/talentpb#GetCompanyRequest.
 	}
 	resp, err := c.GetCompany(ctx, req)
 	if err != nil {
@@ -75,16 +93,21 @@ func ExampleCompanyClient_GetCompany() {
 }
 
 func ExampleCompanyClient_UpdateCompany() {
-	// import talentpb "google.golang.org/genproto/googleapis/cloud/talent/v4"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &talentpb.UpdateCompanyRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/talent/apiv4/talentpb#UpdateCompanyRequest.
 	}
 	resp, err := c.UpdateCompany(ctx, req)
 	if err != nil {
@@ -96,13 +119,20 @@ func ExampleCompanyClient_UpdateCompany() {
 
 func ExampleCompanyClient_DeleteCompany() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &talentpb.DeleteCompanyRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/talent/apiv4/talentpb#DeleteCompanyRequest.
 	}
 	err = c.DeleteCompany(ctx, req)
 	if err != nil {
@@ -111,17 +141,21 @@ func ExampleCompanyClient_DeleteCompany() {
 }
 
 func ExampleCompanyClient_ListCompanies() {
-	// import talentpb "google.golang.org/genproto/googleapis/cloud/talent/v4"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := talent.NewCompanyClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &talentpb.ListCompaniesRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/talent/apiv4/talentpb#ListCompaniesRequest.
 	}
 	it := c.ListCompanies(ctx, req)
 	for {
@@ -135,4 +169,29 @@ func ExampleCompanyClient_ListCompanies() {
 		// TODO: Use resp.
 		_ = resp
 	}
+}
+
+func ExampleCompanyClient_GetOperation() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := talent.NewCompanyClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &longrunningpb.GetOperationRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/longrunning#GetOperationRequest.
+	}
+	resp, err := c.GetOperation(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
 }

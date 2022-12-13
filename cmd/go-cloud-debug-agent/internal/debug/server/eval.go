@@ -20,6 +20,7 @@
 // Stricter type checking.
 // More expression types.
 
+//go:build linux
 // +build linux
 
 package server
@@ -205,6 +206,7 @@ func (e *evaluator) setNode(node ast.Node) (old ast.Node) {
 
 // err saves an error that occurred during evaluation.
 // It returns a zero result, so that functions can exit and set an error with
+//
 //	return e.err(...)
 func (e *evaluator) err(s string) result {
 	if e.evalError != nil {

@@ -25,20 +25,24 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/trace"
-	vkit "cloud.google.com/go/spanner/apiv1"
+	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
-	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+
+	vkit "cloud.google.com/go/spanner/apiv1"
+	"cloud.google.com/go/spanner/internal"
+
+	// Install google-c2p resolver, which is required for direct path.
+	_ "google.golang.org/grpc/xds/googledirectpath"
+	// Install RLS load balancer policy, which is needed for gRPC RLS.
+	_ "google.golang.org/grpc/balancer/rls"
 )
 
 const (
-	endpoint     = "spanner.googleapis.com:443"
-	mtlsEndpoint = "spanner.mtls.googleapis.com:443"
-
 	// resourcePrefixHeader is the name of the metadata header used to indicate
 	// the resource being operated on.
 	resourcePrefixHeader = "google-cloud-resource-prefix"
@@ -83,6 +87,16 @@ type Client struct {
 	idleSessions *sessionPool
 	logger       *log.Logger
 	qo           QueryOptions
+	ro           ReadOptions
+	ao           []ApplyOption
+	txo          TransactionOptions
+	ct           *commonTags
+}
+
+// DatabaseName returns the full name of a database, e.g.,
+// "projects/spanner-cloud-test/instances/foo/databases/foodb".
+func (c *Client) DatabaseName() string {
+	return c.sc.database
 }
 
 // ClientConfig has configurations for the client.
@@ -107,20 +121,31 @@ type ClientConfig struct {
 	// QueryOptions is the configuration for executing a sql query.
 	QueryOptions QueryOptions
 
+	// ReadOptions is the configuration for reading rows from a database
+	ReadOptions ReadOptions
+
+	// ApplyOptions is the configuration for applying
+	ApplyOptions []ApplyOption
+
+	// TransactionOptions is the configuration for a transaction.
+	TransactionOptions TransactionOptions
+
 	// CallOptions is the configuration for providing custom retry settings that
 	// override the default values.
 	CallOptions *vkit.CallOptions
 
-	// logger is the logger to use for this client. If it is nil, all logging
-	// will be directed to the standard logger.
-	logger *log.Logger
-}
+	// UserAgent is the prefix to the user agent header. This is used to supply information
+	// such as application name or partner tool.
+	//
+	// Internal Use Only: This field is for internal tracking purpose only,
+	// setting the value for this config is not required.
+	//
+	// Recommended format: ``application-or-tool-ID/major.minor.version``.
+	UserAgent string
 
-// errDial returns error for dialing to Cloud Spanner.
-func errDial(ci int, err error) error {
-	e := ToSpannerError(err).(*Error)
-	e.decorate(fmt.Sprintf("dialing fails for channel[%v]", ci))
-	return e
+	// Logger is the logger to use for this client. If it is nil, all logging
+	// will be directed to the standard logger.
+	Logger *log.Logger
 }
 
 func contextWithOutgoingMetadata(ctx context.Context, md metadata.MD) context.Context {
@@ -166,22 +191,7 @@ func NewClientWithConfig(ctx context.Context, database string, config ClientConf
 		config.NumChannels = numChannels
 	}
 	// gRPC options.
-	allOpts := []option.ClientOption{
-		internaloption.WithDefaultEndpoint(endpoint),
-		internaloption.WithDefaultMTLSEndpoint(mtlsEndpoint),
-		option.WithScopes(Scope),
-		option.WithGRPCDialOption(
-			grpc.WithDefaultCallOptions(
-				grpc.MaxCallSendMsgSize(100<<20),
-				grpc.MaxCallRecvMsgSize(100<<20),
-			),
-		),
-		option.WithGRPCConnectionPool(config.NumChannels),
-		option.WithUserAgent(clientUserAgent),
-	}
-	// opts will take precedence above allOpts, as the values in opts will be
-	// applied after the values in allOpts.
-	allOpts = append(allOpts, opts...)
+	allOpts := allClientOpts(config.NumChannels, opts...)
 	pool, err := gtransport.DialPool(ctx, allOpts...)
 	if err != nil {
 		return nil, err
@@ -210,7 +220,7 @@ func NewClientWithConfig(ctx context.Context, database string, config ClientConf
 		config.incStep = DefaultSessionPoolConfig.incStep
 	}
 	// Create a session client.
-	sc := newSessionClient(pool, database, sessionLabels, metadata.Pairs(resourcePrefixHeader, database), config.logger, config.CallOptions)
+	sc := newSessionClient(pool, database, config.UserAgent, sessionLabels, metadata.Pairs(resourcePrefixHeader, database), config.Logger, config.CallOptions)
 	// Create a session pool.
 	config.SessionPoolConfig.sessionLabels = sessionLabels
 	sp, err := newSessionPool(sc, config.SessionPoolConfig)
@@ -221,10 +231,28 @@ func NewClientWithConfig(ctx context.Context, database string, config ClientConf
 	c = &Client{
 		sc:           sc,
 		idleSessions: sp,
-		logger:       config.logger,
+		logger:       config.Logger,
 		qo:           getQueryOptions(config.QueryOptions),
+		ro:           config.ReadOptions,
+		ao:           config.ApplyOptions,
+		txo:          config.TransactionOptions,
+		ct:           getCommonTags(sc),
 	}
 	return c, nil
+}
+
+// Combines the default options from the generated client, the default options
+// of the hand-written client and the user options to one list of options.
+// Precedence: userOpts > clientDefaultOpts > generatedDefaultOpts
+func allClientOpts(numChannels int, userOpts ...option.ClientOption) []option.ClientOption {
+	generatedDefaultOpts := vkit.DefaultClientOptions()
+	clientDefaultOpts := []option.ClientOption{
+		option.WithGRPCConnectionPool(numChannels),
+		option.WithUserAgent(fmt.Sprintf("spanner-go/v%s", internal.Version)),
+		internaloption.EnableDirectPath(true),
+	}
+	allDefaultOpts := append(generatedDefaultOpts, clientDefaultOpts...)
+	return append(allDefaultOpts, userOpts...)
 }
 
 // getQueryOptions returns the query options overwritten by the environment
@@ -232,12 +260,16 @@ func NewClientWithConfig(ctx context.Context, database string, config ClientConf
 // via application-level configuration. If the environment variables are set,
 // this will return the overwritten query options.
 func getQueryOptions(opts QueryOptions) QueryOptions {
+	if opts.Options == nil {
+		opts.Options = &sppb.ExecuteSqlRequest_QueryOptions{}
+	}
 	opv := os.Getenv("SPANNER_OPTIMIZER_VERSION")
 	if opv != "" {
-		if opts.Options == nil {
-			opts.Options = &sppb.ExecuteSqlRequest_QueryOptions{}
-		}
 		opts.Options.OptimizerVersion = opv
+	}
+	opsp := os.Getenv("SPANNER_OPTIMIZER_STATISTICS_PACKAGE")
+	if opsp != "" {
+		opts.Options.OptimizerStatisticsPackage = opsp
 	}
 	return opts
 }
@@ -245,7 +277,9 @@ func getQueryOptions(opts QueryOptions) QueryOptions {
 // Close closes the client.
 func (c *Client) Close() {
 	if c.idleSessions != nil {
-		c.idleSessions.close()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		c.idleSessions.close(ctx)
 	}
 	c.sc.close()
 }
@@ -264,6 +298,7 @@ func (c *Client) Single() *ReadOnlyTransaction {
 	t.txReadOnly.sp = c.idleSessions
 	t.txReadOnly.txReadEnv = t
 	t.txReadOnly.qo = c.qo
+	t.txReadOnly.ro = c.ro
 	t.txReadOnly.replaceSessionFunc = func(ctx context.Context) error {
 		if t.sh == nil {
 			return spannerErrorf(codes.InvalidArgument, "missing session handle on transaction")
@@ -279,6 +314,7 @@ func (c *Client) Single() *ReadOnlyTransaction {
 		t.sh = sh
 		return nil
 	}
+	t.ct = c.ct
 	return t
 }
 
@@ -299,6 +335,8 @@ func (c *Client) ReadOnlyTransaction() *ReadOnlyTransaction {
 	t.txReadOnly.sp = c.idleSessions
 	t.txReadOnly.txReadEnv = t
 	t.txReadOnly.qo = c.qo
+	t.txReadOnly.ro = c.ro
+	t.ct = c.ct
 	return t
 }
 
@@ -321,11 +359,6 @@ func (c *Client) BatchReadOnlyTransaction(ctx context.Context, tb TimestampBound
 		sh  *sessionHandle
 		err error
 	)
-	defer func() {
-		if err != nil && sh != nil {
-			s.delete(ctx)
-		}
-	}()
 
 	// Create session.
 	s, err = c.sc.createSession(ctx)
@@ -367,6 +400,8 @@ func (c *Client) BatchReadOnlyTransaction(ctx context.Context, tb TimestampBound
 	t.txReadOnly.sh = sh
 	t.txReadOnly.txReadEnv = t
 	t.txReadOnly.qo = c.qo
+	t.txReadOnly.ro = c.ro
+	t.ct = c.ct
 	return t, nil
 }
 
@@ -394,6 +429,8 @@ func (c *Client) BatchReadOnlyTransactionFromID(tid BatchReadOnlyTransactionID) 
 	t.txReadOnly.sh = sh
 	t.txReadOnly.txReadEnv = t
 	t.txReadOnly.qo = c.qo
+	t.txReadOnly.ro = c.ro
+	t.ct = c.ct
 	return t
 }
 
@@ -478,6 +515,10 @@ func (c *Client) rwTransaction(ctx context.Context, f func(context.Context, *Rea
 		t.txReadOnly.sh = sh
 		t.txReadOnly.txReadEnv = t
 		t.txReadOnly.qo = c.qo
+		t.txReadOnly.ro = c.ro
+		t.txOpts = c.txo.merge(options)
+		t.ct = c.ct
+
 		trace.TracePrintf(ctx, map[string]interface{}{"transactionID": string(sh.getTransactionID())},
 			"Starting transaction attempt")
 		if err = t.begin(ctx); err != nil {
@@ -494,6 +535,10 @@ type applyOption struct {
 	// If atLeastOnce == true, Client.Apply will execute the mutations on Cloud
 	// Spanner at least once.
 	atLeastOnce bool
+	// transactionTag will be included with the CommitRequest.
+	transactionTag string
+	// priority is the RPC priority that is used for the commit operation.
+	priority sppb.RequestOptions_Priority
 }
 
 // An ApplyOption is an optional argument to Apply.
@@ -516,9 +561,30 @@ func ApplyAtLeastOnce() ApplyOption {
 	}
 }
 
+// TransactionTag returns an ApplyOption that will include the given tag as a
+// transaction tag for a write-only transaction.
+func TransactionTag(tag string) ApplyOption {
+	return func(ao *applyOption) {
+		ao.transactionTag = tag
+	}
+}
+
+// Priority returns an ApplyOptions that sets the RPC priority to use for the
+// commit operation.
+func Priority(priority sppb.RequestOptions_Priority) ApplyOption {
+	return func(ao *applyOption) {
+		ao.priority = priority
+	}
+}
+
 // Apply applies a list of mutations atomically to the database.
 func (c *Client) Apply(ctx context.Context, ms []*Mutation, opts ...ApplyOption) (commitTimestamp time.Time, err error) {
 	ao := &applyOption{}
+
+	for _, opt := range c.ao {
+		opt(ao)
+	}
+
 	for _, opt := range opts {
 		opt(ao)
 	}
@@ -527,11 +593,12 @@ func (c *Client) Apply(ctx context.Context, ms []*Mutation, opts ...ApplyOption)
 	defer func() { trace.EndSpan(ctx, err) }()
 
 	if !ao.atLeastOnce {
-		return c.ReadWriteTransaction(ctx, func(ctx context.Context, t *ReadWriteTransaction) error {
+		resp, err := c.ReadWriteTransactionWithOptions(ctx, func(ctx context.Context, t *ReadWriteTransaction) error {
 			return t.BufferWrite(ms)
-		})
+		}, TransactionOptions{CommitPriority: ao.priority, TransactionTag: ao.transactionTag})
+		return resp.CommitTs, err
 	}
-	t := &writeOnlyTransaction{c.idleSessions}
+	t := &writeOnlyTransaction{sp: c.idleSessions, commitPriority: ao.priority, transactionTag: ao.transactionTag}
 	return t.applyAtLeastOnce(ctx, ms...)
 }
 

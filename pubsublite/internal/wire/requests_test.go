@@ -13,7 +13,7 @@
 
 package wire
 
-import pb "google.golang.org/genproto/googleapis/cloud/pubsublite/v1"
+import pb "cloud.google.com/go/pubsublite/apiv1/pubsublitepb"
 
 // AdminService
 
@@ -134,12 +134,33 @@ func msgPubResp(cursor int64) *pb.PublishResponse {
 
 // SubscriberService
 
-func initSubReq(subscription subscriptionPartition) *pb.SubscribeRequest {
+func initSubReqCommit(subscription subscriptionPartition) *pb.SubscribeRequest {
 	return &pb.SubscribeRequest{
 		Request: &pb.SubscribeRequest_Initial{
 			Initial: &pb.InitialSubscribeRequest{
 				Subscription: subscription.Path,
 				Partition:    int64(subscription.Partition),
+				InitialLocation: &pb.SeekRequest{
+					Target: &pb.SeekRequest_NamedTarget_{
+						NamedTarget: pb.SeekRequest_COMMITTED_CURSOR,
+					},
+				},
+			},
+		},
+	}
+}
+
+func initSubReqCursor(subscription subscriptionPartition, offset int64) *pb.SubscribeRequest {
+	return &pb.SubscribeRequest{
+		Request: &pb.SubscribeRequest_Initial{
+			Initial: &pb.InitialSubscribeRequest{
+				Subscription: subscription.Path,
+				Partition:    int64(subscription.Partition),
+				InitialLocation: &pb.SeekRequest{
+					Target: &pb.SeekRequest_Cursor{
+						Cursor: &pb.Cursor{Offset: offset},
+					},
+				},
 			},
 		},
 	}
@@ -149,18 +170,6 @@ func initSubResp() *pb.SubscribeResponse {
 	return &pb.SubscribeResponse{
 		Response: &pb.SubscribeResponse_Initial{
 			Initial: &pb.InitialSubscribeResponse{},
-		},
-	}
-}
-
-func seekReq(offset int64) *pb.SubscribeRequest {
-	return &pb.SubscribeRequest{
-		Request: &pb.SubscribeRequest_Seek{
-			Seek: &pb.SeekRequest{
-				Target: &pb.SeekRequest_Cursor{
-					Cursor: &pb.Cursor{Offset: offset},
-				},
-			},
 		},
 	}
 }

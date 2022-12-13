@@ -26,13 +26,13 @@ import (
 	"time"
 
 	vkit "cloud.google.com/go/spanner/apiv1"
+	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
 	. "cloud.google.com/go/spanner/internal/testutil"
 	"github.com/golang/protobuf/proto"
 	proto3 "github.com/golang/protobuf/ptypes/struct"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
-	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -151,11 +151,6 @@ var (
 		},
 	}
 )
-
-// String implements fmt.stringer.
-func (r *Row) String() string {
-	return fmt.Sprintf("{fields: %s, val: %s}", r.fields, r.vals)
-}
 
 func describeRows(l []*Row) string {
 	// generate a nice test failure description

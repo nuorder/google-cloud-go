@@ -30,10 +30,11 @@ import (
 	"testing"
 	"time"
 
+	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
 	. "cloud.google.com/go/spanner/internal/testutil"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/api/iterator"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
-	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -41,7 +42,8 @@ import (
 func newSessionNotFoundError(name string) error {
 	s := status.Newf(codes.NotFound, "Session not found: Session with id %s not found", name)
 	s, _ = s.WithDetails(&errdetails.ResourceInfo{ResourceType: sessionResourceType, ResourceName: name})
-	return s.Err()
+	err, _ := apierror.FromError(s.Err())
+	return err
 }
 
 // TestSessionPoolConfigValidation tests session pool config validation.
@@ -415,10 +417,6 @@ func TestTakeFromIdleListChecked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get session: %v", err)
 	}
-	ds := server.TestSpanner.DumpSessions()
-	if g, w := uint64(len(ds)), sp.incStep-1; g != w {
-		t.Fatalf("number of sessions from mock server mismatch\nGot: %v\nWant: %v\n", g, w)
-	}
 	if sh.getID() == wantSid {
 		t.Fatalf("sessionPool.Take still returns the same session %v, want it to create a new one", wantSid)
 	}
@@ -491,10 +489,6 @@ func TestTakeFromIdleWriteListChecked(t *testing.T) {
 	sh, err = sp.takeWriteSession(ctx)
 	if err != nil {
 		t.Fatalf("failed to get session: %v", err)
-	}
-	ds := server.TestSpanner.DumpSessions()
-	if g, w := uint64(len(ds)), sp.incStep-1; g != w {
-		t.Fatalf("number of sessions from mock server mismatch\nGot: %v\nWant: %v\n", g, w)
 	}
 	if sh.getID() == wantSid {
 		t.Fatalf("sessionPool.Take still returns the same session %v, want it to create a new one", wantSid)
@@ -1128,7 +1122,7 @@ func TestErrorOnPrepareSession(t *testing.T) {
 					WriteSessions:       0.5,
 					HealthCheckInterval: time.Millisecond,
 				},
-				logger: logger,
+				Logger: logger,
 			})
 		defer teardown()
 		// Discard logging until trying to prepare sessions has stopped.
@@ -1138,6 +1132,16 @@ func TestErrorOnPrepareSession(t *testing.T) {
 			KeepError: true,
 		})
 		sp := client.idleSessions
+
+		// Wait until session creation has seized.
+		waitFor(t, func() error {
+			sp.mu.Lock()
+			defer sp.mu.Unlock()
+			if sp.createReqs != 0 {
+				return fmt.Errorf("%d sessions are still in creation", sp.createReqs)
+			}
+			return nil
+		})
 
 		// Wait until the health checker has tried to write-prepare a session.
 		// This will cause the session pool to write some errors to the log that
@@ -1240,7 +1244,7 @@ func TestSessionNotFoundOnPrepareSession(t *testing.T) {
 				HealthCheckInterval:       time.Millisecond,
 				healthCheckSampleInterval: time.Millisecond,
 			},
-			logger: logger,
+			Logger: logger,
 		})
 	defer teardown()
 	// Discard logging until trying to prepare sessions has stopped.
@@ -1355,18 +1359,18 @@ func TestSessionHealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot get session from session pool: %v", err)
 	}
-	sp.close()
+	sp.close(context.Background())
 	if sh.session.isValid() {
 		t.Fatalf("session(%v) is still alive, want it to be garbage collected", s)
 	}
 }
 
 // TestStressSessionPool does stress test on session pool by the following concurrent operations:
-//	1) Test worker gets a session from the pool.
-//	2) Test worker turns a session back into the pool.
-//	3) Test worker destroys a session got from the pool.
-//	4) Healthcheck destroys a broken session (because a worker has already destroyed it).
-//	5) Test worker closes the session pool.
+//  1. Test worker gets a session from the pool.
+//  2. Test worker turns a session back into the pool.
+//  3. Test worker destroys a session got from the pool.
+//  4. Healthcheck destroys a broken session (because a worker has already destroyed it).
+//  5. Test worker closes the session pool.
 //
 // During the test, the session pool maintainer maintains the number of sessions,
 // and it is expected that all sessions that are taken from session pool remains valid.
@@ -1454,7 +1458,7 @@ func TestStressSessionPool(t *testing.T) {
 				t.Fatalf("%v: session in healthcheck queue (%v) was not found on server", ti, id)
 			}
 		}
-		sp.close()
+		sp.close(context.Background())
 		mockSessions = server.TestSpanner.DumpSessions()
 		for id, b := range hcSessions {
 			if b && mockSessions[id] {
@@ -1477,7 +1481,7 @@ func testStressSessionPool(t *testing.T, cfg SessionPoolConfig, ti int, idx int,
 		if idx%10 == 0 && j >= 900 {
 			// Close the pool in selected set of workers during the
 			// middle of the test.
-			pool.close()
+			pool.close(context.Background())
 		}
 		// Take a write sessions ~ 20% of the times.
 		takeWrite := rand.Intn(5) == 4
@@ -1533,10 +1537,10 @@ func testStressSessionPool(t *testing.T, cfg SessionPoolConfig, ti int, idx int,
 // TestMaintainer checks the session pool maintainer maintains the number of
 // sessions in the following cases:
 //
-// 1. On initialization of session pool, replenish session pool to meet
-//    MinOpened or MaxIdle.
-// 2. On increased session usage, provision extra MaxIdle sessions.
-// 3. After the surge passes, scale down the session pool accordingly.
+//  1. On initialization of session pool, replenish session pool to meet
+//     MinOpened or MaxIdle.
+//  2. On increased session usage, provision extra MaxIdle sessions.
+//  3. After the surge passes, scale down the session pool accordingly.
 func TestMaintainer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -1968,7 +1972,8 @@ func getSessionsPerChannel(sp *sessionPool) map[string]int {
 		// Get the pointer to the actual underlying gRPC ClientConn and use
 		// that as the key in the map.
 		val := reflect.ValueOf(s.client).Elem()
-		connPool := val.FieldByName("connPool").Elem().Elem()
+		internalClient := val.FieldByName("internalClient").Elem().Elem()
+		connPool := internalClient.FieldByName("connPool").Elem().Elem()
 		conn := connPool.Field(0).Pointer()
 		key := fmt.Sprintf("%v", conn)
 		sessionsPerChannel[key] = sessionsPerChannel[key] + 1

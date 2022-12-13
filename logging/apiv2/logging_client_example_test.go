@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,29 +21,43 @@ import (
 	"io"
 
 	logging "cloud.google.com/go/logging/apiv2"
+	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"google.golang.org/api/iterator"
-	loggingpb "google.golang.org/genproto/googleapis/logging/v2"
 )
 
 func ExampleNewClient() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
+
 	// TODO: Use client.
 	_ = c
 }
 
 func ExampleClient_DeleteLog() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &loggingpb.DeleteLogRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/logging/apiv2/loggingpb#DeleteLogRequest.
 	}
 	err = c.DeleteLog(ctx, req)
 	if err != nil {
@@ -52,16 +66,21 @@ func ExampleClient_DeleteLog() {
 }
 
 func ExampleClient_WriteLogEntries() {
-	// import loggingpb "google.golang.org/genproto/googleapis/logging/v2"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &loggingpb.WriteLogEntriesRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/logging/apiv2/loggingpb#WriteLogEntriesRequest.
 	}
 	resp, err := c.WriteLogEntries(ctx, req)
 	if err != nil {
@@ -72,17 +91,21 @@ func ExampleClient_WriteLogEntries() {
 }
 
 func ExampleClient_ListLogEntries() {
-	// import loggingpb "google.golang.org/genproto/googleapis/logging/v2"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &loggingpb.ListLogEntriesRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/logging/apiv2/loggingpb#ListLogEntriesRequest.
 	}
 	it := c.ListLogEntries(ctx, req)
 	for {
@@ -99,17 +122,21 @@ func ExampleClient_ListLogEntries() {
 }
 
 func ExampleClient_ListMonitoredResourceDescriptors() {
-	// import loggingpb "google.golang.org/genproto/googleapis/logging/v2"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &loggingpb.ListMonitoredResourceDescriptorsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/logging/apiv2/loggingpb#ListMonitoredResourceDescriptorsRequest.
 	}
 	it := c.ListMonitoredResourceDescriptors(ctx, req)
 	for {
@@ -126,17 +153,21 @@ func ExampleClient_ListMonitoredResourceDescriptors() {
 }
 
 func ExampleClient_ListLogs() {
-	// import loggingpb "google.golang.org/genproto/googleapis/logging/v2"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &loggingpb.ListLogsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/logging/apiv2/loggingpb#ListLogsRequest.
 	}
 	it := c.ListLogs(ctx, req)
 	for {
@@ -153,13 +184,17 @@ func ExampleClient_ListLogs() {
 }
 
 func ExampleClient_TailLogEntries() {
-	// import loggingpb "google.golang.org/genproto/googleapis/logging/v2"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := logging.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 	stream, err := c.TailLogEntries(ctx)
 	if err != nil {
 		// TODO: Handle error.

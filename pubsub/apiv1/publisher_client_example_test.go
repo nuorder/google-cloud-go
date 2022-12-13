@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,31 +20,44 @@ import (
 	"context"
 
 	pubsub "cloud.google.com/go/pubsub/apiv1"
+	pubsubpb "cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"google.golang.org/api/iterator"
-	pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
+	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 
 func ExampleNewPublisherClient() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
+
 	// TODO: Use client.
 	_ = c
 }
 
 func ExamplePublisherClient_CreateTopic() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.Topic{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#Topic.
 	}
 	resp, err := c.CreateTopic(ctx, req)
 	if err != nil {
@@ -55,16 +68,21 @@ func ExamplePublisherClient_CreateTopic() {
 }
 
 func ExamplePublisherClient_UpdateTopic() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.UpdateTopicRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#UpdateTopicRequest.
 	}
 	resp, err := c.UpdateTopic(ctx, req)
 	if err != nil {
@@ -75,16 +93,21 @@ func ExamplePublisherClient_UpdateTopic() {
 }
 
 func ExamplePublisherClient_Publish() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.PublishRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#PublishRequest.
 	}
 	resp, err := c.Publish(ctx, req)
 	if err != nil {
@@ -95,16 +118,21 @@ func ExamplePublisherClient_Publish() {
 }
 
 func ExamplePublisherClient_GetTopic() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.GetTopicRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#GetTopicRequest.
 	}
 	resp, err := c.GetTopic(ctx, req)
 	if err != nil {
@@ -115,17 +143,21 @@ func ExamplePublisherClient_GetTopic() {
 }
 
 func ExamplePublisherClient_ListTopics() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.ListTopicsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#ListTopicsRequest.
 	}
 	it := c.ListTopics(ctx, req)
 	for {
@@ -142,17 +174,21 @@ func ExamplePublisherClient_ListTopics() {
 }
 
 func ExamplePublisherClient_ListTopicSubscriptions() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.ListTopicSubscriptionsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#ListTopicSubscriptionsRequest.
 	}
 	it := c.ListTopicSubscriptions(ctx, req)
 	for {
@@ -169,17 +205,21 @@ func ExamplePublisherClient_ListTopicSubscriptions() {
 }
 
 func ExamplePublisherClient_ListTopicSnapshots() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.ListTopicSnapshotsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#ListTopicSnapshotsRequest.
 	}
 	it := c.ListTopicSnapshots(ctx, req)
 	for {
@@ -197,13 +237,20 @@ func ExamplePublisherClient_ListTopicSnapshots() {
 
 func ExamplePublisherClient_DeleteTopic() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.DeleteTopicRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#DeleteTopicRequest.
 	}
 	err = c.DeleteTopic(ctx, req)
 	if err != nil {
@@ -212,18 +259,98 @@ func ExamplePublisherClient_DeleteTopic() {
 }
 
 func ExamplePublisherClient_DetachSubscription() {
-	// import pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := pubsub.NewPublisherClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &pubsubpb.DetachSubscriptionRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/pubsub/apiv1/pubsubpb#DetachSubscriptionRequest.
 	}
 	resp, err := c.DetachSubscription(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExamplePublisherClient_GetIamPolicy() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := pubsub.NewPublisherClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &iampb.GetIamPolicyRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/iam/v1#GetIamPolicyRequest.
+	}
+	resp, err := c.GetIamPolicy(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExamplePublisherClient_SetIamPolicy() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := pubsub.NewPublisherClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &iampb.SetIamPolicyRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/iam/v1#SetIamPolicyRequest.
+	}
+	resp, err := c.SetIamPolicy(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExamplePublisherClient_TestIamPermissions() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := pubsub.NewPublisherClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &iampb.TestIamPermissionsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/iam/v1#TestIamPermissionsRequest.
+	}
+	resp, err := c.TestIamPermissions(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}

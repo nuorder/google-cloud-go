@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ import (
 	"net/url"
 	"time"
 
+	automlpb "cloud.google.com/go/automl/apiv1/automlpb"
 	"cloud.google.com/go/longrunning"
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
-	automlpb "google.golang.org/genproto/googleapis/cloud/automl/v1"
 	longrunningpb "google.golang.org/genproto/googleapis/longrunning"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -43,13 +43,13 @@ type PredictionCallOptions struct {
 	BatchPredict []gax.CallOption
 }
 
-func defaultPredictionClientOptions() []option.ClientOption {
+func defaultPredictionGRPCClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		internaloption.WithDefaultEndpoint("automl.googleapis.com:443"),
 		internaloption.WithDefaultMTLSEndpoint("automl.mtls.googleapis.com:443"),
 		internaloption.WithDefaultAudience("https://automl.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
-		option.WithGRPCDialOption(grpc.WithDisableServiceConfig()),
+		internaloption.EnableJwtWithScope(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -62,40 +62,164 @@ func defaultPredictionCallOptions() *PredictionCallOptions {
 	}
 }
 
+// internalPredictionClient is an interface that defines the methods available from Cloud AutoML API.
+type internalPredictionClient interface {
+	Close() error
+	setGoogleClientInfo(...string)
+	Connection() *grpc.ClientConn
+	Predict(context.Context, *automlpb.PredictRequest, ...gax.CallOption) (*automlpb.PredictResponse, error)
+	BatchPredict(context.Context, *automlpb.BatchPredictRequest, ...gax.CallOption) (*BatchPredictOperation, error)
+	BatchPredictOperation(name string) *BatchPredictOperation
+}
+
 // PredictionClient is a client for interacting with Cloud AutoML API.
+// Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
+//
+// AutoML Prediction API.
+//
+// On any input that is documented to expect a string parameter in
+// snake_case or dash-case, either of those cases is accepted.
+type PredictionClient struct {
+	// The internal transport-dependent client.
+	internalClient internalPredictionClient
+
+	// The call options for this service.
+	CallOptions *PredictionCallOptions
+
+	// LROClient is used internally to handle long-running operations.
+	// It is exposed so that its CallOptions can be modified if required.
+	// Users should not Close this client.
+	LROClient *lroauto.OperationsClient
+}
+
+// Wrapper methods routed to the internal client.
+
+// Close closes the connection to the API service. The user should invoke this when
+// the client is no longer required.
+func (c *PredictionClient) Close() error {
+	return c.internalClient.Close()
+}
+
+// setGoogleClientInfo sets the name and version of the application in
+// the `x-goog-api-client` header passed on each request. Intended for
+// use by Google-written clients.
+func (c *PredictionClient) setGoogleClientInfo(keyval ...string) {
+	c.internalClient.setGoogleClientInfo(keyval...)
+}
+
+// Connection returns a connection to the API service.
+//
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
+func (c *PredictionClient) Connection() *grpc.ClientConn {
+	return c.internalClient.Connection()
+}
+
+// Predict perform an online prediction. The prediction result is directly
+// returned in the response.
+// Available for following ML scenarios, and their expected request payloads:
+//
+// AutoML Vision Classification
+//
+//	An image in .JPEG, .GIF or .PNG format, image_bytes up to 30MB.
+//
+// AutoML Vision Object Detection
+//
+//	An image in .JPEG, .GIF or .PNG format, image_bytes up to 30MB.
+//
+// AutoML Natural Language Classification
+//
+//	A TextSnippet up to 60,000 characters, UTF-8 encoded or a document in
+//	.PDF, .TIF or .TIFF format with size upto 2MB.
+//
+// AutoML Natural Language Entity Extraction
+//
+//	A TextSnippet up to 10,000 characters, UTF-8 NFC encoded or a document
+//	in .PDF, .TIF or .TIFF format with size upto 20MB.
+//
+// AutoML Natural Language Sentiment Analysis
+//
+//	A TextSnippet up to 60,000 characters, UTF-8 encoded or a document in
+//	.PDF, .TIF or .TIFF format with size upto 2MB.
+//
+// AutoML Translation
+//
+//	A TextSnippet up to 25,000 characters, UTF-8 encoded.
+//
+// AutoML Tables
+//
+//	A row with column values matching
+//	the columns of the model, up to 5MB. Not available for FORECASTING
+//	prediction_type.
+func (c *PredictionClient) Predict(ctx context.Context, req *automlpb.PredictRequest, opts ...gax.CallOption) (*automlpb.PredictResponse, error) {
+	return c.internalClient.Predict(ctx, req, opts...)
+}
+
+// BatchPredict perform a batch prediction. Unlike the online Predict, batch
+// prediction result won’t be immediately available in the response. Instead,
+// a long running operation object is returned. User can poll the operation
+// result via GetOperation
+// method. Once the operation is done, BatchPredictResult is returned in
+// the response field.
+// Available for following ML scenarios:
+//
+//	AutoML Vision Classification
+//
+//	AutoML Vision Object Detection
+//
+//	AutoML Video Intelligence Classification
+//
+//	AutoML Video Intelligence Object Tracking * AutoML Natural Language Classification
+//
+//	AutoML Natural Language Entity Extraction
+//
+//	AutoML Natural Language Sentiment Analysis
+//
+//	AutoML Tables
+func (c *PredictionClient) BatchPredict(ctx context.Context, req *automlpb.BatchPredictRequest, opts ...gax.CallOption) (*BatchPredictOperation, error) {
+	return c.internalClient.BatchPredict(ctx, req, opts...)
+}
+
+// BatchPredictOperation returns a new BatchPredictOperation from a given name.
+// The name must be that of a previously created BatchPredictOperation, possibly from a different process.
+func (c *PredictionClient) BatchPredictOperation(name string) *BatchPredictOperation {
+	return c.internalClient.BatchPredictOperation(name)
+}
+
+// predictionGRPCClient is a client for interacting with Cloud AutoML API over gRPC transport.
 //
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
-type PredictionClient struct {
+type predictionGRPCClient struct {
 	// Connection pool of gRPC connections to the service.
 	connPool gtransport.ConnPool
 
 	// flag to opt out of default deadlines via GOOGLE_API_GO_EXPERIMENTAL_DISABLE_DEFAULT_DEADLINE
 	disableDeadlines bool
 
+	// Points back to the CallOptions field of the containing PredictionClient
+	CallOptions **PredictionCallOptions
+
 	// The gRPC API client.
 	predictionClient automlpb.PredictionServiceClient
 
-	// LROClient is used internally to handle longrunning operations.
+	// LROClient is used internally to handle long-running operations.
 	// It is exposed so that its CallOptions can be modified if required.
 	// Users should not Close this client.
-	LROClient *lroauto.OperationsClient
-
-	// The call options for this service.
-	CallOptions *PredictionCallOptions
+	LROClient **lroauto.OperationsClient
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogMetadata metadata.MD
 }
 
-// NewPredictionClient creates a new prediction service client.
+// NewPredictionClient creates a new prediction service client based on gRPC.
+// The returned client must be Closed when it is done being used to clean up its underlying connections.
 //
 // AutoML Prediction API.
 //
 // On any input that is documented to expect a string parameter in
-// snake_case or kebab-case, either of those cases is accepted.
+// snake_case or dash-case, either of those cases is accepted.
 func NewPredictionClient(ctx context.Context, opts ...option.ClientOption) (*PredictionClient, error) {
-	clientOpts := defaultPredictionClientOptions()
-
+	clientOpts := defaultPredictionGRPCClientOptions()
 	if newPredictionClientHook != nil {
 		hookOpts, err := newPredictionClientHook(ctx, clientHookParams{})
 		if err != nil {
@@ -113,16 +237,19 @@ func NewPredictionClient(ctx context.Context, opts ...option.ClientOption) (*Pre
 	if err != nil {
 		return nil, err
 	}
-	c := &PredictionClient{
+	client := PredictionClient{CallOptions: defaultPredictionCallOptions()}
+
+	c := &predictionGRPCClient{
 		connPool:         connPool,
 		disableDeadlines: disableDeadlines,
-		CallOptions:      defaultPredictionCallOptions(),
-
 		predictionClient: automlpb.NewPredictionServiceClient(connPool),
+		CallOptions:      &client.CallOptions,
 	}
 	c.setGoogleClientInfo()
 
-	c.LROClient, err = lroauto.NewOperationsClient(ctx, gtransport.WithConnPool(connPool))
+	client.internalClient = c
+
+	client.LROClient, err = lroauto.NewOperationsClient(ctx, gtransport.WithConnPool(connPool))
 	if err != nil {
 		// This error "should not happen", since we are just reusing old connection pool
 		// and never actually need to dial.
@@ -132,76 +259,43 @@ func NewPredictionClient(ctx context.Context, opts ...option.ClientOption) (*Pre
 		// TODO: investigate error conditions.
 		return nil, err
 	}
-	return c, nil
+	c.LROClient = &client.LROClient
+	return &client, nil
 }
 
 // Connection returns a connection to the API service.
 //
-// Deprecated.
-func (c *PredictionClient) Connection() *grpc.ClientConn {
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
+func (c *predictionGRPCClient) Connection() *grpc.ClientConn {
 	return c.connPool.Conn()
-}
-
-// Close closes the connection to the API service. The user should invoke this when
-// the client is no longer required.
-func (c *PredictionClient) Close() error {
-	return c.connPool.Close()
 }
 
 // setGoogleClientInfo sets the name and version of the application in
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
-func (c *PredictionClient) setGoogleClientInfo(keyval ...string) {
+func (c *predictionGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", versionGo()}, keyval...)
-	kv = append(kv, "gapic", versionClient, "gax", gax.Version, "grpc", grpc.Version)
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
 	c.xGoogMetadata = metadata.Pairs("x-goog-api-client", gax.XGoogHeader(kv...))
 }
 
-// Predict perform an online prediction. The prediction result is directly
-// returned in the response.
-// Available for following ML scenarios, and their expected request payloads:
-//
-// AutoML Vision Classification
-//
-//   An image in .JPEG, .GIF or .PNG format, image_bytes up to 30MB.
-//
-// AutoML Vision Object Detection
-//
-//   An image in .JPEG, .GIF or .PNG format, image_bytes up to 30MB.
-//
-// AutoML Natural Language Classification
-//
-//   A TextSnippet up to 60,000 characters, UTF-8 encoded or a document in
-//   .PDF, .TIF or .TIFF format with size upto 2MB.
-//
-// AutoML Natural Language Entity Extraction
-//
-//   A TextSnippet up to 10,000 characters, UTF-8 NFC encoded or a document
-//   in .PDF, .TIF or .TIFF format with size upto 20MB.
-//
-// AutoML Natural Language Sentiment Analysis
-//
-//   A TextSnippet up to 60,000 characters, UTF-8 encoded or a document in
-//   .PDF, .TIF or .TIFF format with size upto 2MB.
-//
-// AutoML Translation
-//
-//   A TextSnippet up to 25,000 characters, UTF-8 encoded.
-//
-// AutoML Tables
-//
-//   A row with column values matching
-//   the columns of the model, up to 5MB. Not available for FORECASTING
-//   prediction_type.
-func (c *PredictionClient) Predict(ctx context.Context, req *automlpb.PredictRequest, opts ...gax.CallOption) (*automlpb.PredictResponse, error) {
+// Close closes the connection to the API service. The user should invoke this when
+// the client is no longer required.
+func (c *predictionGRPCClient) Close() error {
+	return c.connPool.Close()
+}
+
+func (c *predictionGRPCClient) Predict(ctx context.Context, req *automlpb.PredictRequest, opts ...gax.CallOption) (*automlpb.PredictResponse, error) {
 	if _, ok := ctx.Deadline(); !ok && !c.disableDeadlines {
 		cctx, cancel := context.WithTimeout(ctx, 60000*time.Millisecond)
 		defer cancel()
 		ctx = cctx
 	}
 	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName())))
+
 	ctx = insertMetadata(ctx, c.xGoogMetadata, md)
-	opts = append(c.CallOptions.Predict[0:len(c.CallOptions.Predict):len(c.CallOptions.Predict)], opts...)
+	opts = append((*c.CallOptions).Predict[0:len((*c.CallOptions).Predict):len((*c.CallOptions).Predict)], opts...)
 	var resp *automlpb.PredictResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
@@ -214,36 +308,16 @@ func (c *PredictionClient) Predict(ctx context.Context, req *automlpb.PredictReq
 	return resp, nil
 }
 
-// BatchPredict perform a batch prediction. Unlike the online Predict, batch
-// prediction result won’t be immediately available in the response. Instead,
-// a long running operation object is returned. User can poll the operation
-// result via GetOperation
-// method. Once the operation is done, BatchPredictResult is returned in
-// the response field.
-// Available for following ML scenarios:
-//
-//   AutoML Vision Classification
-//
-//   AutoML Vision Object Detection
-//
-//   AutoML Video Intelligence Classification
-//
-//   AutoML Video Intelligence Object Tracking * AutoML Natural Language Classification
-//
-//   AutoML Natural Language Entity Extraction
-//
-//   AutoML Natural Language Sentiment Analysis
-//
-//   AutoML Tables
-func (c *PredictionClient) BatchPredict(ctx context.Context, req *automlpb.BatchPredictRequest, opts ...gax.CallOption) (*BatchPredictOperation, error) {
+func (c *predictionGRPCClient) BatchPredict(ctx context.Context, req *automlpb.BatchPredictRequest, opts ...gax.CallOption) (*BatchPredictOperation, error) {
 	if _, ok := ctx.Deadline(); !ok && !c.disableDeadlines {
 		cctx, cancel := context.WithTimeout(ctx, 60000*time.Millisecond)
 		defer cancel()
 		ctx = cctx
 	}
 	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName())))
+
 	ctx = insertMetadata(ctx, c.xGoogMetadata, md)
-	opts = append(c.CallOptions.BatchPredict[0:len(c.CallOptions.BatchPredict):len(c.CallOptions.BatchPredict)], opts...)
+	opts = append((*c.CallOptions).BatchPredict[0:len((*c.CallOptions).BatchPredict):len((*c.CallOptions).BatchPredict)], opts...)
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
@@ -254,7 +328,7 @@ func (c *PredictionClient) BatchPredict(ctx context.Context, req *automlpb.Batch
 		return nil, err
 	}
 	return &BatchPredictOperation{
-		lro: longrunning.InternalNewOperation(c.LROClient, resp),
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
 }
 
@@ -265,9 +339,9 @@ type BatchPredictOperation struct {
 
 // BatchPredictOperation returns a new BatchPredictOperation from a given name.
 // The name must be that of a previously created BatchPredictOperation, possibly from a different process.
-func (c *PredictionClient) BatchPredictOperation(name string) *BatchPredictOperation {
+func (c *predictionGRPCClient) BatchPredictOperation(name string) *BatchPredictOperation {
 	return &BatchPredictOperation{
-		lro: longrunning.InternalNewOperation(c.LROClient, &longrunningpb.Operation{Name: name}),
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 	}
 }
 

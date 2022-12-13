@@ -20,10 +20,11 @@ Package spannertest contains test helpers for working with Cloud Spanner.
 This package is EXPERIMENTAL, and is lacking several features. See the README.md
 file in this directory for more details.
 
-In-memory fake
+# In-memory fake
 
 This package has an in-memory fake implementation of spanner. To use it,
 create a Server, and then connect to it with no security:
+
 	srv, err := spannertest.NewServer("localhost:0")
 	...
 	conn, err := grpc.DialContext(ctx, srv.Addr, grpc.WithInsecure())
@@ -33,6 +34,7 @@ create a Server, and then connect to it with no security:
 
 Alternatively, create a Server, then set the SPANNER_EMULATOR_HOST environment
 variable and use the regular spanner.NewClient:
+
 	srv, err := spannertest.NewServer("localhost:0")
 	...
 	os.Setenv("SPANNER_EMULATOR_HOST", srv.Addr)
@@ -64,13 +66,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	adminpb "cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
+	"cloud.google.com/go/spanner/apiv1/spannerpb"
 	anypb "github.com/golang/protobuf/ptypes/any"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	timestamppb "github.com/golang/protobuf/ptypes/timestamp"
 	lropb "google.golang.org/genproto/googleapis/longrunning"
-	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
-	spannerpb "google.golang.org/genproto/googleapis/spanner/v1"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner/spansql"
@@ -162,10 +164,14 @@ func newLRO(initState *lropb.Operation) *lro {
 	}
 }
 
-func (l *lro) noWait() {
+// noWait causes the LRO to stop the artificial delay when applying the operation.
+// It returns whether this was the first invocation of this method.
+func (l *lro) noWait() bool {
 	if atomic.CompareAndSwapInt32(&l.waitatom, 0, 1) {
 		close(l.waitc)
+		return true
 	}
+	return false
 }
 
 func (l *lro) State() *lropb.Operation {
@@ -247,7 +253,11 @@ func (s *server) GetOperation(ctx context.Context, req *lropb.GetOperationReques
 	}
 
 	// Someone is waiting on this LRO. Disable sleeping in its Run method.
-	lro.noWait()
+	if lro.noWait() {
+		// The sleeping has been canceled for the first time.
+		// Have a slight pause to give the LRO a chance to complete.
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	return lro.State(), nil
 }
@@ -485,8 +495,18 @@ func (s *server) readTx(ctx context.Context, session string, tsel *spannerpb.Tra
 }
 
 func (s *server) ExecuteSql(ctx context.Context, req *spannerpb.ExecuteSqlRequest) (*spannerpb.ResultSet, error) {
-	// Assume this is probably a DML statement. Queries tend to use ExecuteStreamingSql.
+	// Assume this is probably a DML statement or a ping from the session pool.
+	// Queries normally use ExecuteStreamingSql.
 	// TODO: Expand this to support more things.
+
+	// If it is a single-use transaction we assume it is a query.
+	if req.Transaction.GetSelector() == nil || req.Transaction.GetSingleUse().GetReadOnly() != nil {
+		ri, err := s.executeQuery(req)
+		if err != nil {
+			return nil, err
+		}
+		return s.resultSet(ri)
+	}
 
 	obj, ok := req.Transaction.Selector.(*spannerpb.TransactionSelector_Id)
 	if !ok {
@@ -527,15 +547,23 @@ func (s *server) ExecuteStreamingSql(req *spannerpb.ExecuteSqlRequest, stream sp
 	}
 	defer cleanup()
 
+	ri, err := s.executeQuery(req)
+	if err != nil {
+		return err
+	}
+	return s.readStream(stream.Context(), tx, stream.Send, ri)
+}
+
+func (s *server) executeQuery(req *spannerpb.ExecuteSqlRequest) (ri rowIter, err error) {
 	q, err := spansql.ParseQuery(req.Sql)
 	if err != nil {
 		// TODO: check what code the real Spanner returns here.
-		return status.Errorf(codes.InvalidArgument, "bad query: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "bad query: %v", err)
 	}
 
 	params, err := parseQueryParams(req.GetParams(), req.ParamTypes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.logf("Querying: %s", q.SQL())
@@ -543,11 +571,7 @@ func (s *server) ExecuteStreamingSql(req *spannerpb.ExecuteSqlRequest, stream sp
 		s.logf("        ▹ %v", params)
 	}
 
-	ri, err := s.db.Query(q, params)
-	if err != nil {
-		return err
-	}
-	return s.readStream(stream.Context(), tx, stream.Send, ri)
+	return s.db.Query(q, params)
 }
 
 // TODO: Read
@@ -591,21 +615,39 @@ func (s *server) StreamingRead(req *spannerpb.ReadRequest, stream spannerpb.Span
 	return s.readStream(stream.Context(), tx, stream.Send, ri)
 }
 
-func (s *server) readStream(ctx context.Context, tx *transaction, send func(*spannerpb.PartialResultSet) error, ri rowIter) error {
-	// Build the result set metadata.
-	rsm := &spannerpb.ResultSetMetadata{
-		RowType: &spannerpb.StructType{},
-		// TODO: transaction info?
+func (s *server) resultSet(ri rowIter) (*spannerpb.ResultSet, error) {
+	rsm, err := s.buildResultSetMetadata(ri)
+	if err != nil {
+		return nil, err
 	}
-	for _, ci := range ri.Cols() {
-		st, err := spannerTypeFromType(ci.Type)
-		if err != nil {
-			return err
+	rs := &spannerpb.ResultSet{
+		Metadata: rsm,
+	}
+	for {
+		row, err := ri.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
 		}
-		rsm.RowType.Fields = append(rsm.RowType.Fields, &spannerpb.StructType_Field{
-			Name: string(ci.Name),
-			Type: st,
-		})
+
+		values := make([]*structpb.Value, len(row))
+		for i, x := range row {
+			v, err := spannerValueFromValue(x)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = v
+		}
+		rs.Rows = append(rs.Rows, &structpb.ListValue{Values: values})
+	}
+	return rs, nil
+}
+
+func (s *server) readStream(ctx context.Context, tx *transaction, send func(*spannerpb.PartialResultSet) error, ri rowIter) error {
+	rsm, err := s.buildResultSetMetadata(ri)
+	if err != nil {
+		return err
 	}
 
 	for {
@@ -638,6 +680,25 @@ func (s *server) readStream(ctx context.Context, tx *transaction, send func(*spa
 	}
 
 	return nil
+}
+
+func (s *server) buildResultSetMetadata(ri rowIter) (*spannerpb.ResultSetMetadata, error) {
+	// Build the result set metadata.
+	rsm := &spannerpb.ResultSetMetadata{
+		RowType: &spannerpb.StructType{},
+		// TODO: transaction info?
+	}
+	for _, ci := range ri.Cols() {
+		st, err := spannerTypeFromType(ci.Type)
+		if err != nil {
+			return nil, err
+		}
+		rsm.RowType.Fields = append(rsm.RowType.Fields, &spannerpb.StructType_Field{
+			Name: string(ci.Name),
+			Type: st,
+		})
+	}
+	return rsm, nil
 }
 
 func (s *server) BeginTransaction(ctx context.Context, req *spannerpb.BeginTransactionRequest) (*spannerpb.Transaction, error) {

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,31 +20,43 @@ import (
 	"context"
 
 	datatransfer "cloud.google.com/go/bigquery/datatransfer/apiv1"
+	datatransferpb "cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb"
 	"google.golang.org/api/iterator"
-	datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
 )
 
 func ExampleNewClient() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
+
 	// TODO: Use client.
 	_ = c
 }
 
 func ExampleClient_GetDataSource() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.GetDataSourceRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#GetDataSourceRequest.
 	}
 	resp, err := c.GetDataSource(ctx, req)
 	if err != nil {
@@ -55,17 +67,21 @@ func ExampleClient_GetDataSource() {
 }
 
 func ExampleClient_ListDataSources() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.ListDataSourcesRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#ListDataSourcesRequest.
 	}
 	it := c.ListDataSources(ctx, req)
 	for {
@@ -82,16 +98,21 @@ func ExampleClient_ListDataSources() {
 }
 
 func ExampleClient_CreateTransferConfig() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.CreateTransferConfigRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#CreateTransferConfigRequest.
 	}
 	resp, err := c.CreateTransferConfig(ctx, req)
 	if err != nil {
@@ -102,16 +123,21 @@ func ExampleClient_CreateTransferConfig() {
 }
 
 func ExampleClient_UpdateTransferConfig() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.UpdateTransferConfigRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#UpdateTransferConfigRequest.
 	}
 	resp, err := c.UpdateTransferConfig(ctx, req)
 	if err != nil {
@@ -123,13 +149,20 @@ func ExampleClient_UpdateTransferConfig() {
 
 func ExampleClient_DeleteTransferConfig() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.DeleteTransferConfigRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#DeleteTransferConfigRequest.
 	}
 	err = c.DeleteTransferConfig(ctx, req)
 	if err != nil {
@@ -138,16 +171,21 @@ func ExampleClient_DeleteTransferConfig() {
 }
 
 func ExampleClient_GetTransferConfig() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.GetTransferConfigRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#GetTransferConfigRequest.
 	}
 	resp, err := c.GetTransferConfig(ctx, req)
 	if err != nil {
@@ -158,17 +196,21 @@ func ExampleClient_GetTransferConfig() {
 }
 
 func ExampleClient_ListTransferConfigs() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.ListTransferConfigsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#ListTransferConfigsRequest.
 	}
 	it := c.ListTransferConfigs(ctx, req)
 	for {
@@ -185,16 +227,21 @@ func ExampleClient_ListTransferConfigs() {
 }
 
 func ExampleClient_ScheduleTransferRuns() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.ScheduleTransferRunsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#ScheduleTransferRunsRequest.
 	}
 	resp, err := c.ScheduleTransferRuns(ctx, req)
 	if err != nil {
@@ -205,16 +252,21 @@ func ExampleClient_ScheduleTransferRuns() {
 }
 
 func ExampleClient_StartManualTransferRuns() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.StartManualTransferRunsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#StartManualTransferRunsRequest.
 	}
 	resp, err := c.StartManualTransferRuns(ctx, req)
 	if err != nil {
@@ -225,16 +277,21 @@ func ExampleClient_StartManualTransferRuns() {
 }
 
 func ExampleClient_GetTransferRun() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.GetTransferRunRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#GetTransferRunRequest.
 	}
 	resp, err := c.GetTransferRun(ctx, req)
 	if err != nil {
@@ -246,13 +303,20 @@ func ExampleClient_GetTransferRun() {
 
 func ExampleClient_DeleteTransferRun() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.DeleteTransferRunRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#DeleteTransferRunRequest.
 	}
 	err = c.DeleteTransferRun(ctx, req)
 	if err != nil {
@@ -261,17 +325,21 @@ func ExampleClient_DeleteTransferRun() {
 }
 
 func ExampleClient_ListTransferRuns() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.ListTransferRunsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#ListTransferRunsRequest.
 	}
 	it := c.ListTransferRuns(ctx, req)
 	for {
@@ -288,17 +356,21 @@ func ExampleClient_ListTransferRuns() {
 }
 
 func ExampleClient_ListTransferLogs() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-	// import "google.golang.org/api/iterator"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.ListTransferLogsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#ListTransferLogsRequest.
 	}
 	it := c.ListTransferLogs(ctx, req)
 	for {
@@ -315,16 +387,21 @@ func ExampleClient_ListTransferLogs() {
 }
 
 func ExampleClient_CheckValidCreds() {
-	// import datatransferpb "google.golang.org/genproto/googleapis/cloud/bigquery/datatransfer/v1"
-
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := datatransfer.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	defer c.Close()
 
 	req := &datatransferpb.CheckValidCredsRequest{
 		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#CheckValidCredsRequest.
 	}
 	resp, err := c.CheckValidCreds(ctx, req)
 	if err != nil {
@@ -332,4 +409,27 @@ func ExampleClient_CheckValidCreds() {
 	}
 	// TODO: Use resp.
 	_ = resp
+}
+
+func ExampleClient_EnrollDataSources() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := datatransfer.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &datatransferpb.EnrollDataSourcesRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/datatransfer/apiv1/datatransferpb#EnrollDataSourcesRequest.
+	}
+	err = c.EnrollDataSources(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
 }
