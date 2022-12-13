@@ -20,13 +20,35 @@ import (
 	"context"
 
 	connection "cloud.google.com/go/bigquery/connection/apiv1beta1"
-	connectionpb "google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1"
+	connectionpb "cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 
 func ExampleNewClient() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	// TODO: Use client.
+	_ = c
+}
+
+func ExampleNewRESTClient() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := connection.NewRESTClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -38,6 +60,11 @@ func ExampleNewClient() {
 
 func ExampleClient_CreateConnection() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -46,7 +73,7 @@ func ExampleClient_CreateConnection() {
 
 	req := &connectionpb.CreateConnectionRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#CreateConnectionRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#CreateConnectionRequest.
 	}
 	resp, err := c.CreateConnection(ctx, req)
 	if err != nil {
@@ -58,6 +85,11 @@ func ExampleClient_CreateConnection() {
 
 func ExampleClient_GetConnection() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -66,7 +98,7 @@ func ExampleClient_GetConnection() {
 
 	req := &connectionpb.GetConnectionRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#GetConnectionRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#GetConnectionRequest.
 	}
 	resp, err := c.GetConnection(ctx, req)
 	if err != nil {
@@ -78,6 +110,11 @@ func ExampleClient_GetConnection() {
 
 func ExampleClient_ListConnections() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -86,7 +123,7 @@ func ExampleClient_ListConnections() {
 
 	req := &connectionpb.ListConnectionsRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#ListConnectionsRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#ListConnectionsRequest.
 	}
 	resp, err := c.ListConnections(ctx, req)
 	if err != nil {
@@ -98,6 +135,11 @@ func ExampleClient_ListConnections() {
 
 func ExampleClient_UpdateConnection() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -106,7 +148,7 @@ func ExampleClient_UpdateConnection() {
 
 	req := &connectionpb.UpdateConnectionRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#UpdateConnectionRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#UpdateConnectionRequest.
 	}
 	resp, err := c.UpdateConnection(ctx, req)
 	if err != nil {
@@ -118,6 +160,11 @@ func ExampleClient_UpdateConnection() {
 
 func ExampleClient_UpdateConnectionCredential() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -126,7 +173,7 @@ func ExampleClient_UpdateConnectionCredential() {
 
 	req := &connectionpb.UpdateConnectionCredentialRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#UpdateConnectionCredentialRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#UpdateConnectionCredentialRequest.
 	}
 	err = c.UpdateConnectionCredential(ctx, req)
 	if err != nil {
@@ -136,6 +183,11 @@ func ExampleClient_UpdateConnectionCredential() {
 
 func ExampleClient_DeleteConnection() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -144,7 +196,7 @@ func ExampleClient_DeleteConnection() {
 
 	req := &connectionpb.DeleteConnectionRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/google.golang.org/genproto/googleapis/cloud/bigquery/connection/v1beta1#DeleteConnectionRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/bigquery/connection/apiv1beta1/connectionpb#DeleteConnectionRequest.
 	}
 	err = c.DeleteConnection(ctx, req)
 	if err != nil {
@@ -154,6 +206,11 @@ func ExampleClient_DeleteConnection() {
 
 func ExampleClient_GetIamPolicy() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -174,6 +231,11 @@ func ExampleClient_GetIamPolicy() {
 
 func ExampleClient_SetIamPolicy() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
@@ -194,6 +256,11 @@ func ExampleClient_SetIamPolicy() {
 
 func ExampleClient_TestIamPermissions() {
 	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
 	c, err := connection.NewClient(ctx)
 	if err != nil {
 		// TODO: Handle error.

@@ -10,6 +10,11 @@
         "grpc": {
           "libraryClient": "Client",
           "rpcs": {
+            "CancelOperation": {
+              "methods": [
+                "CancelOperation"
+              ]
+            },
             "CreateChannel": {
               "methods": [
                 "CreateChannel"
@@ -35,6 +40,11 @@
                 "DeleteChannelConnection"
               ]
             },
+            "DeleteOperation": {
+              "methods": [
+                "DeleteOperation"
+              ]
+            },
             "DeleteTrigger": {
               "methods": [
                 "DeleteTrigger"
@@ -48,6 +58,31 @@
             "GetChannelConnection": {
               "methods": [
                 "GetChannelConnection"
+              ]
+            },
+            "GetGoogleChannelConfig": {
+              "methods": [
+                "GetGoogleChannelConfig"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "GetIamPolicy"
+              ]
+            },
+            "GetLocation": {
+              "methods": [
+                "GetLocation"
+              ]
+            },
+            "GetOperation": {
+              "methods": [
+                "GetOperation"
+              ]
+            },
+            "GetProvider": {
+              "methods": [
+                "GetProvider"
               ]
             },
             "GetTrigger": {
@@ -65,14 +100,44 @@
                 "ListChannels"
               ]
             },
+            "ListLocations": {
+              "methods": [
+                "ListLocations"
+              ]
+            },
+            "ListOperations": {
+              "methods": [
+                "ListOperations"
+              ]
+            },
+            "ListProviders": {
+              "methods": [
+                "ListProviders"
+              ]
+            },
             "ListTriggers": {
               "methods": [
                 "ListTriggers"
               ]
             },
+            "SetIamPolicy": {
+              "methods": [
+                "SetIamPolicy"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "TestIamPermissions"
+              ]
+            },
             "UpdateChannel": {
               "methods": [
                 "UpdateChannel"
+              ]
+            },
+            "UpdateGoogleChannelConfig": {
+              "methods": [
+                "UpdateGoogleChannelConfig"
               ]
             },
             "UpdateTrigger": {

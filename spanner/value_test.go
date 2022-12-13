@@ -27,10 +27,10 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/internal/testutil"
+	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
 	"github.com/golang/protobuf/proto"
 	proto3 "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/go-cmp/cmp"
-	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 )
 
 var (
@@ -205,6 +205,7 @@ func TestEncodeValue(t *testing.T) {
 	type CustomDate civil.Date
 	type CustomNumeric big.Rat
 	type CustomPGNumeric PGNumeric
+	type CustomPGJSONB PGJsonB
 
 	type CustomNullString NullString
 	type CustomNullInt64 NullInt64
@@ -258,6 +259,7 @@ func TestEncodeValue(t *testing.T) {
 		tNumeric   = numericType()
 		tJSON      = jsonType()
 		tPGNumeric = pgNumericType()
+		tPGJsonb   = pgJsonbType()
 	)
 	for i, test := range []struct {
 		in       interface{}
@@ -333,6 +335,13 @@ func TestEncodeValue(t *testing.T) {
 		{[]NullJSON{{msg, true}, {msg, false}}, listProto(stringProto(jsonStr), nullProto()), listType(tJSON), "[]NullJSON"},
 		{NullJSON{[]Message{}, true}, stringProto(emptyArrayJSONStr), tJSON, "a json string with empty array to NullJSON"},
 		{NullJSON{ptrMsg, true}, stringProto(nullValueJSONStr), tJSON, "a json string with null value to NullJSON"},
+		// PG JSONB
+		{PGJsonB{Value: msg, Valid: true}, stringProto(jsonStr), tPGJsonb, "PGJsonB with value"},
+		{PGJsonB{Value: msg, Valid: false}, nullProto(), tPGJsonb, "PGJsonB with null"},
+		{[]PGJsonB(nil), nullProto(), listType(tPGJsonb), "null []PGJsonB"},
+		{[]PGJsonB{{Value: msg, Valid: true}, {Value: msg, Valid: false}}, listProto(stringProto(jsonStr), nullProto()), listType(tPGJsonb), "[]PGJsonB"},
+		{PGJsonB{Value: []Message{}, Valid: true}, stringProto(emptyArrayJSONStr), tPGJsonb, "a json string with empty array to PGJsonB"},
+		{PGJsonB{Value: ptrMsg, Valid: true}, stringProto(nullValueJSONStr), tPGJsonb, "a json string with null value to PGJsonB"},
 		// PG NUMERIC
 		{PGNumeric{"123.456", true}, stringProto("123.456"), tPGNumeric, "PG Numeric"},
 		{PGNumeric{Valid: false}, nullProto(), tPGNumeric, "PG Numeric with a null value"},
@@ -459,6 +468,11 @@ func TestEncodeValue(t *testing.T) {
 		{CustomPGNumeric{Valid: false}, nullProto(), tPGNumeric, "PG Numeric with a null value"},
 		{[]CustomPGNumeric(nil), nullProto(), listType(tPGNumeric), "null []PGNumeric"},
 		{[]CustomPGNumeric{{"123.456", true}, {Valid: false}}, listProto(stringProto("123.456"), nullProto()), listType(tPGNumeric), "[]PGNumeric"},
+		// CUSTOM PG JSONB
+		{CustomPGJSONB{Value: msg, Valid: true}, stringProto(jsonStr), tPGJsonb, "CustomPGJSONB with value"},
+		{CustomPGJSONB{Value: msg, Valid: false}, nullProto(), tPGJsonb, "CustomPGJSONB with null"},
+		{[]CustomPGJSONB(nil), nullProto(), listType(tPGJsonb), "null []CustomPGJSONB"},
+		{[]CustomPGJSONB{{Value: msg, Valid: true}, {Value: msg, Valid: false}}, listProto(stringProto(jsonStr), nullProto()), listType(tPGJsonb), "[]CustomPGJSONB"},
 	} {
 		got, gotType, err := encodeValue(test.in)
 		if err != nil {
@@ -2262,6 +2276,70 @@ func TestDecodeStructWithPointers(t *testing.T) {
 		},
 	} {
 		err := decodeStruct(stype, lv[i], test.ptr, false)
+		if (err != nil) != test.fail {
+			t.Errorf("%s: got error %v, wanted fail: %v", test.desc, err, test.fail)
+		}
+		if err == nil {
+			if !testutil.Equal(test.ptr, test.want) {
+				t.Errorf("%s: got %+v, want %+v", test.desc, test.ptr, test.want)
+			}
+		}
+	}
+}
+
+func TestDecodeStructArray(t *testing.T) {
+	stype := &sppb.StructType{Fields: []*sppb.StructType_Field{
+		{Name: "C", Type: &sppb.Type{Code: sppb.TypeCode_ARRAY,
+			ArrayElementType: &sppb.Type{
+				Code: sppb.TypeCode_STRUCT,
+				StructType: &sppb.StructType{Fields: []*sppb.StructType_Field{
+					{Name: "A", Type: intType()},
+					{Name: "B", Type: intType()},
+				}},
+			},
+		},
+		},
+	},
+	}
+	lv := listValueProto(listProto(listProto(intProto(1), intProto(2))))
+
+	type (
+		// inner struct
+		S2 struct {
+			A int64 `spanner:"A"`
+		}
+
+		S1 struct {
+			C []*S2 `spanner:"C"`
+		}
+	)
+
+	var (
+		test1 S1
+		test2 S1
+	)
+	for _, test := range []struct {
+		desc    string
+		lenient bool
+		ptr     interface{}
+		want    interface{}
+		fail    bool
+	}{
+		{
+			// when the Spanner returns more fields in inner struct compared to Go inner struct
+			desc:    "decode to S1 with lenient enabled",
+			ptr:     &test1,
+			want:    &S1{C: []*S2{{A: 1}}},
+			lenient: true,
+		},
+		{
+			desc:    "decode to S1 with lenient disabled",
+			ptr:     &test2,
+			fail:    true,
+			lenient: false,
+		},
+	} {
+		err := decodeStruct(stype, lv, test.ptr, test.lenient)
 		if (err != nil) != test.fail {
 			t.Errorf("%s: got error %v, wanted fail: %v", test.desc, err, test.fail)
 		}

@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/doc"
 	"go/format"
 	"go/parser"
 	"go/printer"
@@ -34,7 +35,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/godocfx/pkgload"
-	"cloud.google.com/go/third_party/go/doc"
 	"golang.org/x/sys/execabs"
 	"google.golang.org/genproto/googleapis/gapic/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -132,6 +132,11 @@ func processExamples(pkg *doc.Package, fset *token.FileSet, trimPrefix, rootDir,
 	apiInfo, err := buildAPIInfo(rootDir, trimmed, apiShortnames, pkg, version)
 	if err != nil {
 		return []error{err}
+	}
+	if apiInfo == nil {
+		// There was no gapic_metadata.json, skip processing examples for
+		// non gapic lib.
+		return nil
 	}
 
 	regionTags := apiInfo.RegionTags()

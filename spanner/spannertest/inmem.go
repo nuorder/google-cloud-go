@@ -20,10 +20,11 @@ Package spannertest contains test helpers for working with Cloud Spanner.
 This package is EXPERIMENTAL, and is lacking several features. See the README.md
 file in this directory for more details.
 
-In-memory fake
+# In-memory fake
 
 This package has an in-memory fake implementation of spanner. To use it,
 create a Server, and then connect to it with no security:
+
 	srv, err := spannertest.NewServer("localhost:0")
 	...
 	conn, err := grpc.DialContext(ctx, srv.Addr, grpc.WithInsecure())
@@ -33,6 +34,7 @@ create a Server, and then connect to it with no security:
 
 Alternatively, create a Server, then set the SPANNER_EMULATOR_HOST environment
 variable and use the regular spanner.NewClient:
+
 	srv, err := spannertest.NewServer("localhost:0")
 	...
 	os.Setenv("SPANNER_EMULATOR_HOST", srv.Addr)
@@ -64,13 +66,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	adminpb "cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
+	"cloud.google.com/go/spanner/apiv1/spannerpb"
 	anypb "github.com/golang/protobuf/ptypes/any"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	timestamppb "github.com/golang/protobuf/ptypes/timestamp"
 	lropb "google.golang.org/genproto/googleapis/longrunning"
-	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
-	spannerpb "google.golang.org/genproto/googleapis/spanner/v1"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner/spansql"

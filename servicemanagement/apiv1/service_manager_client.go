@@ -25,13 +25,13 @@ import (
 
 	"cloud.google.com/go/longrunning"
 	lroauto "cloud.google.com/go/longrunning/autogen"
+	servicemanagementpb "cloud.google.com/go/servicemanagement/apiv1/servicemanagementpb"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
 	serviceconfigpb "google.golang.org/genproto/googleapis/api/serviceconfig"
-	servicemanagementpb "google.golang.org/genproto/googleapis/api/servicemanagement/v1"
 	longrunningpb "google.golang.org/genproto/googleapis/longrunning"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -87,7 +87,7 @@ func defaultServiceManagerCallOptions() *ServiceManagerCallOptions {
 	}
 }
 
-// internalServiceManagerClient is an interface that defines the methods availaible from Service Management API.
+// internalServiceManagerClient is an interface that defines the methods available from Service Management API.
 type internalServiceManagerClient interface {
 	Close() error
 	setGoogleClientInfo(...string)
@@ -115,7 +115,8 @@ type internalServiceManagerClient interface {
 // ServiceManagerClient is a client for interacting with Service Management API.
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 //
-// Google Service Management API (at /service-management/overview)
+// Google Service Management
+// API (at https://cloud.google.com/service-infrastructure/docs/overview)
 type ServiceManagerClient struct {
 	// The internal transport-dependent client.
 	internalClient internalServiceManagerClient
@@ -146,7 +147,8 @@ func (c *ServiceManagerClient) setGoogleClientInfo(keyval ...string) {
 
 // Connection returns a connection to the API service.
 //
-// Deprecated.
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
 func (c *ServiceManagerClient) Connection() *grpc.ClientConn {
 	return c.internalClient.Connection()
 }
@@ -189,8 +191,10 @@ func (c *ServiceManagerClient) CreateServiceOperation(name string) *CreateServic
 
 // DeleteService deletes a managed service. This method will change the service to the
 // Soft-Delete state for 30 days. Within this period, service producers may
-// call UndeleteService to restore the service.
-// After 30 days, the service will be permanently deleted.
+// call
+// UndeleteService
+// to restore the service. After 30 days, the service will be permanently
+// deleted.
 //
 // Operation<response: google.protobuf.Empty>
 func (c *ServiceManagerClient) DeleteService(ctx context.Context, req *servicemanagementpb.DeleteServiceRequest, opts ...gax.CallOption) (*DeleteServiceOperation, error) {
@@ -248,7 +252,8 @@ func (c *ServiceManagerClient) CreateServiceConfig(ctx context.Context, req *ser
 // Specification). This method stores the source configurations as well as the
 // generated service configuration. To rollout the service configuration to
 // other services,
-// please call CreateServiceRollout.
+// please call
+// CreateServiceRollout.
 //
 // Only the 100 most recent configuration sources and ones referenced by
 // existing service configurtions are kept for each service. The rest will be
@@ -271,7 +276,8 @@ func (c *ServiceManagerClient) ListServiceRollouts(ctx context.Context, req *ser
 	return c.internalClient.ListServiceRollouts(ctx, req, opts...)
 }
 
-// GetServiceRollout gets a service configuration rollout.
+// GetServiceRollout gets a service configuration
+// rollout.
 func (c *ServiceManagerClient) GetServiceRollout(ctx context.Context, req *servicemanagementpb.GetServiceRolloutRequest, opts ...gax.CallOption) (*servicemanagementpb.Rollout, error) {
 	return c.internalClient.GetServiceRollout(ctx, req, opts...)
 }
@@ -343,7 +349,8 @@ type serviceManagerGRPCClient struct {
 // NewServiceManagerClient creates a new service manager client based on gRPC.
 // The returned client must be Closed when it is done being used to clean up its underlying connections.
 //
-// Google Service Management API (at /service-management/overview)
+// Google Service Management
+// API (at https://cloud.google.com/service-infrastructure/docs/overview)
 func NewServiceManagerClient(ctx context.Context, opts ...option.ClientOption) (*ServiceManagerClient, error) {
 	clientOpts := defaultServiceManagerGRPCClientOptions()
 	if newServiceManagerClientHook != nil {
@@ -391,7 +398,8 @@ func NewServiceManagerClient(ctx context.Context, opts ...option.ClientOption) (
 
 // Connection returns a connection to the API service.
 //
-// Deprecated.
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
 func (c *serviceManagerGRPCClient) Connection() *grpc.ClientConn {
 	return c.connPool.Conn()
 }

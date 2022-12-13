@@ -23,11 +23,11 @@ import (
 	"net/url"
 	"time"
 
+	publishingpb "cloud.google.com/go/eventarc/publishing/apiv1/publishingpb"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
-	publisherpb "google.golang.org/genproto/googleapis/cloud/eventarc/publishing/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -37,6 +37,7 @@ var newPublisherClientHook clientHook
 // PublisherCallOptions contains the retry settings for each method of PublisherClient.
 type PublisherCallOptions struct {
 	PublishChannelConnectionEvents []gax.CallOption
+	PublishEvents                  []gax.CallOption
 }
 
 func defaultPublisherGRPCClientOptions() []option.ClientOption {
@@ -54,15 +55,17 @@ func defaultPublisherGRPCClientOptions() []option.ClientOption {
 func defaultPublisherCallOptions() *PublisherCallOptions {
 	return &PublisherCallOptions{
 		PublishChannelConnectionEvents: []gax.CallOption{},
+		PublishEvents:                  []gax.CallOption{},
 	}
 }
 
-// internalPublisherClient is an interface that defines the methods availaible from Eventarc Publishing API.
+// internalPublisherClient is an interface that defines the methods available from Eventarc Publishing API.
 type internalPublisherClient interface {
 	Close() error
 	setGoogleClientInfo(...string)
 	Connection() *grpc.ClientConn
-	PublishChannelConnectionEvents(context.Context, *publisherpb.PublishChannelConnectionEventsRequest, ...gax.CallOption) (*publisherpb.PublishChannelConnectionEventsResponse, error)
+	PublishChannelConnectionEvents(context.Context, *publishingpb.PublishChannelConnectionEventsRequest, ...gax.CallOption) (*publishingpb.PublishChannelConnectionEventsResponse, error)
+	PublishEvents(context.Context, *publishingpb.PublishEventsRequest, ...gax.CallOption) (*publishingpb.PublishEventsResponse, error)
 }
 
 // PublisherClient is a client for interacting with Eventarc Publishing API.
@@ -117,14 +120,20 @@ func (c *PublisherClient) setGoogleClientInfo(keyval ...string) {
 
 // Connection returns a connection to the API service.
 //
-// Deprecated.
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
 func (c *PublisherClient) Connection() *grpc.ClientConn {
 	return c.internalClient.Connection()
 }
 
 // PublishChannelConnectionEvents publish events to a ChannelConnection in a partner’s project.
-func (c *PublisherClient) PublishChannelConnectionEvents(ctx context.Context, req *publisherpb.PublishChannelConnectionEventsRequest, opts ...gax.CallOption) (*publisherpb.PublishChannelConnectionEventsResponse, error) {
+func (c *PublisherClient) PublishChannelConnectionEvents(ctx context.Context, req *publishingpb.PublishChannelConnectionEventsRequest, opts ...gax.CallOption) (*publishingpb.PublishChannelConnectionEventsResponse, error) {
 	return c.internalClient.PublishChannelConnectionEvents(ctx, req, opts...)
+}
+
+// PublishEvents publish events to a subscriber’s channel.
+func (c *PublisherClient) PublishEvents(ctx context.Context, req *publishingpb.PublishEventsRequest, opts ...gax.CallOption) (*publishingpb.PublishEventsResponse, error) {
+	return c.internalClient.PublishEvents(ctx, req, opts...)
 }
 
 // publisherGRPCClient is a client for interacting with Eventarc Publishing API over gRPC transport.
@@ -141,7 +150,7 @@ type publisherGRPCClient struct {
 	CallOptions **PublisherCallOptions
 
 	// The gRPC API client.
-	publisherClient publisherpb.PublisherClient
+	publisherClient publishingpb.PublisherClient
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogMetadata metadata.MD
@@ -198,7 +207,7 @@ func NewPublisherClient(ctx context.Context, opts ...option.ClientOption) (*Publ
 	c := &publisherGRPCClient{
 		connPool:         connPool,
 		disableDeadlines: disableDeadlines,
-		publisherClient:  publisherpb.NewPublisherClient(connPool),
+		publisherClient:  publishingpb.NewPublisherClient(connPool),
 		CallOptions:      &client.CallOptions,
 	}
 	c.setGoogleClientInfo()
@@ -210,7 +219,8 @@ func NewPublisherClient(ctx context.Context, opts ...option.ClientOption) (*Publ
 
 // Connection returns a connection to the API service.
 //
-// Deprecated.
+// Deprecated: Connections are now pooled so this method does not always
+// return the same resource.
 func (c *publisherGRPCClient) Connection() *grpc.ClientConn {
 	return c.connPool.Conn()
 }
@@ -230,7 +240,7 @@ func (c *publisherGRPCClient) Close() error {
 	return c.connPool.Close()
 }
 
-func (c *publisherGRPCClient) PublishChannelConnectionEvents(ctx context.Context, req *publisherpb.PublishChannelConnectionEventsRequest, opts ...gax.CallOption) (*publisherpb.PublishChannelConnectionEventsResponse, error) {
+func (c *publisherGRPCClient) PublishChannelConnectionEvents(ctx context.Context, req *publishingpb.PublishChannelConnectionEventsRequest, opts ...gax.CallOption) (*publishingpb.PublishChannelConnectionEventsResponse, error) {
 	if _, ok := ctx.Deadline(); !ok && !c.disableDeadlines {
 		cctx, cancel := context.WithTimeout(ctx, 60000*time.Millisecond)
 		defer cancel()
@@ -240,10 +250,27 @@ func (c *publisherGRPCClient) PublishChannelConnectionEvents(ctx context.Context
 
 	ctx = insertMetadata(ctx, c.xGoogMetadata, md)
 	opts = append((*c.CallOptions).PublishChannelConnectionEvents[0:len((*c.CallOptions).PublishChannelConnectionEvents):len((*c.CallOptions).PublishChannelConnectionEvents)], opts...)
-	var resp *publisherpb.PublishChannelConnectionEventsResponse
+	var resp *publishingpb.PublishChannelConnectionEventsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
 		resp, err = c.publisherClient.PublishChannelConnectionEvents(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *publisherGRPCClient) PublishEvents(ctx context.Context, req *publishingpb.PublishEventsRequest, opts ...gax.CallOption) (*publishingpb.PublishEventsResponse, error) {
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "channel", url.QueryEscape(req.GetChannel())))
+
+	ctx = insertMetadata(ctx, c.xGoogMetadata, md)
+	opts = append((*c.CallOptions).PublishEvents[0:len((*c.CallOptions).PublishEvents):len((*c.CallOptions).PublishEvents)], opts...)
+	var resp *publishingpb.PublishEventsResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.publisherClient.PublishEvents(ctx, req, settings.GRPC...)
 		return err
 	}, opts...)
 	if err != nil {
