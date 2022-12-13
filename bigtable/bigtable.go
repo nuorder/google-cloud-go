@@ -543,7 +543,7 @@ func RowFilter(f Filter) ReadOption { return rowFilter{f} }
 
 type rowFilter struct{ f Filter }
 
-func (rf rowFilter) set(settings *readSettings) { settings.req.Filter = rf.f.proto() }
+func (rf rowFilter) set(settings *readSettings) { settings.req.Filter = rf.f.Proto() }
 
 // LimitRows returns a ReadOption that will limit the number of rows to be read.
 func LimitRows(limit int64) ReadOption { return limitRows{limit} }
