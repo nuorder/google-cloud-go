@@ -1192,9 +1192,9 @@ type RowSet interface {
 	// given row key or any row key lexicographically less than it.
 	RetainRowsAfter(lastRowKey string) RowSet
 
-	// retainRowsBefore returns a new RowSet that does not include the
+	// RetainRowsBefore returns a new RowSet that does not include the
 	// given row key or any row key lexicographically greater than it.
-	retainRowsBefore(lastRowKey string) RowSet
+	RetainRowsBefore(lastRowKey string) RowSet
 
 	// Valid reports whether this set can cover at least one row.
 	Valid() bool
@@ -1416,7 +1416,7 @@ func (r RowRange) RetainRowsAfter(lastRowKey string) RowSet {
 	}
 }
 
-func (r RowRange) retainRowsBefore(lastRowKey string) RowSet {
+func (r RowRange) RetainRowsBefore(lastRowKey string) RowSet {
 	if lastRowKey == "" || (r.endBound != rangeUnbounded && r.end < lastRowKey) {
 		return r
 	}
@@ -1474,15 +1474,15 @@ func (r RowRangeList) RetainRowsAfter(lastRowKey string) RowSet {
 	return ranges
 }
 
-func (r RowRangeList) retainRowsBefore(lastRowKey string) RowSet {
+func (r RowRangeList) RetainRowsBefore(lastRowKey string) RowSet {
 	if lastRowKey == "" {
 		return r
 	}
 	// Return a list of any range that has not yet been completely processed
 	var ranges RowRangeList
 	for _, rr := range r {
-		retained := rr.retainRowsBefore(lastRowKey)
-		if retained.valid() {
+		retained := rr.RetainRowsBefore(lastRowKey)
+		if retained.Valid() {
 			ranges = append(ranges, retained.(RowRange))
 		}
 	}
