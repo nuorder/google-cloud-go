@@ -33,7 +33,7 @@ func (t *ReadWriteTransaction) UpdateWithResultSet(ctx context.Context, stmt Sta
 	if err != nil {
 		if hasInlineBeginTransaction {
 			t.setTransactionID(nil)
-			return nil, errInlineBeginTransactionFailed()
+			return nil, errInlineBeginTransactionFailed(err)
 		}
 		return nil, ToSpannerError(err)
 	}
@@ -44,7 +44,7 @@ func (t *ReadWriteTransaction) UpdateWithResultSet(ctx context.Context, stmt Sta
 		} else {
 			//  retry with explicit begin transaction
 			t.setTransactionID(nil)
-			return nil, errInlineBeginTransactionFailed()
+			return nil, errInlineBeginTransactionFailed(err)
 		}
 	}
 	if resultSet.Stats == nil {
