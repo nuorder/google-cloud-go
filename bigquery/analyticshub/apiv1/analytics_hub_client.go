@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -32,7 +32,6 @@ import (
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -70,6 +69,13 @@ type CallOptions struct {
 	GetIamPolicy                    []gax.CallOption
 	SetIamPolicy                    []gax.CallOption
 	TestIamPermissions              []gax.CallOption
+	CreateQueryTemplate             []gax.CallOption
+	GetQueryTemplate                []gax.CallOption
+	ListQueryTemplates              []gax.CallOption
+	UpdateQueryTemplate             []gax.CallOption
+	DeleteQueryTemplate             []gax.CallOption
+	SubmitQueryTemplate             []gax.CallOption
+	ApproveQueryTemplate            []gax.CallOption
 }
 
 func defaultGRPCClientOptions() []option.ClientOption {
@@ -81,6 +87,7 @@ func defaultGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://analyticshub.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -374,6 +381,97 @@ func defaultCallOptions() *CallOptions {
 				})
 			}),
 		},
+		CreateQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		ListQueryTemplates: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		UpdateQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		DeleteQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		SubmitQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		ApproveQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
 	}
 }
 
@@ -643,6 +741,90 @@ func defaultRESTCallOptions() *CallOptions {
 					http.StatusServiceUnavailable)
 			}),
 		},
+		CreateQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		GetQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		ListQueryTemplates: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		UpdateQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		DeleteQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		SubmitQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
+		ApproveQueryTemplate: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusGatewayTimeout,
+					http.StatusServiceUnavailable)
+			}),
+		},
 	}
 }
 
@@ -676,6 +858,13 @@ type internalClient interface {
 	GetIamPolicy(context.Context, *iampb.GetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
 	SetIamPolicy(context.Context, *iampb.SetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
 	TestIamPermissions(context.Context, *iampb.TestIamPermissionsRequest, ...gax.CallOption) (*iampb.TestIamPermissionsResponse, error)
+	CreateQueryTemplate(context.Context, *analyticshubpb.CreateQueryTemplateRequest, ...gax.CallOption) (*analyticshubpb.QueryTemplate, error)
+	GetQueryTemplate(context.Context, *analyticshubpb.GetQueryTemplateRequest, ...gax.CallOption) (*analyticshubpb.QueryTemplate, error)
+	ListQueryTemplates(context.Context, *analyticshubpb.ListQueryTemplatesRequest, ...gax.CallOption) *QueryTemplateIterator
+	UpdateQueryTemplate(context.Context, *analyticshubpb.UpdateQueryTemplateRequest, ...gax.CallOption) (*analyticshubpb.QueryTemplate, error)
+	DeleteQueryTemplate(context.Context, *analyticshubpb.DeleteQueryTemplateRequest, ...gax.CallOption) error
+	SubmitQueryTemplate(context.Context, *analyticshubpb.SubmitQueryTemplateRequest, ...gax.CallOption) (*analyticshubpb.QueryTemplate, error)
+	ApproveQueryTemplate(context.Context, *analyticshubpb.ApproveQueryTemplateRequest, ...gax.CallOption) (*analyticshubpb.QueryTemplate, error)
 }
 
 // Client is a client for interacting with Analytics Hub API.
@@ -789,8 +978,10 @@ func (c *Client) SubscribeListing(ctx context.Context, req *analyticshubpb.Subsc
 	return c.internalClient.SubscribeListing(ctx, req, opts...)
 }
 
-// SubscribeDataExchange creates a Subscription to a Data Exchange. This is a long-running operation
-// as it will create one or more linked datasets.
+// SubscribeDataExchange creates a Subscription to a Data Clean Room. This is a
+// long-running operation as it will create one or more linked datasets.
+// Throws a Bad Request error if the Data Exchange does not contain any
+// listings.
 func (c *Client) SubscribeDataExchange(ctx context.Context, req *analyticshubpb.SubscribeDataExchangeRequest, opts ...gax.CallOption) (*SubscribeDataExchangeOperation, error) {
 	return c.internalClient.SubscribeDataExchange(ctx, req, opts...)
 }
@@ -860,6 +1051,41 @@ func (c *Client) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermi
 	return c.internalClient.TestIamPermissions(ctx, req, opts...)
 }
 
+// CreateQueryTemplate creates a new QueryTemplate
+func (c *Client) CreateQueryTemplate(ctx context.Context, req *analyticshubpb.CreateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	return c.internalClient.CreateQueryTemplate(ctx, req, opts...)
+}
+
+// GetQueryTemplate gets a QueryTemplate
+func (c *Client) GetQueryTemplate(ctx context.Context, req *analyticshubpb.GetQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	return c.internalClient.GetQueryTemplate(ctx, req, opts...)
+}
+
+// ListQueryTemplates lists all QueryTemplates in a given project and location.
+func (c *Client) ListQueryTemplates(ctx context.Context, req *analyticshubpb.ListQueryTemplatesRequest, opts ...gax.CallOption) *QueryTemplateIterator {
+	return c.internalClient.ListQueryTemplates(ctx, req, opts...)
+}
+
+// UpdateQueryTemplate updates an existing QueryTemplate
+func (c *Client) UpdateQueryTemplate(ctx context.Context, req *analyticshubpb.UpdateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	return c.internalClient.UpdateQueryTemplate(ctx, req, opts...)
+}
+
+// DeleteQueryTemplate deletes a query template.
+func (c *Client) DeleteQueryTemplate(ctx context.Context, req *analyticshubpb.DeleteQueryTemplateRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteQueryTemplate(ctx, req, opts...)
+}
+
+// SubmitQueryTemplate submits a query template for approval.
+func (c *Client) SubmitQueryTemplate(ctx context.Context, req *analyticshubpb.SubmitQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	return c.internalClient.SubmitQueryTemplate(ctx, req, opts...)
+}
+
+// ApproveQueryTemplate approves a query template.
+func (c *Client) ApproveQueryTemplate(ctx context.Context, req *analyticshubpb.ApproveQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	return c.internalClient.ApproveQueryTemplate(ctx, req, opts...)
+}
+
 // gRPCClient is a client for interacting with Analytics Hub API over gRPC transport.
 //
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
@@ -880,6 +1106,8 @@ type gRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewClient creates a new analytics hub service client based on gRPC.
@@ -911,6 +1139,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 		connPool:    connPool,
 		client:      analyticshubpb.NewAnalyticsHubServiceClient(connPool),
 		CallOptions: &client.CallOptions,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -943,8 +1172,10 @@ func (c *gRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *gRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -971,6 +1202,8 @@ type restClient struct {
 
 	// Points back to the CallOptions field of the containing Client
 	CallOptions **CallOptions
+
+	logger *slog.Logger
 }
 
 // NewRESTClient creates a new analytics hub service rest client.
@@ -993,6 +1226,7 @@ func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, e
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -1017,6 +1251,7 @@ func defaultRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://analyticshub.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -1025,8 +1260,10 @@ func defaultRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *restClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -1063,7 +1300,7 @@ func (c *gRPCClient) ListDataExchanges(ctx context.Context, req *analyticshubpb.
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListDataExchanges(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListDataExchanges, req, settings.GRPC, c.logger, "ListDataExchanges")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1109,7 +1346,7 @@ func (c *gRPCClient) ListOrgDataExchanges(ctx context.Context, req *analyticshub
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListOrgDataExchanges(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListOrgDataExchanges, req, settings.GRPC, c.logger, "ListOrgDataExchanges")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1144,7 +1381,7 @@ func (c *gRPCClient) GetDataExchange(ctx context.Context, req *analyticshubpb.Ge
 	var resp *analyticshubpb.DataExchange
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetDataExchange(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetDataExchange, req, settings.GRPC, c.logger, "GetDataExchange")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1162,7 +1399,7 @@ func (c *gRPCClient) CreateDataExchange(ctx context.Context, req *analyticshubpb
 	var resp *analyticshubpb.DataExchange
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateDataExchange(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateDataExchange, req, settings.GRPC, c.logger, "CreateDataExchange")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1180,7 +1417,7 @@ func (c *gRPCClient) UpdateDataExchange(ctx context.Context, req *analyticshubpb
 	var resp *analyticshubpb.DataExchange
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateDataExchange(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateDataExchange, req, settings.GRPC, c.logger, "UpdateDataExchange")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1197,7 +1434,7 @@ func (c *gRPCClient) DeleteDataExchange(ctx context.Context, req *analyticshubpb
 	opts = append((*c.CallOptions).DeleteDataExchange[0:len((*c.CallOptions).DeleteDataExchange):len((*c.CallOptions).DeleteDataExchange)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteDataExchange(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteDataExchange, req, settings.GRPC, c.logger, "DeleteDataExchange")
 		return err
 	}, opts...)
 	return err
@@ -1223,7 +1460,7 @@ func (c *gRPCClient) ListListings(ctx context.Context, req *analyticshubpb.ListL
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListListings(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListListings, req, settings.GRPC, c.logger, "ListListings")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1258,7 +1495,7 @@ func (c *gRPCClient) GetListing(ctx context.Context, req *analyticshubpb.GetList
 	var resp *analyticshubpb.Listing
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetListing(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetListing, req, settings.GRPC, c.logger, "GetListing")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1276,7 +1513,7 @@ func (c *gRPCClient) CreateListing(ctx context.Context, req *analyticshubpb.Crea
 	var resp *analyticshubpb.Listing
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateListing(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateListing, req, settings.GRPC, c.logger, "CreateListing")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1294,7 +1531,7 @@ func (c *gRPCClient) UpdateListing(ctx context.Context, req *analyticshubpb.Upda
 	var resp *analyticshubpb.Listing
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateListing(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateListing, req, settings.GRPC, c.logger, "UpdateListing")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1311,7 +1548,7 @@ func (c *gRPCClient) DeleteListing(ctx context.Context, req *analyticshubpb.Dele
 	opts = append((*c.CallOptions).DeleteListing[0:len((*c.CallOptions).DeleteListing):len((*c.CallOptions).DeleteListing)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteListing(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteListing, req, settings.GRPC, c.logger, "DeleteListing")
 		return err
 	}, opts...)
 	return err
@@ -1326,7 +1563,7 @@ func (c *gRPCClient) SubscribeListing(ctx context.Context, req *analyticshubpb.S
 	var resp *analyticshubpb.SubscribeListingResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.SubscribeListing(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.SubscribeListing, req, settings.GRPC, c.logger, "SubscribeListing")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1344,7 +1581,7 @@ func (c *gRPCClient) SubscribeDataExchange(ctx context.Context, req *analyticshu
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.SubscribeDataExchange(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.SubscribeDataExchange, req, settings.GRPC, c.logger, "SubscribeDataExchange")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1364,7 +1601,7 @@ func (c *gRPCClient) RefreshSubscription(ctx context.Context, req *analyticshubp
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.RefreshSubscription(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.RefreshSubscription, req, settings.GRPC, c.logger, "RefreshSubscription")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1384,7 +1621,7 @@ func (c *gRPCClient) GetSubscription(ctx context.Context, req *analyticshubpb.Ge
 	var resp *analyticshubpb.Subscription
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetSubscription(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetSubscription, req, settings.GRPC, c.logger, "GetSubscription")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1413,7 +1650,7 @@ func (c *gRPCClient) ListSubscriptions(ctx context.Context, req *analyticshubpb.
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListSubscriptions(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListSubscriptions, req, settings.GRPC, c.logger, "ListSubscriptions")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1459,7 +1696,7 @@ func (c *gRPCClient) ListSharedResourceSubscriptions(ctx context.Context, req *a
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListSharedResourceSubscriptions(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListSharedResourceSubscriptions, req, settings.GRPC, c.logger, "ListSharedResourceSubscriptions")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1494,7 +1731,7 @@ func (c *gRPCClient) RevokeSubscription(ctx context.Context, req *analyticshubpb
 	var resp *analyticshubpb.RevokeSubscriptionResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.RevokeSubscription(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.RevokeSubscription, req, settings.GRPC, c.logger, "RevokeSubscription")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1512,7 +1749,7 @@ func (c *gRPCClient) DeleteSubscription(ctx context.Context, req *analyticshubpb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DeleteSubscription(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DeleteSubscription, req, settings.GRPC, c.logger, "DeleteSubscription")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1532,7 +1769,7 @@ func (c *gRPCClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRe
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1550,7 +1787,7 @@ func (c *gRPCClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRe
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1568,7 +1805,157 @@ func (c *gRPCClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamP
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) CreateQueryTemplate(ctx context.Context, req *analyticshubpb.CreateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateQueryTemplate[0:len((*c.CallOptions).CreateQueryTemplate):len((*c.CallOptions).CreateQueryTemplate)], opts...)
+	var resp *analyticshubpb.QueryTemplate
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.CreateQueryTemplate, req, settings.GRPC, c.logger, "CreateQueryTemplate")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) GetQueryTemplate(ctx context.Context, req *analyticshubpb.GetQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetQueryTemplate[0:len((*c.CallOptions).GetQueryTemplate):len((*c.CallOptions).GetQueryTemplate)], opts...)
+	var resp *analyticshubpb.QueryTemplate
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.GetQueryTemplate, req, settings.GRPC, c.logger, "GetQueryTemplate")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) ListQueryTemplates(ctx context.Context, req *analyticshubpb.ListQueryTemplatesRequest, opts ...gax.CallOption) *QueryTemplateIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListQueryTemplates[0:len((*c.CallOptions).ListQueryTemplates):len((*c.CallOptions).ListQueryTemplates)], opts...)
+	it := &QueryTemplateIterator{}
+	req = proto.Clone(req).(*analyticshubpb.ListQueryTemplatesRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*analyticshubpb.QueryTemplate, string, error) {
+		resp := &analyticshubpb.ListQueryTemplatesResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.client.ListQueryTemplates, req, settings.GRPC, c.logger, "ListQueryTemplates")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetQueryTemplates(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *gRPCClient) UpdateQueryTemplate(ctx context.Context, req *analyticshubpb.UpdateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "query_template.name", url.QueryEscape(req.GetQueryTemplate().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateQueryTemplate[0:len((*c.CallOptions).UpdateQueryTemplate):len((*c.CallOptions).UpdateQueryTemplate)], opts...)
+	var resp *analyticshubpb.QueryTemplate
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.UpdateQueryTemplate, req, settings.GRPC, c.logger, "UpdateQueryTemplate")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) DeleteQueryTemplate(ctx context.Context, req *analyticshubpb.DeleteQueryTemplateRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteQueryTemplate[0:len((*c.CallOptions).DeleteQueryTemplate):len((*c.CallOptions).DeleteQueryTemplate)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.client.DeleteQueryTemplate, req, settings.GRPC, c.logger, "DeleteQueryTemplate")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *gRPCClient) SubmitQueryTemplate(ctx context.Context, req *analyticshubpb.SubmitQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).SubmitQueryTemplate[0:len((*c.CallOptions).SubmitQueryTemplate):len((*c.CallOptions).SubmitQueryTemplate)], opts...)
+	var resp *analyticshubpb.QueryTemplate
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.SubmitQueryTemplate, req, settings.GRPC, c.logger, "SubmitQueryTemplate")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) ApproveQueryTemplate(ctx context.Context, req *analyticshubpb.ApproveQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ApproveQueryTemplate[0:len((*c.CallOptions).ApproveQueryTemplate):len((*c.CallOptions).ApproveQueryTemplate)], opts...)
+	var resp *analyticshubpb.QueryTemplate
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.ApproveQueryTemplate, req, settings.GRPC, c.logger, "ApproveQueryTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1621,21 +2008,10 @@ func (c *restClient) ListDataExchanges(ctx context.Context, req *analyticshubpb.
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListDataExchanges")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1710,21 +2086,10 @@ func (c *restClient) ListOrgDataExchanges(ctx context.Context, req *analyticshub
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOrgDataExchanges")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1782,17 +2147,7 @@ func (c *restClient) GetDataExchange(ctx context.Context, req *analyticshubpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetDataExchange")
 		if err != nil {
 			return err
 		}
@@ -1849,17 +2204,7 @@ func (c *restClient) CreateDataExchange(ctx context.Context, req *analyticshubpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateDataExchange")
 		if err != nil {
 			return err
 		}
@@ -1893,11 +2238,11 @@ func (c *restClient) UpdateDataExchange(ctx context.Context, req *analyticshubpb
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -1922,17 +2267,7 @@ func (c *restClient) UpdateDataExchange(ctx context.Context, req *analyticshubpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateDataExchange")
 		if err != nil {
 			return err
 		}
@@ -1974,15 +2309,8 @@ func (c *restClient) DeleteDataExchange(ctx context.Context, req *analyticshubpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteDataExchange")
+		return err
 	}, opts...)
 }
 
@@ -2030,21 +2358,10 @@ func (c *restClient) ListListings(ctx context.Context, req *analyticshubpb.ListL
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListListings")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2102,17 +2419,7 @@ func (c *restClient) GetListing(ctx context.Context, req *analyticshubpb.GetList
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetListing")
 		if err != nil {
 			return err
 		}
@@ -2169,17 +2476,7 @@ func (c *restClient) CreateListing(ctx context.Context, req *analyticshubpb.Crea
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateListing")
 		if err != nil {
 			return err
 		}
@@ -2213,11 +2510,11 @@ func (c *restClient) UpdateListing(ctx context.Context, req *analyticshubpb.Upda
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2242,17 +2539,7 @@ func (c *restClient) UpdateListing(ctx context.Context, req *analyticshubpb.Upda
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateListing")
 		if err != nil {
 			return err
 		}
@@ -2277,6 +2564,13 @@ func (c *restClient) DeleteListing(ctx context.Context, req *analyticshubpb.Dele
 	}
 	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
 
+	params := url.Values{}
+	if req.GetDeleteCommercial() {
+		params.Add("deleteCommercial", fmt.Sprintf("%v", req.GetDeleteCommercial()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -2294,15 +2588,8 @@ func (c *restClient) DeleteListing(ctx context.Context, req *analyticshubpb.Dele
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteListing")
+		return err
 	}, opts...)
 }
 
@@ -2345,17 +2632,7 @@ func (c *restClient) SubscribeListing(ctx context.Context, req *analyticshubpb.S
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SubscribeListing")
 		if err != nil {
 			return err
 		}
@@ -2372,8 +2649,10 @@ func (c *restClient) SubscribeListing(ctx context.Context, req *analyticshubpb.S
 	return resp, nil
 }
 
-// SubscribeDataExchange creates a Subscription to a Data Exchange. This is a long-running operation
-// as it will create one or more linked datasets.
+// SubscribeDataExchange creates a Subscription to a Data Clean Room. This is a
+// long-running operation as it will create one or more linked datasets.
+// Throws a Bad Request error if the Data Exchange does not contain any
+// listings.
 func (c *restClient) SubscribeDataExchange(ctx context.Context, req *analyticshubpb.SubscribeDataExchangeRequest, opts ...gax.CallOption) (*SubscribeDataExchangeOperation, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -2406,21 +2685,10 @@ func (c *restClient) SubscribeDataExchange(ctx context.Context, req *analyticshu
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SubscribeDataExchange")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2473,21 +2741,10 @@ func (c *restClient) RefreshSubscription(ctx context.Context, req *analyticshubp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RefreshSubscription")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2533,17 +2790,7 @@ func (c *restClient) GetSubscription(ctx context.Context, req *analyticshubpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetSubscription")
 		if err != nil {
 			return err
 		}
@@ -2607,21 +2854,10 @@ func (c *restClient) ListSubscriptions(ctx context.Context, req *analyticshubpb.
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListSubscriptions")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2698,21 +2934,10 @@ func (c *restClient) ListSharedResourceSubscriptions(ctx context.Context, req *a
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListSharedResourceSubscriptions")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2776,17 +3001,7 @@ func (c *restClient) RevokeSubscription(ctx context.Context, req *analyticshubpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RevokeSubscription")
 		if err != nil {
 			return err
 		}
@@ -2830,21 +3045,10 @@ func (c *restClient) DeleteSubscription(ctx context.Context, req *analyticshubpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteSubscription")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2896,17 +3100,7 @@ func (c *restClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "GetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -2957,17 +3151,7 @@ func (c *restClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -3018,17 +3202,381 @@ func (c *restClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamP
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "TestIamPermissions")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
 
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
+		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
 
-		buf, err := io.ReadAll(httpRsp.Body)
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// CreateQueryTemplate creates a new QueryTemplate
+func (c *restClient) CreateQueryTemplate(ctx context.Context, req *analyticshubpb.CreateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetQueryTemplate()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/queryTemplates", req.GetParent())
+
+	params := url.Values{}
+	params.Add("queryTemplateId", fmt.Sprintf("%v", req.GetQueryTemplateId()))
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).CreateQueryTemplate[0:len((*c.CallOptions).CreateQueryTemplate):len((*c.CallOptions).CreateQueryTemplate)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &analyticshubpb.QueryTemplate{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateQueryTemplate")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// GetQueryTemplate gets a QueryTemplate
+func (c *restClient) GetQueryTemplate(ctx context.Context, req *analyticshubpb.GetQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetQueryTemplate[0:len((*c.CallOptions).GetQueryTemplate):len((*c.CallOptions).GetQueryTemplate)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &analyticshubpb.QueryTemplate{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetQueryTemplate")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ListQueryTemplates lists all QueryTemplates in a given project and location.
+func (c *restClient) ListQueryTemplates(ctx context.Context, req *analyticshubpb.ListQueryTemplatesRequest, opts ...gax.CallOption) *QueryTemplateIterator {
+	it := &QueryTemplateIterator{}
+	req = proto.Clone(req).(*analyticshubpb.ListQueryTemplatesRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*analyticshubpb.QueryTemplate, string, error) {
+		resp := &analyticshubpb.ListQueryTemplatesResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/queryTemplates", req.GetParent())
+
+		params := url.Values{}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListQueryTemplates")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetQueryTemplates(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// UpdateQueryTemplate updates an existing QueryTemplate
+func (c *restClient) UpdateQueryTemplate(ctx context.Context, req *analyticshubpb.UpdateQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetQueryTemplate()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetQueryTemplate().GetName())
+
+	params := url.Values{}
+	if req.GetUpdateMask() != nil {
+		field, err := protojson.Marshal(req.GetUpdateMask())
+		if err != nil {
+			return nil, err
+		}
+		params.Add("updateMask", string(field[1:len(field)-1]))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "query_template.name", url.QueryEscape(req.GetQueryTemplate().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateQueryTemplate[0:len((*c.CallOptions).UpdateQueryTemplate):len((*c.CallOptions).UpdateQueryTemplate)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &analyticshubpb.QueryTemplate{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("PATCH", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateQueryTemplate")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// DeleteQueryTemplate deletes a query template.
+func (c *restClient) DeleteQueryTemplate(ctx context.Context, req *analyticshubpb.DeleteQueryTemplateRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteQueryTemplate")
+		return err
+	}, opts...)
+}
+
+// SubmitQueryTemplate submits a query template for approval.
+func (c *restClient) SubmitQueryTemplate(ctx context.Context, req *analyticshubpb.SubmitQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:submit", req.GetName())
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).SubmitQueryTemplate[0:len((*c.CallOptions).SubmitQueryTemplate):len((*c.CallOptions).SubmitQueryTemplate)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &analyticshubpb.QueryTemplate{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SubmitQueryTemplate")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ApproveQueryTemplate approves a query template.
+func (c *restClient) ApproveQueryTemplate(ctx context.Context, req *analyticshubpb.ApproveQueryTemplateRequest, opts ...gax.CallOption) (*analyticshubpb.QueryTemplate, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:approve", req.GetName())
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).ApproveQueryTemplate[0:len((*c.CallOptions).ApproveQueryTemplate):len((*c.CallOptions).ApproveQueryTemplate)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &analyticshubpb.QueryTemplate{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "ApproveQueryTemplate")
 		if err != nil {
 			return err
 		}

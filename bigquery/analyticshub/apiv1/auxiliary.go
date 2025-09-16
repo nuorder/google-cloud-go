@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -227,7 +227,7 @@ type DataExchangeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*analyticshubpb.DataExchange, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataExchangeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -274,7 +274,7 @@ type ListingIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*analyticshubpb.Listing, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ListingIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -301,6 +301,53 @@ func (it *ListingIterator) takeBuf() interface{} {
 	return b
 }
 
+// QueryTemplateIterator manages a stream of *analyticshubpb.QueryTemplate.
+type QueryTemplateIterator struct {
+	items    []*analyticshubpb.QueryTemplate
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*analyticshubpb.QueryTemplate, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *QueryTemplateIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *QueryTemplateIterator) Next() (*analyticshubpb.QueryTemplate, error) {
+	var item *analyticshubpb.QueryTemplate
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *QueryTemplateIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *QueryTemplateIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // SubscriptionIterator manages a stream of *analyticshubpb.Subscription.
 type SubscriptionIterator struct {
 	items    []*analyticshubpb.Subscription
@@ -321,7 +368,7 @@ type SubscriptionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*analyticshubpb.Subscription, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *SubscriptionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }

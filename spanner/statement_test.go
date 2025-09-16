@@ -17,14 +17,17 @@ limitations under the License.
 package spanner
 
 import (
+	"bytes"
 	"math"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/civil"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	"github.com/golang/protobuf/proto"
-	proto3 "github.com/golang/protobuf/ptypes/struct"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
+	proto3 "google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestConvertParams(t *testing.T) {
@@ -100,6 +103,19 @@ func TestConvertParams(t *testing.T) {
 		{[]NullFloat64(nil), nullProto(), listType(floatType())},
 		{[]NullFloat64{}, listProto(), listType(floatType())},
 		{[]NullFloat64{{2.72, true}, {}}, listProto(floatProto(2.72), nullProto()), listType(floatType())},
+		// float32
+		{float32(0.0), float32Proto(0.0), float32Type()},
+		{float32(math.Inf(1)), float32Proto(float32(math.Inf(1))), float32Type()},
+		{float32(math.Inf(-1)), float32Proto(float32(math.Inf(-1))), float32Type()},
+		{float32(math.NaN()), float32Proto(float32(math.NaN())), float32Type()},
+		{NullFloat32{3.14, true}, float32Proto(3.14), float32Type()},
+		{NullFloat32{-99.99, false}, nullProto(), float32Type()},
+		{[]float32(nil), nullProto(), listType(float32Type())},
+		{[]float32{}, listProto(), listType(float32Type())},
+		{[]float32{3.14, float32(math.Inf(1))}, listProto(float32Proto(3.14), float32Proto(float32(math.Inf(1)))), listType(float32Type())},
+		{[]NullFloat32(nil), nullProto(), listType(float32Type())},
+		{[]NullFloat32{}, listProto(), listType(float32Type())},
+		{[]NullFloat32{{3.14, true}, {}}, listProto(float32Proto(3.14), nullProto()), listType(float32Type())},
 		// string
 		{"", stringProto(""), stringType()},
 		{"foo", stringProto("foo"), stringType()},
@@ -132,6 +148,13 @@ func TestConvertParams(t *testing.T) {
 		{[]time.Time{}, listProto(), listType(timeType())},
 		{[]time.Time{t1, t2, t3}, listProto(timeProto(t1), timeProto(t2), timeProto(t3)), listType(timeType())},
 		{[]NullTime{{t2, true}, {}}, listProto(timeProto(t2), nullProto()), listType(timeType())},
+		// uuid
+		{uuid1, uuidProto(uuid1), uuidType()},
+		{NullUUID{uuid1, false}, nullProto(), uuidType()},
+		{[]uuid.UUID(nil), nullProto(), listType(uuidType())},
+		{[]uuid.UUID{}, listProto(), listType(uuidType())},
+		{[]uuid.UUID{uuid1, uuid2}, listProto(uuidProto(uuid1), uuidProto(uuid2)), listType(uuidType())},
+		{[]NullUUID{{uuid1, true}, {}}, listProto(uuidProto(uuid1), nullProto()), listType(uuidType())},
 		// Struct
 		{
 			s1,
@@ -175,14 +198,25 @@ func TestConvertParams(t *testing.T) {
 		gotParamField := gotParams.Fields["var"]
 		if !proto.Equal(gotParamField, test.wantField) {
 			// handle NaN
-			if test.wantType.Code == floatType().Code && proto.MarshalTextString(gotParamField) == proto.MarshalTextString(test.wantField) {
+			gotParamFieldText, err := prototext.Marshal(gotParamField)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantParamFieldText, err := prototext.Marshal(test.wantField)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.wantType.Code == floatType().Code && bytes.Equal(gotParamFieldText, wantParamFieldText) {
 				continue
 			}
-			t.Errorf("%#v: got %v, want %v\n", test.val, gotParamField, test.wantField)
+			if test.wantType.Code == float32Type().Code && bytes.Equal(gotParamFieldText, wantParamFieldText) {
+				continue
+			}
+			t.Errorf("%#v:\n got: %v\nwant: %v\n", test.val, gotParamField, test.wantField)
 		}
 		gotParamType := gotParamTypes["var"]
 		if !proto.Equal(gotParamType, test.wantType) {
-			t.Errorf("%#v: got %v, want %v\n", test.val, gotParamType, test.wantField)
+			t.Errorf("%#v:\n got: %v\nwant: %v\n", test.val, gotParamType, test.wantField)
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,7 +28,6 @@ import (
 
 	dataflowpb "cloud.google.com/go/dataflow/apiv1beta3/dataflowpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
@@ -55,6 +54,7 @@ func defaultTemplatesGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://dataflow.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -133,17 +133,36 @@ func (c *TemplatesClient) Connection() *grpc.ClientConn {
 	return c.internalClient.Connection()
 }
 
-// CreateJobFromTemplate creates a Cloud Dataflow job from a template.
+// CreateJobFromTemplate creates a Cloud Dataflow job from a template. Do not enter confidential
+// information when you supply string values using the API.
+//
+// To create a job, we recommend using projects.locations.templates.create
+// with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.create is not recommended, because your job will
+// always start in us-central1.
 func (c *TemplatesClient) CreateJobFromTemplate(ctx context.Context, req *dataflowpb.CreateJobFromTemplateRequest, opts ...gax.CallOption) (*dataflowpb.Job, error) {
 	return c.internalClient.CreateJobFromTemplate(ctx, req, opts...)
 }
 
-// LaunchTemplate launch a template.
+// LaunchTemplate launches a template.
+//
+// To launch a template, we recommend using
+// projects.locations.templates.launch with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.launch is not recommended, because jobs launched
+// from the template will always start in us-central1.
 func (c *TemplatesClient) LaunchTemplate(ctx context.Context, req *dataflowpb.LaunchTemplateRequest, opts ...gax.CallOption) (*dataflowpb.LaunchTemplateResponse, error) {
 	return c.internalClient.LaunchTemplate(ctx, req, opts...)
 }
 
 // GetTemplate get the template associated with a template.
+//
+// To get the template, we recommend using projects.locations.templates.get
+// with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.get is not recommended, because only
+// templates that are running in us-central1 are retrieved.
 func (c *TemplatesClient) GetTemplate(ctx context.Context, req *dataflowpb.GetTemplateRequest, opts ...gax.CallOption) (*dataflowpb.GetTemplateResponse, error) {
 	return c.internalClient.GetTemplate(ctx, req, opts...)
 }
@@ -163,6 +182,8 @@ type templatesGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewTemplatesClient creates a new templates service client based on gRPC.
@@ -189,6 +210,7 @@ func NewTemplatesClient(ctx context.Context, opts ...option.ClientOption) (*Temp
 		connPool:        connPool,
 		templatesClient: dataflowpb.NewTemplatesServiceClient(connPool),
 		CallOptions:     &client.CallOptions,
+		logger:          internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -210,8 +232,10 @@ func (c *templatesGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *templatesGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -233,6 +257,8 @@ type templatesRESTClient struct {
 
 	// Points back to the CallOptions field of the containing TemplatesClient
 	CallOptions **TemplatesCallOptions
+
+	logger *slog.Logger
 }
 
 // NewTemplatesRESTClient creates a new templates service rest client.
@@ -250,6 +276,7 @@ func NewTemplatesRESTClient(ctx context.Context, opts ...option.ClientOption) (*
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -264,6 +291,7 @@ func defaultTemplatesRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://dataflow.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -272,8 +300,10 @@ func defaultTemplatesRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *templatesRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -299,7 +329,7 @@ func (c *templatesGRPCClient) CreateJobFromTemplate(ctx context.Context, req *da
 	var resp *dataflowpb.Job
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.templatesClient.CreateJobFromTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.templatesClient.CreateJobFromTemplate, req, settings.GRPC, c.logger, "CreateJobFromTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -317,7 +347,7 @@ func (c *templatesGRPCClient) LaunchTemplate(ctx context.Context, req *dataflowp
 	var resp *dataflowpb.LaunchTemplateResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.templatesClient.LaunchTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.templatesClient.LaunchTemplate, req, settings.GRPC, c.logger, "LaunchTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -335,7 +365,7 @@ func (c *templatesGRPCClient) GetTemplate(ctx context.Context, req *dataflowpb.G
 	var resp *dataflowpb.GetTemplateResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.templatesClient.GetTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.templatesClient.GetTemplate, req, settings.GRPC, c.logger, "GetTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -344,7 +374,14 @@ func (c *templatesGRPCClient) GetTemplate(ctx context.Context, req *dataflowpb.G
 	return resp, nil
 }
 
-// CreateJobFromTemplate creates a Cloud Dataflow job from a template.
+// CreateJobFromTemplate creates a Cloud Dataflow job from a template. Do not enter confidential
+// information when you supply string values using the API.
+//
+// To create a job, we recommend using projects.locations.templates.create
+// with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.create is not recommended, because your job will
+// always start in us-central1.
 func (c *templatesRESTClient) CreateJobFromTemplate(ctx context.Context, req *dataflowpb.CreateJobFromTemplateRequest, opts ...gax.CallOption) (*dataflowpb.Job, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -383,17 +420,7 @@ func (c *templatesRESTClient) CreateJobFromTemplate(ctx context.Context, req *da
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateJobFromTemplate")
 		if err != nil {
 			return err
 		}
@@ -410,7 +437,13 @@ func (c *templatesRESTClient) CreateJobFromTemplate(ctx context.Context, req *da
 	return resp, nil
 }
 
-// LaunchTemplate launch a template.
+// LaunchTemplate launches a template.
+//
+// To launch a template, we recommend using
+// projects.locations.templates.launch with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.launch is not recommended, because jobs launched
+// from the template will always start in us-central1.
 func (c *templatesRESTClient) LaunchTemplate(ctx context.Context, req *dataflowpb.LaunchTemplateRequest, opts ...gax.CallOption) (*dataflowpb.LaunchTemplateResponse, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetLaunchParameters()
@@ -462,17 +495,7 @@ func (c *templatesRESTClient) LaunchTemplate(ctx context.Context, req *dataflowp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "LaunchTemplate")
 		if err != nil {
 			return err
 		}
@@ -490,6 +513,12 @@ func (c *templatesRESTClient) LaunchTemplate(ctx context.Context, req *dataflowp
 }
 
 // GetTemplate get the template associated with a template.
+//
+// To get the template, we recommend using projects.locations.templates.get
+// with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints (at https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)). Using
+// projects.templates.get is not recommended, because only
+// templates that are running in us-central1 are retrieved.
 func (c *templatesRESTClient) GetTemplate(ctx context.Context, req *dataflowpb.GetTemplateRequest, opts ...gax.CallOption) (*dataflowpb.GetTemplateResponse, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -528,17 +557,7 @@ func (c *templatesRESTClient) GetTemplate(ctx context.Context, req *dataflowpb.G
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetTemplate")
 		if err != nil {
 			return err
 		}

@@ -10,9 +10,24 @@
         "grpc": {
           "libraryClient": "FirestoreAdminClient",
           "rpcs": {
+            "BulkDeleteDocuments": {
+              "methods": [
+                "BulkDeleteDocuments"
+              ]
+            },
             "CancelOperation": {
               "methods": [
                 "CancelOperation"
+              ]
+            },
+            "CloneDatabase": {
+              "methods": [
+                "CloneDatabase"
+              ]
+            },
+            "CreateBackupSchedule": {
+              "methods": [
+                "CreateBackupSchedule"
               ]
             },
             "CreateDatabase": {
@@ -23,6 +38,21 @@
             "CreateIndex": {
               "methods": [
                 "CreateIndex"
+              ]
+            },
+            "CreateUserCreds": {
+              "methods": [
+                "CreateUserCreds"
+              ]
+            },
+            "DeleteBackup": {
+              "methods": [
+                "DeleteBackup"
+              ]
+            },
+            "DeleteBackupSchedule": {
+              "methods": [
+                "DeleteBackupSchedule"
               ]
             },
             "DeleteDatabase": {
@@ -40,9 +70,34 @@
                 "DeleteOperation"
               ]
             },
+            "DeleteUserCreds": {
+              "methods": [
+                "DeleteUserCreds"
+              ]
+            },
+            "DisableUserCreds": {
+              "methods": [
+                "DisableUserCreds"
+              ]
+            },
+            "EnableUserCreds": {
+              "methods": [
+                "EnableUserCreds"
+              ]
+            },
             "ExportDocuments": {
               "methods": [
                 "ExportDocuments"
+              ]
+            },
+            "GetBackup": {
+              "methods": [
+                "GetBackup"
+              ]
+            },
+            "GetBackupSchedule": {
+              "methods": [
+                "GetBackupSchedule"
               ]
             },
             "GetDatabase": {
@@ -65,9 +120,24 @@
                 "GetOperation"
               ]
             },
+            "GetUserCreds": {
+              "methods": [
+                "GetUserCreds"
+              ]
+            },
             "ImportDocuments": {
               "methods": [
                 "ImportDocuments"
+              ]
+            },
+            "ListBackupSchedules": {
+              "methods": [
+                "ListBackupSchedules"
+              ]
+            },
+            "ListBackups": {
+              "methods": [
+                "ListBackups"
               ]
             },
             "ListDatabases": {
@@ -88,6 +158,26 @@
             "ListOperations": {
               "methods": [
                 "ListOperations"
+              ]
+            },
+            "ListUserCreds": {
+              "methods": [
+                "ListUserCreds"
+              ]
+            },
+            "ResetUserPassword": {
+              "methods": [
+                "ResetUserPassword"
+              ]
+            },
+            "RestoreDatabase": {
+              "methods": [
+                "RestoreDatabase"
+              ]
+            },
+            "UpdateBackupSchedule": {
+              "methods": [
+                "UpdateBackupSchedule"
               ]
             },
             "UpdateDatabase": {
@@ -105,9 +195,24 @@
         "rest": {
           "libraryClient": "FirestoreAdminClient",
           "rpcs": {
+            "BulkDeleteDocuments": {
+              "methods": [
+                "BulkDeleteDocuments"
+              ]
+            },
             "CancelOperation": {
               "methods": [
                 "CancelOperation"
+              ]
+            },
+            "CloneDatabase": {
+              "methods": [
+                "CloneDatabase"
+              ]
+            },
+            "CreateBackupSchedule": {
+              "methods": [
+                "CreateBackupSchedule"
               ]
             },
             "CreateDatabase": {
@@ -118,6 +223,21 @@
             "CreateIndex": {
               "methods": [
                 "CreateIndex"
+              ]
+            },
+            "CreateUserCreds": {
+              "methods": [
+                "CreateUserCreds"
+              ]
+            },
+            "DeleteBackup": {
+              "methods": [
+                "DeleteBackup"
+              ]
+            },
+            "DeleteBackupSchedule": {
+              "methods": [
+                "DeleteBackupSchedule"
               ]
             },
             "DeleteDatabase": {
@@ -135,9 +255,34 @@
                 "DeleteOperation"
               ]
             },
+            "DeleteUserCreds": {
+              "methods": [
+                "DeleteUserCreds"
+              ]
+            },
+            "DisableUserCreds": {
+              "methods": [
+                "DisableUserCreds"
+              ]
+            },
+            "EnableUserCreds": {
+              "methods": [
+                "EnableUserCreds"
+              ]
+            },
             "ExportDocuments": {
               "methods": [
                 "ExportDocuments"
+              ]
+            },
+            "GetBackup": {
+              "methods": [
+                "GetBackup"
+              ]
+            },
+            "GetBackupSchedule": {
+              "methods": [
+                "GetBackupSchedule"
               ]
             },
             "GetDatabase": {
@@ -160,9 +305,24 @@
                 "GetOperation"
               ]
             },
+            "GetUserCreds": {
+              "methods": [
+                "GetUserCreds"
+              ]
+            },
             "ImportDocuments": {
               "methods": [
                 "ImportDocuments"
+              ]
+            },
+            "ListBackupSchedules": {
+              "methods": [
+                "ListBackupSchedules"
+              ]
+            },
+            "ListBackups": {
+              "methods": [
+                "ListBackups"
               ]
             },
             "ListDatabases": {
@@ -183,6 +343,26 @@
             "ListOperations": {
               "methods": [
                 "ListOperations"
+              ]
+            },
+            "ListUserCreds": {
+              "methods": [
+                "ListUserCreds"
+              ]
+            },
+            "ResetUserPassword": {
+              "methods": [
+                "ResetUserPassword"
+              ]
+            },
+            "RestoreDatabase": {
+              "methods": [
+                "RestoreDatabase"
+              ]
+            },
+            "UpdateBackupSchedule": {
+              "methods": [
+                "UpdateBackupSchedule"
               ]
             },
             "UpdateDatabase": {

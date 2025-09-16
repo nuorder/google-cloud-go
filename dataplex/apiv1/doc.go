@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 // Package dataplex is an auto-generated package for the
 // Cloud Dataplex API.
 //
-// Dataplex API is used to manage the lifecycle of data lakes.
+// A unified, intelligent governance solution for data and AI assets.
 //
 // # General documentation
 //
@@ -35,13 +35,14 @@
 //
 // To get started with this package, create a client.
 //
+//	// go get cloud.google.com/go/dataplex/apiv1@latest
 //	ctx := context.Background()
 //	// This snippet has been automatically generated and should be regarded as a code template only.
 //	// It will require modifications to work:
 //	// - It may require correct/in-range values for request initialization.
 //	// - It may require specifying regional endpoints when creating the service client as shown in:
 //	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := dataplex.NewContentClient(ctx)
+//	c, err := dataplex.NewClient(ctx)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
@@ -53,34 +54,20 @@
 //
 // # Using the Client
 //
-// The following is an example of making an API call with the newly created client.
+// The following is an example of making an API call with the newly created client, mentioned above.
 //
-//	ctx := context.Background()
-//	// This snippet has been automatically generated and should be regarded as a code template only.
-//	// It will require modifications to work:
-//	// - It may require correct/in-range values for request initialization.
-//	// - It may require specifying regional endpoints when creating the service client as shown in:
-//	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := dataplex.NewContentClient(ctx)
-//	if err != nil {
-//		// TODO: Handle error.
-//	}
-//	defer c.Close()
-//
-//	req := &dataplexpb.CreateContentRequest{
+//	req := &dataplexpb.CancelJobRequest{
 //		// TODO: Fill request struct fields.
-//		// See https://pkg.go.dev/cloud.google.com/go/dataplex/apiv1/dataplexpb#CreateContentRequest.
+//		// See https://pkg.go.dev/cloud.google.com/go/dataplex/apiv1/dataplexpb#CancelJobRequest.
 //	}
-//	resp, err := c.CreateContent(ctx, req)
+//	err = c.CancelJob(ctx, req)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
-//	// TODO: Use resp.
-//	_ = resp
 //
 // # Use of Context
 //
-// The ctx passed to NewContentClient is used for authentication requests and
+// The ctx passed to NewClient is used for authentication requests and
 // for creating the underlying connection, but is not used for subsequent calls.
 // Individual methods on the client use the ctx given to them.
 //
@@ -92,30 +79,3 @@
 // [Debugging Client Libraries]: https://pkg.go.dev/cloud.google.com/go#hdr-Debugging
 // [Inspecting errors]: https://pkg.go.dev/cloud.google.com/go#hdr-Inspecting_errors
 package dataplex // import "cloud.google.com/go/dataplex/apiv1"
-
-import (
-	"context"
-
-	"google.golang.org/api/option"
-)
-
-// For more information on implementing a client constructor hook, see
-// https://github.com/googleapis/google-cloud-go/wiki/Customizing-constructors.
-type clientHookParams struct{}
-type clientHook func(context.Context, clientHookParams) ([]option.ClientOption, error)
-
-var versionClient string
-
-func getVersionClient() string {
-	if versionClient == "" {
-		return "UNKNOWN"
-	}
-	return versionClient
-}
-
-// DefaultAuthScopes reports the default set of authentication scopes to use with this package.
-func DefaultAuthScopes() []string {
-	return []string{
-		"https://www.googleapis.com/auth/cloud-platform",
-	}
-}

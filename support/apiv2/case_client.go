@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,7 +28,6 @@ import (
 
 	supportpb "cloud.google.com/go/support/apiv2/supportpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -63,6 +62,7 @@ func defaultCaseGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://cloudsupport.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -244,58 +244,65 @@ func (c *CaseClient) Connection() *grpc.ClientConn {
 	return c.internalClient.Connection()
 }
 
-// GetCase retrieve the specified case.
+// GetCase retrieve a case.
 func (c *CaseClient) GetCase(ctx context.Context, req *supportpb.GetCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	return c.internalClient.GetCase(ctx, req, opts...)
 }
 
-// ListCases retrieve all cases under the specified parent.
+// ListCases retrieve all cases under a parent, but not its children.
 //
-// Note: Listing cases under an Organization returns only the cases directly
-// parented by that organization. To retrieve all cases under an organization,
-// including cases parented by projects under that organization, use
-// cases.search.
+// For example, listing cases under an organization only returns the cases
+// that are directly parented by that organization. To retrieve cases
+// under an organization and its projects, use cases.search.
 func (c *CaseClient) ListCases(ctx context.Context, req *supportpb.ListCasesRequest, opts ...gax.CallOption) *CaseIterator {
 	return c.internalClient.ListCases(ctx, req, opts...)
 }
 
-// SearchCases search cases using the specified query.
+// SearchCases search for cases using a query.
 func (c *CaseClient) SearchCases(ctx context.Context, req *supportpb.SearchCasesRequest, opts ...gax.CallOption) *CaseIterator {
 	return c.internalClient.SearchCases(ctx, req, opts...)
 }
 
-// CreateCase create a new case and associate it with the given Google Cloud Resource.
-// The case object must have the following fields set: display_name,
-// description, classification, and priority.
+// CreateCase create a new case and associate it with a parent.
+//
+// It must have the following fields set: display_name, description,
+// classification, and priority. If you’re just testing the API and don’t
+// want to route your case to an agent, set testCase=true.
 func (c *CaseClient) CreateCase(ctx context.Context, req *supportpb.CreateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	return c.internalClient.CreateCase(ctx, req, opts...)
 }
 
-// UpdateCase update the specified case. Only a subset of fields can be updated.
+// UpdateCase update a case. Only some fields can be updated.
 func (c *CaseClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	return c.internalClient.UpdateCase(ctx, req, opts...)
 }
 
-// EscalateCase escalate a case. Escalating a case will initiate the Google Cloud Support
-// escalation management process.
+// EscalateCase escalate a case, starting the Google Cloud Support escalation management
+// process.
 //
-// This operation is only available to certain Customer Care tiers. Go to
+// This operation is only available for some support services. Go to
 // https://cloud.google.com/support (at https://cloud.google.com/support) and look for ‘Technical support
-// escalations’ in the feature list to find out which tiers are able to
-// perform escalations.
+// escalations’ in the feature list to find out which ones let you
+// do that.
 func (c *CaseClient) EscalateCase(ctx context.Context, req *supportpb.EscalateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	return c.internalClient.EscalateCase(ctx, req, opts...)
 }
 
-// CloseCase close the specified case.
+// CloseCase close a case.
 func (c *CaseClient) CloseCase(ctx context.Context, req *supportpb.CloseCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	return c.internalClient.CloseCase(ctx, req, opts...)
 }
 
-// SearchCaseClassifications retrieve valid classifications to be used when creating a support case.
-// The classications are hierarchical, with each classification containing
-// all levels of the hierarchy, separated by " > ". For example “Technical
-// Issue > Compute > Compute Engine”.
+// SearchCaseClassifications retrieve valid classifications to use when creating a support case.
+//
+// Classifications are hierarchical. Each classification is a string
+// containing all levels of the hierarchy separated by " > ". For example,
+// "Technical Issue > Compute > Compute Engine".
+//
+// Classification IDs returned by this endpoint are valid for at least six
+// months. When a classification is deactivated, this endpoint immediately
+// stops returning it. After six months, case.create requests using the
+// classification will fail.
 func (c *CaseClient) SearchCaseClassifications(ctx context.Context, req *supportpb.SearchCaseClassificationsRequest, opts ...gax.CallOption) *CaseClassificationIterator {
 	return c.internalClient.SearchCaseClassifications(ctx, req, opts...)
 }
@@ -315,6 +322,8 @@ type caseGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewCaseClient creates a new case service client based on gRPC.
@@ -341,6 +350,7 @@ func NewCaseClient(ctx context.Context, opts ...option.ClientOption) (*CaseClien
 		connPool:    connPool,
 		caseClient:  supportpb.NewCaseServiceClient(connPool),
 		CallOptions: &client.CallOptions,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -362,8 +372,10 @@ func (c *caseGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *caseGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -385,6 +397,8 @@ type caseRESTClient struct {
 
 	// Points back to the CallOptions field of the containing CaseClient
 	CallOptions **CaseCallOptions
+
+	logger *slog.Logger
 }
 
 // NewCaseRESTClient creates a new case service rest client.
@@ -402,6 +416,7 @@ func NewCaseRESTClient(ctx context.Context, opts ...option.ClientOption) (*CaseC
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -416,6 +431,7 @@ func defaultCaseRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://cloudsupport.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -424,8 +440,10 @@ func defaultCaseRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *caseRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -451,7 +469,7 @@ func (c *caseGRPCClient) GetCase(ctx context.Context, req *supportpb.GetCaseRequ
 	var resp *supportpb.Case
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.caseClient.GetCase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.caseClient.GetCase, req, settings.GRPC, c.logger, "GetCase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -480,7 +498,7 @@ func (c *caseGRPCClient) ListCases(ctx context.Context, req *supportpb.ListCases
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.caseClient.ListCases(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.caseClient.ListCases, req, settings.GRPC, c.logger, "ListCases")
 			return err
 		}, opts...)
 		if err != nil {
@@ -526,7 +544,7 @@ func (c *caseGRPCClient) SearchCases(ctx context.Context, req *supportpb.SearchC
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.caseClient.SearchCases(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.caseClient.SearchCases, req, settings.GRPC, c.logger, "SearchCases")
 			return err
 		}, opts...)
 		if err != nil {
@@ -561,7 +579,7 @@ func (c *caseGRPCClient) CreateCase(ctx context.Context, req *supportpb.CreateCa
 	var resp *supportpb.Case
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.caseClient.CreateCase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.caseClient.CreateCase, req, settings.GRPC, c.logger, "CreateCase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -579,7 +597,7 @@ func (c *caseGRPCClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCa
 	var resp *supportpb.Case
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.caseClient.UpdateCase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.caseClient.UpdateCase, req, settings.GRPC, c.logger, "UpdateCase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -597,7 +615,7 @@ func (c *caseGRPCClient) EscalateCase(ctx context.Context, req *supportpb.Escala
 	var resp *supportpb.Case
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.caseClient.EscalateCase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.caseClient.EscalateCase, req, settings.GRPC, c.logger, "EscalateCase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -615,7 +633,7 @@ func (c *caseGRPCClient) CloseCase(ctx context.Context, req *supportpb.CloseCase
 	var resp *supportpb.Case
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.caseClient.CloseCase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.caseClient.CloseCase, req, settings.GRPC, c.logger, "CloseCase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -641,7 +659,7 @@ func (c *caseGRPCClient) SearchCaseClassifications(ctx context.Context, req *sup
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.caseClient.SearchCaseClassifications(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.caseClient.SearchCaseClassifications, req, settings.GRPC, c.logger, "SearchCaseClassifications")
 			return err
 		}, opts...)
 		if err != nil {
@@ -667,7 +685,7 @@ func (c *caseGRPCClient) SearchCaseClassifications(ctx context.Context, req *sup
 	return it
 }
 
-// GetCase retrieve the specified case.
+// GetCase retrieve a case.
 func (c *caseRESTClient) GetCase(ctx context.Context, req *supportpb.GetCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -700,17 +718,7 @@ func (c *caseRESTClient) GetCase(ctx context.Context, req *supportpb.GetCaseRequ
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetCase")
 		if err != nil {
 			return err
 		}
@@ -727,12 +735,11 @@ func (c *caseRESTClient) GetCase(ctx context.Context, req *supportpb.GetCaseRequ
 	return resp, nil
 }
 
-// ListCases retrieve all cases under the specified parent.
+// ListCases retrieve all cases under a parent, but not its children.
 //
-// Note: Listing cases under an Organization returns only the cases directly
-// parented by that organization. To retrieve all cases under an organization,
-// including cases parented by projects under that organization, use
-// cases.search.
+// For example, listing cases under an organization only returns the cases
+// that are directly parented by that organization. To retrieve cases
+// under an organization and its projects, use cases.search.
 func (c *caseRESTClient) ListCases(ctx context.Context, req *supportpb.ListCasesRequest, opts ...gax.CallOption) *CaseIterator {
 	it := &CaseIterator{}
 	req = proto.Clone(req).(*supportpb.ListCasesRequest)
@@ -780,21 +787,10 @@ func (c *caseRESTClient) ListCases(ctx context.Context, req *supportpb.ListCases
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListCases")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -824,7 +820,7 @@ func (c *caseRESTClient) ListCases(ctx context.Context, req *supportpb.ListCases
 	return it
 }
 
-// SearchCases search cases using the specified query.
+// SearchCases search for cases using a query.
 func (c *caseRESTClient) SearchCases(ctx context.Context, req *supportpb.SearchCasesRequest, opts ...gax.CallOption) *CaseIterator {
 	it := &CaseIterator{}
 	req = proto.Clone(req).(*supportpb.SearchCasesRequest)
@@ -872,21 +868,10 @@ func (c *caseRESTClient) SearchCases(ctx context.Context, req *supportpb.SearchC
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "SearchCases")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -916,9 +901,11 @@ func (c *caseRESTClient) SearchCases(ctx context.Context, req *supportpb.SearchC
 	return it
 }
 
-// CreateCase create a new case and associate it with the given Google Cloud Resource.
-// The case object must have the following fields set: display_name,
-// description, classification, and priority.
+// CreateCase create a new case and associate it with a parent.
+//
+// It must have the following fields set: display_name, description,
+// classification, and priority. If you’re just testing the API and don’t
+// want to route your case to an agent, set testCase=true.
 func (c *caseRESTClient) CreateCase(ctx context.Context, req *supportpb.CreateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetCase()
@@ -958,17 +945,7 @@ func (c *caseRESTClient) CreateCase(ctx context.Context, req *supportpb.CreateCa
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateCase")
 		if err != nil {
 			return err
 		}
@@ -985,7 +962,7 @@ func (c *caseRESTClient) CreateCase(ctx context.Context, req *supportpb.CreateCa
 	return resp, nil
 }
 
-// UpdateCase update the specified case. Only a subset of fields can be updated.
+// UpdateCase update a case. Only some fields can be updated.
 func (c *caseRESTClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetCase()
@@ -1003,11 +980,11 @@ func (c *caseRESTClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCa
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -1032,17 +1009,7 @@ func (c *caseRESTClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCa
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateCase")
 		if err != nil {
 			return err
 		}
@@ -1059,13 +1026,13 @@ func (c *caseRESTClient) UpdateCase(ctx context.Context, req *supportpb.UpdateCa
 	return resp, nil
 }
 
-// EscalateCase escalate a case. Escalating a case will initiate the Google Cloud Support
-// escalation management process.
+// EscalateCase escalate a case, starting the Google Cloud Support escalation management
+// process.
 //
-// This operation is only available to certain Customer Care tiers. Go to
+// This operation is only available for some support services. Go to
 // https://cloud.google.com/support (at https://cloud.google.com/support) and look for ‘Technical support
-// escalations’ in the feature list to find out which tiers are able to
-// perform escalations.
+// escalations’ in the feature list to find out which ones let you
+// do that.
 func (c *caseRESTClient) EscalateCase(ctx context.Context, req *supportpb.EscalateCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -1104,17 +1071,7 @@ func (c *caseRESTClient) EscalateCase(ctx context.Context, req *supportpb.Escala
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "EscalateCase")
 		if err != nil {
 			return err
 		}
@@ -1131,7 +1088,7 @@ func (c *caseRESTClient) EscalateCase(ctx context.Context, req *supportpb.Escala
 	return resp, nil
 }
 
-// CloseCase close the specified case.
+// CloseCase close a case.
 func (c *caseRESTClient) CloseCase(ctx context.Context, req *supportpb.CloseCaseRequest, opts ...gax.CallOption) (*supportpb.Case, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -1170,17 +1127,7 @@ func (c *caseRESTClient) CloseCase(ctx context.Context, req *supportpb.CloseCase
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CloseCase")
 		if err != nil {
 			return err
 		}
@@ -1197,10 +1144,16 @@ func (c *caseRESTClient) CloseCase(ctx context.Context, req *supportpb.CloseCase
 	return resp, nil
 }
 
-// SearchCaseClassifications retrieve valid classifications to be used when creating a support case.
-// The classications are hierarchical, with each classification containing
-// all levels of the hierarchy, separated by " > ". For example “Technical
-// Issue > Compute > Compute Engine”.
+// SearchCaseClassifications retrieve valid classifications to use when creating a support case.
+//
+// Classifications are hierarchical. Each classification is a string
+// containing all levels of the hierarchy separated by " > ". For example,
+// "Technical Issue > Compute > Compute Engine".
+//
+// Classification IDs returned by this endpoint are valid for at least six
+// months. When a classification is deactivated, this endpoint immediately
+// stops returning it. After six months, case.create requests using the
+// classification will fail.
 func (c *caseRESTClient) SearchCaseClassifications(ctx context.Context, req *supportpb.SearchCaseClassificationsRequest, opts ...gax.CallOption) *CaseClassificationIterator {
 	it := &CaseClassificationIterator{}
 	req = proto.Clone(req).(*supportpb.SearchCaseClassificationsRequest)
@@ -1248,21 +1201,10 @@ func (c *caseRESTClient) SearchCaseClassifications(ctx context.Context, req *sup
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "SearchCaseClassifications")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}

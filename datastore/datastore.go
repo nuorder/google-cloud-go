@@ -23,18 +23,22 @@ import (
 	"reflect"
 	"time"
 
+	pb "cloud.google.com/go/datastore/apiv1/datastorepb"
 	"cloud.google.com/go/internal/trace"
 	"google.golang.org/api/option"
+	"google.golang.org/api/option/internaloption"
 	"google.golang.org/api/transport"
 	gtransport "google.golang.org/api/transport/grpc"
-	pb "google.golang.org/genproto/googleapis/datastore/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	prodAddr  = "datastore.googleapis.com:443"
-	userAgent = "gcloud-golang-datastore/20160401"
+	prodEndpointTemplate = "datastore.UNIVERSE_DOMAIN:443"
+	prodUniverseDomain   = "googleapis.com"
+	prodMtlsAddr         = "datastore.mtls.googleapis.com:443"
+	userAgent            = "gcloud-golang-datastore/20160401"
 )
 
 // ScopeDatastore grants permissions to view and/or manage datastore entities
@@ -71,6 +75,7 @@ type Client struct {
 	dataset      string // Called dataset by the datastore API, synonym for project ID.
 	databaseID   string // Default value is empty string
 	readSettings *readSettings
+	config       *datastoreConfig
 }
 
 // NewClient creates a new Client for a given dataset.  If the project ID is
@@ -104,7 +109,7 @@ func NewClientWithDatabase(ctx context.Context, projectID, databaseID string, op
 		o = []option.ClientOption{
 			option.WithEndpoint(addr),
 			option.WithoutAuthentication(),
-			option.WithGRPCDialOption(grpc.WithInsecure()),
+			option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 		}
 		if projectID == DetectProjectID {
 			projectID, _ = detectProjectIDFn(ctx, opts...)
@@ -114,7 +119,9 @@ func NewClientWithDatabase(ctx context.Context, projectID, databaseID string, op
 		}
 	} else {
 		o = []option.ClientOption{
-			option.WithEndpoint(prodAddr),
+			internaloption.WithDefaultEndpointTemplate(prodEndpointTemplate),
+			internaloption.WithDefaultUniverseDomain(prodUniverseDomain),
+			internaloption.WithDefaultMTLSEndpoint(prodMtlsAddr),
 			option.WithScopes(ScopeDatastore),
 			option.WithUserAgent(userAgent),
 		}
@@ -147,12 +154,15 @@ func NewClientWithDatabase(ctx context.Context, projectID, databaseID string, op
 	if err != nil {
 		return nil, fmt.Errorf("dialing: %w", err)
 	}
+
+	config := newDatastoreConfig(o...)
 	return &Client{
 		connPool:     connPool,
 		client:       newDatastoreClient(connPool, projectID, databaseID),
 		dataset:      projectID,
 		readSettings: &readSettings{},
 		databaseID:   databaseID,
+		config:       &config,
 	}, nil
 }
 
@@ -177,6 +187,8 @@ var (
 	ErrNoSuchEntity = errors.New("datastore: no such entity")
 	// ErrDifferentKeyAndDstLength is returned when the length of dst and key are different.
 	ErrDifferentKeyAndDstLength = errors.New("datastore: keys and dst slices have different length")
+	// ErrDifferentKeyAndTransformsLength is returned when the length of transforms and keys are different.
+	ErrDifferentKeyAndTransformsLength = errors.New("datastore: keys and transforms slices have different length")
 )
 
 type multiArgType int
@@ -357,6 +369,48 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 	return multiArgTypeInvalid, nil
 }
 
+// processFieldMismatchError ignore FieldMismatchErr if WithIgnoreFieldMismatch client option is provided by user
+func (c *Client) processFieldMismatchError(err error) error {
+	if c.config == nil || !c.config.ignoreFieldMismatchErrors {
+		return err
+	}
+	return ignoreFieldMismatchErrs(err)
+}
+
+func ignoreFieldMismatchErrs(err error) error {
+	if err == nil {
+		return err
+	}
+
+	multiErr, isMultiErr := err.(MultiError)
+	if isMultiErr {
+		foundErr := false
+		for i, e := range multiErr {
+			multiErr[i] = ignoreFieldMismatchErr(e)
+			if multiErr[i] != nil {
+				foundErr = true
+			}
+		}
+		if !foundErr {
+			return nil
+		}
+		return multiErr
+	}
+
+	return ignoreFieldMismatchErr(err)
+}
+
+func ignoreFieldMismatchErr(err error) error {
+	if err == nil {
+		return err
+	}
+	_, isFieldMismatchErr := err.(*ErrFieldMismatch)
+	if isFieldMismatchErr {
+		return nil
+	}
+	return err
+}
+
 // Close closes the Client. Call Close to clean up resources when done with the
 // Client.
 func (c *Client) Close() error {
@@ -384,7 +438,7 @@ func (c *Client) Get(ctx context.Context, key *Key, dst interface{}) (err error)
 	}
 
 	var opts *pb.ReadOptions
-	if !c.readSettings.readTime.IsZero() {
+	if c.readSettings.readTimeExists() {
 		opts = &pb.ReadOptions{
 			ConsistencyType: &pb.ReadOptions_ReadTime{
 				// Timestamp cannot be less than microseconds accuracy. See #6938
@@ -393,12 +447,13 @@ func (c *Client) Get(ctx context.Context, key *Key, dst interface{}) (err error)
 		}
 	}
 
-	// TODO: Use transaction ID returned by get
+	// Since opts does not contain Transaction option, 'get' call below will return nil
+	// as transaction id which can be ignored
 	_, err = c.get(ctx, []*Key{key}, []interface{}{dst}, opts)
 	if me, ok := err.(MultiError); ok {
-		return me[0]
+		return c.processFieldMismatchError(me[0])
 	}
-	return err
+	return c.processFieldMismatchError(err)
 }
 
 // GetMulti is a batch version of Get.
@@ -418,7 +473,7 @@ func (c *Client) GetMulti(ctx context.Context, keys []*Key, dst interface{}) (er
 	defer func() { trace.EndSpan(ctx, err) }()
 
 	var opts *pb.ReadOptions
-	if c.readSettings != nil && !c.readSettings.readTime.IsZero() {
+	if c.readSettings.readTimeExists() {
 		opts = &pb.ReadOptions{
 			ConsistencyType: &pb.ReadOptions_ReadTime{
 				// Timestamp cannot be less than microseconds accuracy. See #6938
@@ -427,9 +482,10 @@ func (c *Client) GetMulti(ctx context.Context, keys []*Key, dst interface{}) (er
 		}
 	}
 
-	// TODO: Use transaction ID returned by get
+	// Since opts does not contain Transaction option, 'get' call below will return nil
+	// as transaction id which can be ignored
 	_, err = c.get(ctx, keys, dst, opts)
-	return err
+	return c.processFieldMismatchError(err)
 }
 
 func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb.ReadOptions) ([]byte, error) {
@@ -487,7 +543,7 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 			multiErr[i] = fmt.Errorf("datastore: can't get the incomplete key: %v", k)
 			any = true
 		} else {
-			ks := k.String()
+			ks := k.stringInternal()
 			if _, ok := keyMap[ks]; !ok {
 				pbKeys = append(pbKeys, keyToProto(k))
 			}
@@ -504,10 +560,11 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 		ReadOptions: opts,
 	}
 	resp, err := c.client.Lookup(ctx, req)
-	txnID := resp.Transaction
+
 	if err != nil {
-		return txnID, err
+		return nil, err
 	}
+	txnID := resp.Transaction
 	found := resp.Found
 	missing := resp.Missing
 	// Upper bound 1000 iterations to prevent infinite loop. This matches the max
@@ -530,8 +587,8 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 		if err != nil {
 			return txnID, errors.New("datastore: internal error: server returned an invalid key")
 		}
-		filled += len(keyMap[k.String()])
-		for _, index := range keyMap[k.String()] {
+		filled += len(keyMap[k.stringInternal()])
+		for _, index := range keyMap[k.stringInternal()] {
 			elem := v.Index(index)
 			if multiArgType == multiArgTypePropertyLoadSaver || multiArgType == multiArgTypeStruct {
 				elem = elem.Addr()
@@ -550,8 +607,8 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 		if err != nil {
 			return txnID, errors.New("datastore: internal error: server returned an invalid key")
 		}
-		filled += len(keyMap[k.String()])
-		for _, index := range keyMap[k.String()] {
+		filled += len(keyMap[k.stringInternal()])
+		for _, index := range keyMap[k.stringInternal()] {
 			multiErr[index] = ErrNoSuchEntity
 		}
 		any = true
@@ -567,12 +624,42 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 	return txnID, nil
 }
 
+// PutRequest represents a single entity's data along with any options for its
+// mutation within a commit operation.
+type PutRequest struct {
+	// Key is the entity's key. It is required for all operations.
+	Key *Key
+	// Entity is the data to be saved. It must be a struct pointer or
+	// implement PropertyLoadSaver.
+	Entity interface{}
+	// Transforms is an optional slice of server-side transformations to apply
+	// to the entity's properties. The transforms are applied atomically
+	// by the server in the order they are provided in this slice.
+	Transforms []PropertyTransform
+}
+
 // Put saves the entity src into the datastore with the given key. src must be
 // a struct pointer or implement PropertyLoadSaver; if the struct pointer has
 // any unexported fields they will be skipped. If the key is incomplete, the
 // returned key will be a unique key generated by the datastore.
 func (c *Client) Put(ctx context.Context, key *Key, src interface{}) (*Key, error) {
-	k, err := c.PutMulti(ctx, []*Key{key}, []interface{}{src})
+	return c.PutWithOptions(ctx, &PutRequest{Key: key, Entity: src})
+}
+
+// A PutOption is an optional argument to PutWithOptions and PutMultiWithOptions.
+type PutOption interface {
+	isPutOption()
+}
+
+// PutWithOptions saves a single entity, applying the options defined in the PutRequest.
+// The PutRequest struct bundles the Key, the entity data (src), and any server-side
+// PropertyTransforms to be applied atomically.
+//
+// If the PutRequest's Key is incomplete, the returned key will be a unique key
+// generated by the datastore. Otherwise, the operation is an upsert.
+// Transforms are applied by the server in the order they are provided in the PutRequest.
+func (c *Client) PutWithOptions(ctx context.Context, req *PutRequest, opts ...PutOption) (*Key, error) {
+	k, err := c.PutMultiWithOptions(ctx, []*PutRequest{req})
 	if err != nil {
 		if me, ok := err.(MultiError); ok {
 			return nil, me[0]
@@ -582,16 +669,39 @@ func (c *Client) Put(ctx context.Context, key *Key, src interface{}) (*Key, erro
 	return k[0], nil
 }
 
-// PutMulti is a batch version of Put.
+// PutMulti is a batch version of [*Client.Put].
 //
 // src must satisfy the same conditions as the dst argument to GetMulti.
 // err may be a MultiError. See ExampleMultiError to check it.
 func (c *Client) PutMulti(ctx context.Context, keys []*Key, src interface{}) (ret []*Key, err error) {
 	// TODO(jba): rewrite in terms of Mutate.
+	return c.putMultiInternal(ctx, keys, src, nil)
+}
+
+// PutMultiWithOptions is a batch version of [*Client.PutWithOptions].
+//
+// It takes a slice of PutRequest structs, where each struct specifies the Key,
+// the entity data, and any server-side transforms for a single item in the batch.
+// The returned keys will be in the same order as the input items.
+// err may be a MultiError. See ExampleMultiError to check it.
+func (c *Client) PutMultiWithOptions(ctx context.Context, reqs []*PutRequest, opts ...PutOption) (ret []*Key, err error) {
+	var keys []*Key
+	var transforms [][]PropertyTransform
+	var srcs []interface{}
+
+	for _, req := range reqs {
+		keys = append(keys, req.Key)
+		transforms = append(transforms, req.Transforms)
+		srcs = append(srcs, req.Entity)
+	}
+	return c.putMultiInternal(ctx, keys, srcs, transforms)
+}
+
+func (c *Client) putMultiInternal(ctx context.Context, keys []*Key, src interface{}, transforms [][]PropertyTransform) (ret []*Key, err error) {
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/datastore.PutMulti")
 	defer func() { trace.EndSpan(ctx, err) }()
 
-	mutations, err := putMutations(keys, src)
+	mutations, err := putMutations(keys, src, transforms)
 	if err != nil {
 		return nil, err
 	}
@@ -624,7 +734,7 @@ func (c *Client) PutMulti(ctx context.Context, keys []*Key, src interface{}) (re
 	return ret, nil
 }
 
-func putMutations(keys []*Key, src interface{}) ([]*pb.Mutation, error) {
+func putMutations(keys []*Key, src interface{}, transforms [][]PropertyTransform) ([]*pb.Mutation, error) {
 	v := reflect.ValueOf(src)
 	var multiArgType multiArgType
 
@@ -658,9 +768,14 @@ func putMutations(keys []*Key, src interface{}) ([]*pb.Mutation, error) {
 		return nil, fmt.Errorf("datastore: src has invalid type")
 	}
 	dstLen := v.Len()
-
-	if keysLen := len(keys); keysLen != dstLen {
+	keysLen := len(keys)
+	if keysLen != dstLen {
 		return nil, fmt.Errorf("%w: key length = %d, dst length = %d", ErrDifferentKeyAndDstLength, keysLen, v.Len())
+	}
+	// Only validate transforms length if transforms were provided.
+	transformsLen := len(transforms)
+	if transforms != nil && keysLen != transformsLen {
+		return nil, fmt.Errorf("%w: key length = %d, transforms length = %d", ErrDifferentKeyAndTransformsLength, keysLen, transformsLen)
 	}
 
 	if len(keys) == 0 {
@@ -685,11 +800,25 @@ func putMutations(keys []*Key, src interface{}) ([]*pb.Mutation, error) {
 			multiErr[i] = err
 			hasErr = true
 		}
+
+		var pbTransforms []*pb.PropertyTransform
+		// Check if transforms were provided for this item.
+		if transforms != nil && i < len(transforms) {
+			for _, t := range transforms[i] {
+				if t.err != nil {
+					multiErr[i] = t.err
+					hasErr = true
+				}
+				if t.pb != nil {
+					pbTransforms = append(pbTransforms, t.pb)
+				}
+			}
+		}
 		var mut *pb.Mutation
 		if k.Incomplete() {
-			mut = &pb.Mutation{Operation: &pb.Mutation_Insert{Insert: p}}
+			mut = &pb.Mutation{Operation: &pb.Mutation_Insert{Insert: p}, PropertyTransforms: pbTransforms}
 		} else {
-			mut = &pb.Mutation{Operation: &pb.Mutation_Upsert{Upsert: p}}
+			mut = &pb.Mutation{Operation: &pb.Mutation_Upsert{Upsert: p}, PropertyTransforms: pbTransforms}
 		}
 		mutations = append(mutations, mut)
 	}
@@ -744,7 +873,7 @@ func deleteMutations(keys []*Key) ([]*pb.Mutation, error) {
 			multiErr[i] = fmt.Errorf("datastore: can't delete the incomplete key: %v", k)
 			hasErr = true
 		} else {
-			ks := k.String()
+			ks := k.stringInternal()
 			if !set[ks] {
 				mutations = append(mutations, &pb.Mutation{
 					Operation: &pb.Mutation_Delete{Delete: keyToProto(k)},
@@ -819,6 +948,10 @@ type ReadOption interface {
 
 type readSettings struct {
 	readTime time.Time
+}
+
+func (rs *readSettings) readTimeExists() bool {
+	return rs != nil && !rs.readTime.IsZero()
 }
 
 // WithReadOptions specifies constraints for accessing documents from the database,

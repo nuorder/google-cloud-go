@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,7 +28,6 @@ import (
 
 	computepb "cloud.google.com/go/compute/apiv1/computepb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -51,6 +50,7 @@ type NetworksCallOptions struct {
 	ListPeeringRoutes     []gax.CallOption
 	Patch                 []gax.CallOption
 	RemovePeering         []gax.CallOption
+	RequestRemovePeering  []gax.CallOption
 	SwitchToCustomMode    []gax.CallOption
 	UpdatePeering         []gax.CallOption
 }
@@ -120,6 +120,9 @@ func defaultNetworksRESTCallOptions() *NetworksCallOptions {
 		RemovePeering: []gax.CallOption{
 			gax.WithTimeout(600000 * time.Millisecond),
 		},
+		RequestRemovePeering: []gax.CallOption{
+			gax.WithTimeout(600000 * time.Millisecond),
+		},
 		SwitchToCustomMode: []gax.CallOption{
 			gax.WithTimeout(600000 * time.Millisecond),
 		},
@@ -143,6 +146,7 @@ type internalNetworksClient interface {
 	ListPeeringRoutes(context.Context, *computepb.ListPeeringRoutesNetworksRequest, ...gax.CallOption) *ExchangedPeeringRouteIterator
 	Patch(context.Context, *computepb.PatchNetworkRequest, ...gax.CallOption) (*Operation, error)
 	RemovePeering(context.Context, *computepb.RemovePeeringNetworkRequest, ...gax.CallOption) (*Operation, error)
+	RequestRemovePeering(context.Context, *computepb.RequestRemovePeeringNetworkRequest, ...gax.CallOption) (*Operation, error)
 	SwitchToCustomMode(context.Context, *computepb.SwitchToCustomModeNetworkRequest, ...gax.CallOption) (*Operation, error)
 	UpdatePeering(context.Context, *computepb.UpdatePeeringNetworkRequest, ...gax.CallOption) (*Operation, error)
 }
@@ -217,7 +221,7 @@ func (c *NetworksClient) ListPeeringRoutes(ctx context.Context, req *computepb.L
 	return c.internalClient.ListPeeringRoutes(ctx, req, opts...)
 }
 
-// Patch patches the specified network with the data included in the request. Only the following fields can be modified: routingConfig.routingMode.
+// Patch patches the specified network with the data included in the request. Only routingConfig can be modified.
 func (c *NetworksClient) Patch(ctx context.Context, req *computepb.PatchNetworkRequest, opts ...gax.CallOption) (*Operation, error) {
 	return c.internalClient.Patch(ctx, req, opts...)
 }
@@ -225,6 +229,11 @@ func (c *NetworksClient) Patch(ctx context.Context, req *computepb.PatchNetworkR
 // RemovePeering removes a peering from the specified network.
 func (c *NetworksClient) RemovePeering(ctx context.Context, req *computepb.RemovePeeringNetworkRequest, opts ...gax.CallOption) (*Operation, error) {
 	return c.internalClient.RemovePeering(ctx, req, opts...)
+}
+
+// RequestRemovePeering requests to remove a peering from the specified network. Applicable only for PeeringConnection with update_strategy=CONSENSUS.
+func (c *NetworksClient) RequestRemovePeering(ctx context.Context, req *computepb.RequestRemovePeeringNetworkRequest, opts ...gax.CallOption) (*Operation, error) {
+	return c.internalClient.RequestRemovePeering(ctx, req, opts...)
 }
 
 // SwitchToCustomMode switches the network mode from auto subnet mode to custom subnet mode.
@@ -253,6 +262,8 @@ type networksRESTClient struct {
 
 	// Points back to the CallOptions field of the containing NetworksClient
 	CallOptions **NetworksCallOptions
+
+	logger *slog.Logger
 }
 
 // NewNetworksRESTClient creates a new networks rest client.
@@ -270,6 +281,7 @@ func NewNetworksRESTClient(ctx context.Context, opts ...option.ClientOption) (*N
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -294,6 +306,7 @@ func defaultNetworksRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://compute.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -302,8 +315,10 @@ func defaultNetworksRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *networksRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -366,17 +381,7 @@ func (c *networksRESTClient) AddPeering(ctx context.Context, req *computepb.AddP
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "AddPeering")
 		if err != nil {
 			return err
 		}
@@ -435,17 +440,7 @@ func (c *networksRESTClient) Delete(ctx context.Context, req *computepb.DeleteNe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "Delete")
 		if err != nil {
 			return err
 		}
@@ -497,17 +492,7 @@ func (c *networksRESTClient) Get(ctx context.Context, req *computepb.GetNetworkR
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "Get")
 		if err != nil {
 			return err
 		}
@@ -552,17 +537,7 @@ func (c *networksRESTClient) GetEffectiveFirewalls(ctx context.Context, req *com
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetEffectiveFirewalls")
 		if err != nil {
 			return err
 		}
@@ -621,17 +596,7 @@ func (c *networksRESTClient) Insert(ctx context.Context, req *computepb.InsertNe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "Insert")
 		if err != nil {
 			return err
 		}
@@ -666,7 +631,7 @@ func (c *networksRESTClient) List(ctx context.Context, req *computepb.ListNetwor
 			req.PageToken = proto.String(pageToken)
 		}
 		if pageSize > math.MaxInt32 {
-			req.MaxResults = proto.Uint32(math.MaxInt32)
+			req.MaxResults = proto.Uint32(uint32(math.MaxInt32))
 		} else if pageSize != 0 {
 			req.MaxResults = proto.Uint32(uint32(pageSize))
 		}
@@ -708,21 +673,10 @@ func (c *networksRESTClient) List(ctx context.Context, req *computepb.ListNetwor
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "List")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -763,7 +717,7 @@ func (c *networksRESTClient) ListPeeringRoutes(ctx context.Context, req *compute
 			req.PageToken = proto.String(pageToken)
 		}
 		if pageSize > math.MaxInt32 {
-			req.MaxResults = proto.Uint32(math.MaxInt32)
+			req.MaxResults = proto.Uint32(uint32(math.MaxInt32))
 		} else if pageSize != 0 {
 			req.MaxResults = proto.Uint32(uint32(pageSize))
 		}
@@ -814,21 +768,10 @@ func (c *networksRESTClient) ListPeeringRoutes(ctx context.Context, req *compute
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListPeeringRoutes")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -858,7 +801,7 @@ func (c *networksRESTClient) ListPeeringRoutes(ctx context.Context, req *compute
 	return it
 }
 
-// Patch patches the specified network with the data included in the request. Only the following fields can be modified: routingConfig.routingMode.
+// Patch patches the specified network with the data included in the request. Only routingConfig can be modified.
 func (c *networksRESTClient) Patch(ctx context.Context, req *computepb.PatchNetworkRequest, opts ...gax.CallOption) (*Operation, error) {
 	m := protojson.MarshalOptions{AllowPartial: true}
 	body := req.GetNetworkResource()
@@ -900,17 +843,7 @@ func (c *networksRESTClient) Patch(ctx context.Context, req *computepb.PatchNetw
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "Patch")
 		if err != nil {
 			return err
 		}
@@ -976,17 +909,73 @@ func (c *networksRESTClient) RemovePeering(ctx context.Context, req *computepb.R
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RemovePeering")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
 
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
+		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
 
-		buf, err := io.ReadAll(httpRsp.Body)
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	op := &Operation{
+		&globalOperationsHandle{
+			c:       c.operationClient,
+			proto:   resp,
+			project: req.GetProject(),
+		},
+	}
+	return op, nil
+}
+
+// RequestRemovePeering requests to remove a peering from the specified network. Applicable only for PeeringConnection with update_strategy=CONSENSUS.
+func (c *networksRESTClient) RequestRemovePeering(ctx context.Context, req *computepb.RequestRemovePeeringNetworkRequest, opts ...gax.CallOption) (*Operation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true}
+	body := req.GetNetworksRequestRemovePeeringRequestResource()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/compute/v1/projects/%v/global/networks/%v/requestRemovePeering", req.GetProject(), req.GetNetwork())
+
+	params := url.Values{}
+	if req != nil && req.RequestId != nil {
+		params.Add("requestId", fmt.Sprintf("%v", req.GetRequestId()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v&%s=%v", "project", url.QueryEscape(req.GetProject()), "network", url.QueryEscape(req.GetNetwork()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).RequestRemovePeering[0:len((*c.CallOptions).RequestRemovePeering):len((*c.CallOptions).RequestRemovePeering)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &computepb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RequestRemovePeering")
 		if err != nil {
 			return err
 		}
@@ -1045,17 +1034,7 @@ func (c *networksRESTClient) SwitchToCustomMode(ctx context.Context, req *comput
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "SwitchToCustomMode")
 		if err != nil {
 			return err
 		}
@@ -1121,17 +1100,7 @@ func (c *networksRESTClient) UpdatePeering(ctx context.Context, req *computepb.U
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdatePeering")
 		if err != nil {
 			return err
 		}

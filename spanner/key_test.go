@@ -18,13 +18,16 @@ package spanner
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/civil"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	proto3 "github.com/golang/protobuf/ptypes/struct"
+	pb "cloud.google.com/go/spanner/testdata/protos"
+	"github.com/google/uuid"
+	proto3 "google.golang.org/protobuf/types/known/structpb"
 )
 
 type customKeyToString string
@@ -139,6 +142,36 @@ func TestKey(t *testing.T) {
 			wantStr:   `(1.000000000)`,
 		},
 		{
+			k:         Key{uuid1},
+			wantProto: listValueProto(uuidProto(uuid1)),
+			wantStr:   fmt.Sprintf("(%s)", uuid1.String()),
+		},
+		{
+			k:         Key{uuid.NullUUID{UUID: uuid1, Valid: true}},
+			wantProto: listValueProto(uuidProto(uuid1)),
+			wantStr:   fmt.Sprintf("(%s)", uuid1.String()),
+		},
+		{
+			k:         Key{uuid.NullUUID{UUID: uuid1, Valid: false}},
+			wantProto: listValueProto(nullProto()),
+			wantStr:   `(<null>)`,
+		},
+		{
+			k:         Key{NullUUID{uuid1, false}},
+			wantProto: listValueProto(nullProto()),
+			wantStr:   `(<null>)`,
+		},
+		{
+			k:         Key{NullUUID{uuid1, true}},
+			wantProto: listValueProto(uuidProto(uuid1)),
+			wantStr:   fmt.Sprintf("(%s)", uuid1.String()),
+		},
+		{
+			k:         Key{NullUUID{uuid1, false}},
+			wantProto: listValueProto(nullProto()),
+			wantStr:   `(<null>)`,
+		},
+		{
 			k:         Key{[]byte("value")},
 			wantProto: listValueProto(bytesProto([]byte("value"))),
 			wantStr:   `("value")`,
@@ -160,6 +193,16 @@ func TestKey(t *testing.T) {
 		},
 		{
 			k:         Key{NullFloat64{2.0, false}},
+			wantProto: listValueProto(nullProto()),
+			wantStr:   "(<null>)",
+		},
+		{
+			k:         Key{NullFloat32{3.14, true}},
+			wantProto: listValueProto(floatProto(float64(float32(3.14)))),
+			wantStr:   "(3.14)",
+		},
+		{
+			k:         Key{NullFloat32{2.0, false}},
 			wantProto: listValueProto(nullProto()),
 			wantStr:   "(<null>)",
 		},
@@ -233,6 +276,16 @@ func TestKey(t *testing.T) {
 			k:         Key{customKeyToError{}},
 			wantProto: nil,
 			wantStr:   `(error)`,
+		},
+		{
+			k:         Key{pb.Genre_ROCK},
+			wantProto: listValueProto(stringProto("3")),
+			wantStr:   "(ROCK)",
+		},
+		{
+			k:         Key{NullProtoEnum{pb.Genre_FOLK, true}},
+			wantProto: listValueProto(stringProto("2")),
+			wantStr:   "(FOLK)",
 		},
 	} {
 		if got := test.k.String(); got != test.wantStr {

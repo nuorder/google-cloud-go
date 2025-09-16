@@ -140,7 +140,8 @@ func TestLoad(t *testing.T) {
 				return g
 			}(),
 			config: LoadConfig{
-				JobTimeout: 4 * time.Second,
+				JobTimeout:  4 * time.Second,
+				Reservation: "reservation/1",
 			},
 			want: func() *bq.Job {
 				j := defaultLoadJob()
@@ -149,6 +150,7 @@ func TestLoad(t *testing.T) {
 				j.Configuration.Load.AllowQuotedNewlines = true
 				j.Configuration.Load.IgnoreUnknownValues = true
 				j.Configuration.JobTimeoutMs = 4000
+				j.Configuration.Reservation = "reservation/1"
 				return j
 			}(),
 		},
@@ -419,6 +421,7 @@ func TestLoad(t *testing.T) {
 						Value: "session_id_1234567890",
 					},
 				},
+				ColumnNameCharacterMap: StrictColumnNameCharacterMap,
 			},
 			want: func() *bq.Job {
 				j := defaultLoadJob()
@@ -429,6 +432,7 @@ func TestLoad(t *testing.T) {
 						Value: "session_id_1234567890",
 					},
 				}
+				j.Configuration.Load.ColumnNameCharacterMap = "STRICT"
 				return j
 			}(),
 		},

@@ -20,6 +20,11 @@
                 "CreateBackup"
               ]
             },
+            "CreateBackupChannel": {
+              "methods": [
+                "CreateBackupChannel"
+              ]
+            },
             "CreateBackupPlan": {
               "methods": [
                 "CreateBackupPlan"
@@ -30,6 +35,11 @@
                 "CreateRestore"
               ]
             },
+            "CreateRestoreChannel": {
+              "methods": [
+                "CreateRestoreChannel"
+              ]
+            },
             "CreateRestorePlan": {
               "methods": [
                 "CreateRestorePlan"
@@ -38,6 +48,11 @@
             "DeleteBackup": {
               "methods": [
                 "DeleteBackup"
+              ]
+            },
+            "DeleteBackupChannel": {
+              "methods": [
+                "DeleteBackupChannel"
               ]
             },
             "DeleteBackupPlan": {
@@ -55,6 +70,11 @@
                 "DeleteRestore"
               ]
             },
+            "DeleteRestoreChannel": {
+              "methods": [
+                "DeleteRestoreChannel"
+              ]
+            },
             "DeleteRestorePlan": {
               "methods": [
                 "DeleteRestorePlan"
@@ -65,9 +85,24 @@
                 "GetBackup"
               ]
             },
+            "GetBackupChannel": {
+              "methods": [
+                "GetBackupChannel"
+              ]
+            },
+            "GetBackupIndexDownloadUrl": {
+              "methods": [
+                "GetBackupIndexDownloadUrl"
+              ]
+            },
             "GetBackupPlan": {
               "methods": [
                 "GetBackupPlan"
+              ]
+            },
+            "GetBackupPlanBinding": {
+              "methods": [
+                "GetBackupPlanBinding"
               ]
             },
             "GetIamPolicy": {
@@ -90,9 +125,19 @@
                 "GetRestore"
               ]
             },
+            "GetRestoreChannel": {
+              "methods": [
+                "GetRestoreChannel"
+              ]
+            },
             "GetRestorePlan": {
               "methods": [
                 "GetRestorePlan"
+              ]
+            },
+            "GetRestorePlanBinding": {
+              "methods": [
+                "GetRestorePlanBinding"
               ]
             },
             "GetVolumeBackup": {
@@ -103,6 +148,16 @@
             "GetVolumeRestore": {
               "methods": [
                 "GetVolumeRestore"
+              ]
+            },
+            "ListBackupChannels": {
+              "methods": [
+                "ListBackupChannels"
+              ]
+            },
+            "ListBackupPlanBindings": {
+              "methods": [
+                "ListBackupPlanBindings"
               ]
             },
             "ListBackupPlans": {
@@ -123,6 +178,16 @@
             "ListOperations": {
               "methods": [
                 "ListOperations"
+              ]
+            },
+            "ListRestoreChannels": {
+              "methods": [
+                "ListRestoreChannels"
+              ]
+            },
+            "ListRestorePlanBindings": {
+              "methods": [
+                "ListRestorePlanBindings"
               ]
             },
             "ListRestorePlans": {
@@ -160,6 +225,11 @@
                 "UpdateBackup"
               ]
             },
+            "UpdateBackupChannel": {
+              "methods": [
+                "UpdateBackupChannel"
+              ]
+            },
             "UpdateBackupPlan": {
               "methods": [
                 "UpdateBackupPlan"
@@ -168,6 +238,11 @@
             "UpdateRestore": {
               "methods": [
                 "UpdateRestore"
+              ]
+            },
+            "UpdateRestoreChannel": {
+              "methods": [
+                "UpdateRestoreChannel"
               ]
             },
             "UpdateRestorePlan": {
@@ -190,6 +265,11 @@
                 "CreateBackup"
               ]
             },
+            "CreateBackupChannel": {
+              "methods": [
+                "CreateBackupChannel"
+              ]
+            },
             "CreateBackupPlan": {
               "methods": [
                 "CreateBackupPlan"
@@ -200,6 +280,11 @@
                 "CreateRestore"
               ]
             },
+            "CreateRestoreChannel": {
+              "methods": [
+                "CreateRestoreChannel"
+              ]
+            },
             "CreateRestorePlan": {
               "methods": [
                 "CreateRestorePlan"
@@ -208,6 +293,11 @@
             "DeleteBackup": {
               "methods": [
                 "DeleteBackup"
+              ]
+            },
+            "DeleteBackupChannel": {
+              "methods": [
+                "DeleteBackupChannel"
               ]
             },
             "DeleteBackupPlan": {
@@ -225,6 +315,11 @@
                 "DeleteRestore"
               ]
             },
+            "DeleteRestoreChannel": {
+              "methods": [
+                "DeleteRestoreChannel"
+              ]
+            },
             "DeleteRestorePlan": {
               "methods": [
                 "DeleteRestorePlan"
@@ -235,9 +330,24 @@
                 "GetBackup"
               ]
             },
+            "GetBackupChannel": {
+              "methods": [
+                "GetBackupChannel"
+              ]
+            },
+            "GetBackupIndexDownloadUrl": {
+              "methods": [
+                "GetBackupIndexDownloadUrl"
+              ]
+            },
             "GetBackupPlan": {
               "methods": [
                 "GetBackupPlan"
+              ]
+            },
+            "GetBackupPlanBinding": {
+              "methods": [
+                "GetBackupPlanBinding"
               ]
             },
             "GetIamPolicy": {
@@ -260,9 +370,19 @@
                 "GetRestore"
               ]
             },
+            "GetRestoreChannel": {
+              "methods": [
+                "GetRestoreChannel"
+              ]
+            },
             "GetRestorePlan": {
               "methods": [
                 "GetRestorePlan"
+              ]
+            },
+            "GetRestorePlanBinding": {
+              "methods": [
+                "GetRestorePlanBinding"
               ]
             },
             "GetVolumeBackup": {
@@ -273,6 +393,16 @@
             "GetVolumeRestore": {
               "methods": [
                 "GetVolumeRestore"
+              ]
+            },
+            "ListBackupChannels": {
+              "methods": [
+                "ListBackupChannels"
+              ]
+            },
+            "ListBackupPlanBindings": {
+              "methods": [
+                "ListBackupPlanBindings"
               ]
             },
             "ListBackupPlans": {
@@ -293,6 +423,16 @@
             "ListOperations": {
               "methods": [
                 "ListOperations"
+              ]
+            },
+            "ListRestoreChannels": {
+              "methods": [
+                "ListRestoreChannels"
+              ]
+            },
+            "ListRestorePlanBindings": {
+              "methods": [
+                "ListRestorePlanBindings"
               ]
             },
             "ListRestorePlans": {
@@ -330,6 +470,11 @@
                 "UpdateBackup"
               ]
             },
+            "UpdateBackupChannel": {
+              "methods": [
+                "UpdateBackupChannel"
+              ]
+            },
             "UpdateBackupPlan": {
               "methods": [
                 "UpdateBackupPlan"
@@ -338,6 +483,11 @@
             "UpdateRestore": {
               "methods": [
                 "UpdateRestore"
+              ]
+            },
+            "UpdateRestoreChannel": {
+              "methods": [
+                "UpdateRestoreChannel"
               ]
             },
             "UpdateRestorePlan": {

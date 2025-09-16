@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -29,7 +29,6 @@ import (
 	datacatalogpb "cloud.google.com/go/datacatalog/apiv1beta1/datacatalogpb"
 	iampb "cloud.google.com/go/iam/apiv1/iampb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -84,6 +83,7 @@ func defaultGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://datacatalog.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -893,8 +893,12 @@ type internalClient interface {
 // Client is a client for interacting with Google Cloud Data Catalog API.
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 //
+// Deprecated: Please use Dataplex Catalog instead.
+//
 // Data Catalog API service allows clients to discover, understand, and manage
 // their data.
+//
+// Deprecated: DataCatalog may be removed in a future version.
 type Client struct {
 	// The internal transport-dependent client.
 	internalClient internalClient
@@ -942,6 +946,8 @@ func (c *Client) Connection() *grpc.ClientConn {
 // See Data Catalog Search
 // Syntax (at https://cloud.google.com/data-catalog/docs/how-to/search-reference)
 // for more information.
+//
+// Deprecated: SearchCatalog may be removed in a future version.
 func (c *Client) SearchCatalog(ctx context.Context, req *datacatalogpb.SearchCatalogRequest, opts ...gax.CallOption) *SearchCatalogResultIterator {
 	return c.internalClient.SearchCatalog(ctx, req, opts...)
 }
@@ -953,6 +959,8 @@ func (c *Client) SearchCatalog(ctx context.Context, req *datacatalogpb.SearchCat
 // the parent parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: CreateEntryGroup may be removed in a future version.
 func (c *Client) CreateEntryGroup(ctx context.Context, req *datacatalogpb.CreateEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	return c.internalClient.CreateEntryGroup(ctx, req, opts...)
 }
@@ -962,11 +970,15 @@ func (c *Client) CreateEntryGroup(ctx context.Context, req *datacatalogpb.Create
 // Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateEntryGroup may be removed in a future version.
 func (c *Client) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.UpdateEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	return c.internalClient.UpdateEntryGroup(ctx, req, opts...)
 }
 
 // GetEntryGroup gets an EntryGroup.
+//
+// Deprecated: GetEntryGroup may be removed in a future version.
 func (c *Client) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	return c.internalClient.GetEntryGroup(ctx, req, opts...)
 }
@@ -976,11 +988,15 @@ func (c *Client) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEntryG
 // identified by the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteEntryGroup may be removed in a future version.
 func (c *Client) DeleteEntryGroup(ctx context.Context, req *datacatalogpb.DeleteEntryGroupRequest, opts ...gax.CallOption) error {
 	return c.internalClient.DeleteEntryGroup(ctx, req, opts...)
 }
 
 // ListEntryGroups lists entry groups.
+//
+// Deprecated: ListEntryGroups may be removed in a future version.
 func (c *Client) ListEntryGroups(ctx context.Context, req *datacatalogpb.ListEntryGroupsRequest, opts ...gax.CallOption) *EntryGroupIterator {
 	return c.internalClient.ListEntryGroups(ctx, req, opts...)
 }
@@ -994,6 +1010,8 @@ func (c *Client) ListEntryGroups(ctx context.Context, req *datacatalogpb.ListEnt
 // more information).
 //
 // A maximum of 100,000 entries may be created per entry group.
+//
+// Deprecated: CreateEntry may be removed in a future version.
 func (c *Client) CreateEntry(ctx context.Context, req *datacatalogpb.CreateEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	return c.internalClient.CreateEntry(ctx, req, opts...)
 }
@@ -1003,6 +1021,8 @@ func (c *Client) CreateEntry(ctx context.Context, req *datacatalogpb.CreateEntry
 // the entry.name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateEntry may be removed in a future version.
 func (c *Client) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	return c.internalClient.UpdateEntry(ctx, req, opts...)
 }
@@ -1014,11 +1034,15 @@ func (c *Client) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateEntry
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteEntry may be removed in a future version.
 func (c *Client) DeleteEntry(ctx context.Context, req *datacatalogpb.DeleteEntryRequest, opts ...gax.CallOption) error {
 	return c.internalClient.DeleteEntry(ctx, req, opts...)
 }
 
 // GetEntry gets an entry.
+//
+// Deprecated: GetEntry may be removed in a future version.
 func (c *Client) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	return c.internalClient.GetEntry(ctx, req, opts...)
 }
@@ -1026,11 +1050,15 @@ func (c *Client) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryReques
 // LookupEntry get an entry by target resource name. This method allows clients to use
 // the resource name from the source Google Cloud Platform service to get the
 // Data Catalog Entry.
+//
+// Deprecated: LookupEntry may be removed in a future version.
 func (c *Client) LookupEntry(ctx context.Context, req *datacatalogpb.LookupEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	return c.internalClient.LookupEntry(ctx, req, opts...)
 }
 
 // ListEntries lists entries.
+//
+// Deprecated: ListEntries may be removed in a future version.
 func (c *Client) ListEntries(ctx context.Context, req *datacatalogpb.ListEntriesRequest, opts ...gax.CallOption) *EntryIterator {
 	return c.internalClient.ListEntries(ctx, req, opts...)
 }
@@ -1040,11 +1068,15 @@ func (c *Client) ListEntries(ctx context.Context, req *datacatalogpb.ListEntries
 // Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: CreateTagTemplate may be removed in a future version.
 func (c *Client) CreateTagTemplate(ctx context.Context, req *datacatalogpb.CreateTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	return c.internalClient.CreateTagTemplate(ctx, req, opts...)
 }
 
 // GetTagTemplate gets a tag template.
+//
+// Deprecated: GetTagTemplate may be removed in a future version.
 func (c *Client) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	return c.internalClient.GetTagTemplate(ctx, req, opts...)
 }
@@ -1056,6 +1088,8 @@ func (c *Client) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetTagTe
 // the tag_template.name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateTagTemplate may be removed in a future version.
 func (c *Client) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.UpdateTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	return c.internalClient.UpdateTagTemplate(ctx, req, opts...)
 }
@@ -1065,6 +1099,8 @@ func (c *Client) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.Updat
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteTagTemplate may be removed in a future version.
 func (c *Client) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.DeleteTagTemplateRequest, opts ...gax.CallOption) error {
 	return c.internalClient.DeleteTagTemplate(ctx, req, opts...)
 }
@@ -1074,6 +1110,8 @@ func (c *Client) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.Delet
 // Data Catalog Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: CreateTagTemplateField may be removed in a future version.
 func (c *Client) CreateTagTemplateField(ctx context.Context, req *datacatalogpb.CreateTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	return c.internalClient.CreateTagTemplateField(ctx, req, opts...)
 }
@@ -1083,6 +1121,8 @@ func (c *Client) CreateTagTemplateField(ctx context.Context, req *datacatalogpb.
 // identified by the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateTagTemplateField may be removed in a future version.
 func (c *Client) UpdateTagTemplateField(ctx context.Context, req *datacatalogpb.UpdateTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	return c.internalClient.UpdateTagTemplateField(ctx, req, opts...)
 }
@@ -1092,6 +1132,8 @@ func (c *Client) UpdateTagTemplateField(ctx context.Context, req *datacatalogpb.
 // Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: RenameTagTemplateField may be removed in a future version.
 func (c *Client) RenameTagTemplateField(ctx context.Context, req *datacatalogpb.RenameTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	return c.internalClient.RenameTagTemplateField(ctx, req, opts...)
 }
@@ -1099,6 +1141,8 @@ func (c *Client) RenameTagTemplateField(ctx context.Context, req *datacatalogpb.
 // RenameTagTemplateFieldEnumValue renames an enum value in a tag template. The enum values have to be unique
 // within one enum field. Thus, an enum value cannot be renamed with a name
 // used in any other enum value within the same enum field.
+//
+// Deprecated: RenameTagTemplateFieldEnumValue may be removed in a future version.
 func (c *Client) RenameTagTemplateFieldEnumValue(ctx context.Context, req *datacatalogpb.RenameTagTemplateFieldEnumValueRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	return c.internalClient.RenameTagTemplateFieldEnumValue(ctx, req, opts...)
 }
@@ -1108,6 +1152,8 @@ func (c *Client) RenameTagTemplateFieldEnumValue(ctx context.Context, req *datac
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteTagTemplateField may be removed in a future version.
 func (c *Client) DeleteTagTemplateField(ctx context.Context, req *datacatalogpb.DeleteTagTemplateFieldRequest, opts ...gax.CallOption) error {
 	return c.internalClient.DeleteTagTemplateField(ctx, req, opts...)
 }
@@ -1119,16 +1165,22 @@ func (c *Client) DeleteTagTemplateField(ctx context.Context, req *datacatalogpb.
 // tag
 // template (at https://cloud.google.com/data-catalog/docs/reference/rest/v1beta1/projects.locations.tagTemplates/create#path-parameters)
 // used to create the tag must be from the same organization.
+//
+// Deprecated: CreateTag may be removed in a future version.
 func (c *Client) CreateTag(ctx context.Context, req *datacatalogpb.CreateTagRequest, opts ...gax.CallOption) (*datacatalogpb.Tag, error) {
 	return c.internalClient.CreateTag(ctx, req, opts...)
 }
 
 // UpdateTag updates an existing tag.
+//
+// Deprecated: UpdateTag may be removed in a future version.
 func (c *Client) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTagRequest, opts ...gax.CallOption) (*datacatalogpb.Tag, error) {
 	return c.internalClient.UpdateTag(ctx, req, opts...)
 }
 
 // DeleteTag deletes a tag.
+//
+// Deprecated: DeleteTag may be removed in a future version.
 func (c *Client) DeleteTag(ctx context.Context, req *datacatalogpb.DeleteTagRequest, opts ...gax.CallOption) error {
 	return c.internalClient.DeleteTag(ctx, req, opts...)
 }
@@ -1136,6 +1188,8 @@ func (c *Client) DeleteTag(ctx context.Context, req *datacatalogpb.DeleteTagRequ
 // ListTags lists tags assigned to an Entry.
 // The columns in the response
 // are lowercased.
+//
+// Deprecated: ListTags may be removed in a future version.
 func (c *Client) ListTags(ctx context.Context, req *datacatalogpb.ListTagsRequest, opts ...gax.CallOption) *TagIterator {
 	return c.internalClient.ListTags(ctx, req, opts...)
 }
@@ -1160,6 +1214,8 @@ func (c *Client) ListTags(ctx context.Context, req *datacatalogpb.ListTagsReques
 //	datacatalog.entries.setIamPolicy to set policies on entries.
 //
 //	datacatalog.entryGroups.setIamPolicy to set policies on entry groups.
+//
+// Deprecated: SetIamPolicy may be removed in a future version.
 func (c *Client) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
 	return c.internalClient.SetIamPolicy(ctx, req, opts...)
 }
@@ -1186,6 +1242,8 @@ func (c *Client) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyReques
 //	datacatalog.entries.getIamPolicy to get policies on entries.
 //
 //	datacatalog.entryGroups.getIamPolicy to get policies on entry groups.
+//
+// Deprecated: GetIamPolicy may be removed in a future version.
 func (c *Client) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
 	return c.internalClient.GetIamPolicy(ctx, req, opts...)
 }
@@ -1206,6 +1264,8 @@ func (c *Client) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyReques
 //
 // A caller is not required to have Google IAM permission to make this
 // request.
+//
+// Deprecated: TestIamPermissions may be removed in a future version.
 func (c *Client) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermissionsRequest, opts ...gax.CallOption) (*iampb.TestIamPermissionsResponse, error) {
 	return c.internalClient.TestIamPermissions(ctx, req, opts...)
 }
@@ -1225,13 +1285,19 @@ type gRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewClient creates a new data catalog client based on gRPC.
 // The returned client must be Closed when it is done being used to clean up its underlying connections.
 //
+// Deprecated: Please use Dataplex Catalog instead.
+//
 // Data Catalog API service allows clients to discover, understand, and manage
 // their data.
+//
+// Deprecated: DataCatalog may be removed in a future version.
 func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
 	clientOpts := defaultGRPCClientOptions()
 	if newClientHook != nil {
@@ -1252,6 +1318,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 		connPool:    connPool,
 		client:      datacatalogpb.NewDataCatalogClient(connPool),
 		CallOptions: &client.CallOptions,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -1273,8 +1340,10 @@ func (c *gRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *gRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -1296,12 +1365,18 @@ type restClient struct {
 
 	// Points back to the CallOptions field of the containing Client
 	CallOptions **CallOptions
+
+	logger *slog.Logger
 }
 
 // NewRESTClient creates a new data catalog rest client.
 //
+// Deprecated: Please use Dataplex Catalog instead.
+//
 // Data Catalog API service allows clients to discover, understand, and manage
 // their data.
+//
+// Deprecated: DataCatalog may be removed in a future version.
 func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
 	clientOpts := append(defaultRESTClientOptions(), opts...)
 	httpClient, endpoint, err := httptransport.NewClient(ctx, clientOpts...)
@@ -1314,6 +1389,7 @@ func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, e
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -1328,6 +1404,7 @@ func defaultRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://datacatalog.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -1336,8 +1413,10 @@ func defaultRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *restClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -1371,7 +1450,7 @@ func (c *gRPCClient) SearchCatalog(ctx context.Context, req *datacatalogpb.Searc
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.SearchCatalog(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.SearchCatalog, req, settings.GRPC, c.logger, "SearchCatalog")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1406,7 +1485,7 @@ func (c *gRPCClient) CreateEntryGroup(ctx context.Context, req *datacatalogpb.Cr
 	var resp *datacatalogpb.EntryGroup
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateEntryGroup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateEntryGroup, req, settings.GRPC, c.logger, "CreateEntryGroup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1424,7 +1503,7 @@ func (c *gRPCClient) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.Up
 	var resp *datacatalogpb.EntryGroup
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateEntryGroup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateEntryGroup, req, settings.GRPC, c.logger, "UpdateEntryGroup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1442,7 +1521,7 @@ func (c *gRPCClient) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEn
 	var resp *datacatalogpb.EntryGroup
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetEntryGroup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetEntryGroup, req, settings.GRPC, c.logger, "GetEntryGroup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1459,7 +1538,7 @@ func (c *gRPCClient) DeleteEntryGroup(ctx context.Context, req *datacatalogpb.De
 	opts = append((*c.CallOptions).DeleteEntryGroup[0:len((*c.CallOptions).DeleteEntryGroup):len((*c.CallOptions).DeleteEntryGroup)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteEntryGroup(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteEntryGroup, req, settings.GRPC, c.logger, "DeleteEntryGroup")
 		return err
 	}, opts...)
 	return err
@@ -1485,7 +1564,7 @@ func (c *gRPCClient) ListEntryGroups(ctx context.Context, req *datacatalogpb.Lis
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListEntryGroups(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListEntryGroups, req, settings.GRPC, c.logger, "ListEntryGroups")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1520,7 +1599,7 @@ func (c *gRPCClient) CreateEntry(ctx context.Context, req *datacatalogpb.CreateE
 	var resp *datacatalogpb.Entry
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateEntry(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateEntry, req, settings.GRPC, c.logger, "CreateEntry")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1538,7 +1617,7 @@ func (c *gRPCClient) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateE
 	var resp *datacatalogpb.Entry
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateEntry(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateEntry, req, settings.GRPC, c.logger, "UpdateEntry")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1555,7 +1634,7 @@ func (c *gRPCClient) DeleteEntry(ctx context.Context, req *datacatalogpb.DeleteE
 	opts = append((*c.CallOptions).DeleteEntry[0:len((*c.CallOptions).DeleteEntry):len((*c.CallOptions).DeleteEntry)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteEntry(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteEntry, req, settings.GRPC, c.logger, "DeleteEntry")
 		return err
 	}, opts...)
 	return err
@@ -1570,7 +1649,7 @@ func (c *gRPCClient) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryRe
 	var resp *datacatalogpb.Entry
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetEntry(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetEntry, req, settings.GRPC, c.logger, "GetEntry")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1585,7 +1664,7 @@ func (c *gRPCClient) LookupEntry(ctx context.Context, req *datacatalogpb.LookupE
 	var resp *datacatalogpb.Entry
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.LookupEntry(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.LookupEntry, req, settings.GRPC, c.logger, "LookupEntry")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1614,7 +1693,7 @@ func (c *gRPCClient) ListEntries(ctx context.Context, req *datacatalogpb.ListEnt
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListEntries(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListEntries, req, settings.GRPC, c.logger, "ListEntries")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1649,7 +1728,7 @@ func (c *gRPCClient) CreateTagTemplate(ctx context.Context, req *datacatalogpb.C
 	var resp *datacatalogpb.TagTemplate
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateTagTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateTagTemplate, req, settings.GRPC, c.logger, "CreateTagTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1667,7 +1746,7 @@ func (c *gRPCClient) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetT
 	var resp *datacatalogpb.TagTemplate
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetTagTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetTagTemplate, req, settings.GRPC, c.logger, "GetTagTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1685,7 +1764,7 @@ func (c *gRPCClient) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.U
 	var resp *datacatalogpb.TagTemplate
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateTagTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateTagTemplate, req, settings.GRPC, c.logger, "UpdateTagTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1702,7 +1781,7 @@ func (c *gRPCClient) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.D
 	opts = append((*c.CallOptions).DeleteTagTemplate[0:len((*c.CallOptions).DeleteTagTemplate):len((*c.CallOptions).DeleteTagTemplate)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteTagTemplate(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteTagTemplate, req, settings.GRPC, c.logger, "DeleteTagTemplate")
 		return err
 	}, opts...)
 	return err
@@ -1717,7 +1796,7 @@ func (c *gRPCClient) CreateTagTemplateField(ctx context.Context, req *datacatalo
 	var resp *datacatalogpb.TagTemplateField
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateTagTemplateField(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateTagTemplateField, req, settings.GRPC, c.logger, "CreateTagTemplateField")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1735,7 +1814,7 @@ func (c *gRPCClient) UpdateTagTemplateField(ctx context.Context, req *datacatalo
 	var resp *datacatalogpb.TagTemplateField
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateTagTemplateField(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateTagTemplateField, req, settings.GRPC, c.logger, "UpdateTagTemplateField")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1753,7 +1832,7 @@ func (c *gRPCClient) RenameTagTemplateField(ctx context.Context, req *datacatalo
 	var resp *datacatalogpb.TagTemplateField
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.RenameTagTemplateField(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.RenameTagTemplateField, req, settings.GRPC, c.logger, "RenameTagTemplateField")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1771,7 +1850,7 @@ func (c *gRPCClient) RenameTagTemplateFieldEnumValue(ctx context.Context, req *d
 	var resp *datacatalogpb.TagTemplateField
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.RenameTagTemplateFieldEnumValue(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.RenameTagTemplateFieldEnumValue, req, settings.GRPC, c.logger, "RenameTagTemplateFieldEnumValue")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1788,7 +1867,7 @@ func (c *gRPCClient) DeleteTagTemplateField(ctx context.Context, req *datacatalo
 	opts = append((*c.CallOptions).DeleteTagTemplateField[0:len((*c.CallOptions).DeleteTagTemplateField):len((*c.CallOptions).DeleteTagTemplateField)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteTagTemplateField(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteTagTemplateField, req, settings.GRPC, c.logger, "DeleteTagTemplateField")
 		return err
 	}, opts...)
 	return err
@@ -1803,7 +1882,7 @@ func (c *gRPCClient) CreateTag(ctx context.Context, req *datacatalogpb.CreateTag
 	var resp *datacatalogpb.Tag
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateTag(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateTag, req, settings.GRPC, c.logger, "CreateTag")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1821,7 +1900,7 @@ func (c *gRPCClient) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTag
 	var resp *datacatalogpb.Tag
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateTag(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateTag, req, settings.GRPC, c.logger, "UpdateTag")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1838,7 +1917,7 @@ func (c *gRPCClient) DeleteTag(ctx context.Context, req *datacatalogpb.DeleteTag
 	opts = append((*c.CallOptions).DeleteTag[0:len((*c.CallOptions).DeleteTag):len((*c.CallOptions).DeleteTag)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteTag(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteTag, req, settings.GRPC, c.logger, "DeleteTag")
 		return err
 	}, opts...)
 	return err
@@ -1864,7 +1943,7 @@ func (c *gRPCClient) ListTags(ctx context.Context, req *datacatalogpb.ListTagsRe
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListTags(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListTags, req, settings.GRPC, c.logger, "ListTags")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1899,7 +1978,7 @@ func (c *gRPCClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRe
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1917,7 +1996,7 @@ func (c *gRPCClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRe
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1935,7 +2014,7 @@ func (c *gRPCClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamP
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1960,6 +2039,8 @@ func (c *gRPCClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamP
 // See Data Catalog Search
 // Syntax (at https://cloud.google.com/data-catalog/docs/how-to/search-reference)
 // for more information.
+//
+// Deprecated: SearchCatalog may be removed in a future version.
 func (c *restClient) SearchCatalog(ctx context.Context, req *datacatalogpb.SearchCatalogRequest, opts ...gax.CallOption) *SearchCatalogResultIterator {
 	it := &SearchCatalogResultIterator{}
 	req = proto.Clone(req).(*datacatalogpb.SearchCatalogRequest)
@@ -1999,21 +2080,10 @@ func (c *restClient) SearchCatalog(ctx context.Context, req *datacatalogpb.Searc
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SearchCatalog")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2050,6 +2120,8 @@ func (c *restClient) SearchCatalog(ctx context.Context, req *datacatalogpb.Searc
 // the parent parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: CreateEntryGroup may be removed in a future version.
 func (c *restClient) CreateEntryGroup(ctx context.Context, req *datacatalogpb.CreateEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetEntryGroup()
@@ -2089,17 +2161,7 @@ func (c *restClient) CreateEntryGroup(ctx context.Context, req *datacatalogpb.Cr
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateEntryGroup")
 		if err != nil {
 			return err
 		}
@@ -2121,6 +2183,8 @@ func (c *restClient) CreateEntryGroup(ctx context.Context, req *datacatalogpb.Cr
 // Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateEntryGroup may be removed in a future version.
 func (c *restClient) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.UpdateEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetEntryGroup()
@@ -2137,11 +2201,11 @@ func (c *restClient) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.Up
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2166,17 +2230,7 @@ func (c *restClient) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.Up
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateEntryGroup")
 		if err != nil {
 			return err
 		}
@@ -2194,6 +2248,8 @@ func (c *restClient) UpdateEntryGroup(ctx context.Context, req *datacatalogpb.Up
 }
 
 // GetEntryGroup gets an EntryGroup.
+//
+// Deprecated: GetEntryGroup may be removed in a future version.
 func (c *restClient) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEntryGroupRequest, opts ...gax.CallOption) (*datacatalogpb.EntryGroup, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2203,11 +2259,11 @@ func (c *restClient) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEn
 
 	params := url.Values{}
 	if req.GetReadMask() != nil {
-		readMask, err := protojson.Marshal(req.GetReadMask())
+		field, err := protojson.Marshal(req.GetReadMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("readMask", string(readMask[1:len(readMask)-1]))
+		params.Add("readMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2232,17 +2288,7 @@ func (c *restClient) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEn
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetEntryGroup")
 		if err != nil {
 			return err
 		}
@@ -2264,6 +2310,8 @@ func (c *restClient) GetEntryGroup(ctx context.Context, req *datacatalogpb.GetEn
 // identified by the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteEntryGroup may be removed in a future version.
 func (c *restClient) DeleteEntryGroup(ctx context.Context, req *datacatalogpb.DeleteEntryGroupRequest, opts ...gax.CallOption) error {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2295,19 +2343,14 @@ func (c *restClient) DeleteEntryGroup(ctx context.Context, req *datacatalogpb.De
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteEntryGroup")
+		return err
 	}, opts...)
 }
 
 // ListEntryGroups lists entry groups.
+//
+// Deprecated: ListEntryGroups may be removed in a future version.
 func (c *restClient) ListEntryGroups(ctx context.Context, req *datacatalogpb.ListEntryGroupsRequest, opts ...gax.CallOption) *EntryGroupIterator {
 	it := &EntryGroupIterator{}
 	req = proto.Clone(req).(*datacatalogpb.ListEntryGroupsRequest)
@@ -2351,21 +2394,10 @@ func (c *restClient) ListEntryGroups(ctx context.Context, req *datacatalogpb.Lis
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListEntryGroups")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2404,6 +2436,8 @@ func (c *restClient) ListEntryGroups(ctx context.Context, req *datacatalogpb.Lis
 // more information).
 //
 // A maximum of 100,000 entries may be created per entry group.
+//
+// Deprecated: CreateEntry may be removed in a future version.
 func (c *restClient) CreateEntry(ctx context.Context, req *datacatalogpb.CreateEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetEntry()
@@ -2443,17 +2477,7 @@ func (c *restClient) CreateEntry(ctx context.Context, req *datacatalogpb.CreateE
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateEntry")
 		if err != nil {
 			return err
 		}
@@ -2475,6 +2499,8 @@ func (c *restClient) CreateEntry(ctx context.Context, req *datacatalogpb.CreateE
 // the entry.name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateEntry may be removed in a future version.
 func (c *restClient) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetEntry()
@@ -2491,11 +2517,11 @@ func (c *restClient) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateE
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2520,17 +2546,7 @@ func (c *restClient) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateE
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateEntry")
 		if err != nil {
 			return err
 		}
@@ -2554,6 +2570,8 @@ func (c *restClient) UpdateEntry(ctx context.Context, req *datacatalogpb.UpdateE
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteEntry may be removed in a future version.
 func (c *restClient) DeleteEntry(ctx context.Context, req *datacatalogpb.DeleteEntryRequest, opts ...gax.CallOption) error {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2578,19 +2596,14 @@ func (c *restClient) DeleteEntry(ctx context.Context, req *datacatalogpb.DeleteE
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteEntry")
+		return err
 	}, opts...)
 }
 
 // GetEntry gets an entry.
+//
+// Deprecated: GetEntry may be removed in a future version.
 func (c *restClient) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2618,17 +2631,7 @@ func (c *restClient) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryRe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetEntry")
 		if err != nil {
 			return err
 		}
@@ -2648,6 +2651,8 @@ func (c *restClient) GetEntry(ctx context.Context, req *datacatalogpb.GetEntryRe
 // LookupEntry get an entry by target resource name. This method allows clients to use
 // the resource name from the source Google Cloud Platform service to get the
 // Data Catalog Entry.
+//
+// Deprecated: LookupEntry may be removed in a future version.
 func (c *restClient) LookupEntry(ctx context.Context, req *datacatalogpb.LookupEntryRequest, opts ...gax.CallOption) (*datacatalogpb.Entry, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2682,17 +2687,7 @@ func (c *restClient) LookupEntry(ctx context.Context, req *datacatalogpb.LookupE
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "LookupEntry")
 		if err != nil {
 			return err
 		}
@@ -2710,6 +2705,8 @@ func (c *restClient) LookupEntry(ctx context.Context, req *datacatalogpb.LookupE
 }
 
 // ListEntries lists entries.
+//
+// Deprecated: ListEntries may be removed in a future version.
 func (c *restClient) ListEntries(ctx context.Context, req *datacatalogpb.ListEntriesRequest, opts ...gax.CallOption) *EntryIterator {
 	it := &EntryIterator{}
 	req = proto.Clone(req).(*datacatalogpb.ListEntriesRequest)
@@ -2738,11 +2735,11 @@ func (c *restClient) ListEntries(ctx context.Context, req *datacatalogpb.ListEnt
 			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
 		}
 		if req.GetReadMask() != nil {
-			readMask, err := protojson.Marshal(req.GetReadMask())
+			field, err := protojson.Marshal(req.GetReadMask())
 			if err != nil {
 				return nil, "", err
 			}
-			params.Add("readMask", string(readMask[1:len(readMask)-1]))
+			params.Add("readMask", string(field[1:len(field)-1]))
 		}
 
 		baseUrl.RawQuery = params.Encode()
@@ -2760,21 +2757,10 @@ func (c *restClient) ListEntries(ctx context.Context, req *datacatalogpb.ListEnt
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListEntries")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2809,6 +2795,8 @@ func (c *restClient) ListEntries(ctx context.Context, req *datacatalogpb.ListEnt
 // Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: CreateTagTemplate may be removed in a future version.
 func (c *restClient) CreateTagTemplate(ctx context.Context, req *datacatalogpb.CreateTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTagTemplate()
@@ -2848,17 +2836,7 @@ func (c *restClient) CreateTagTemplate(ctx context.Context, req *datacatalogpb.C
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateTagTemplate")
 		if err != nil {
 			return err
 		}
@@ -2876,6 +2854,8 @@ func (c *restClient) CreateTagTemplate(ctx context.Context, req *datacatalogpb.C
 }
 
 // GetTagTemplate gets a tag template.
+//
+// Deprecated: GetTagTemplate may be removed in a future version.
 func (c *restClient) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -2903,17 +2883,7 @@ func (c *restClient) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetT
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetTagTemplate")
 		if err != nil {
 			return err
 		}
@@ -2937,6 +2907,8 @@ func (c *restClient) GetTagTemplate(ctx context.Context, req *datacatalogpb.GetT
 // the tag_template.name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateTagTemplate may be removed in a future version.
 func (c *restClient) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.UpdateTagTemplateRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplate, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTagTemplate()
@@ -2953,11 +2925,11 @@ func (c *restClient) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.U
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2982,17 +2954,7 @@ func (c *restClient) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.U
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateTagTemplate")
 		if err != nil {
 			return err
 		}
@@ -3014,6 +2976,8 @@ func (c *restClient) UpdateTagTemplate(ctx context.Context, req *datacatalogpb.U
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteTagTemplate may be removed in a future version.
 func (c *restClient) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.DeleteTagTemplateRequest, opts ...gax.CallOption) error {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -3043,15 +3007,8 @@ func (c *restClient) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.D
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteTagTemplate")
+		return err
 	}, opts...)
 }
 
@@ -3060,6 +3017,8 @@ func (c *restClient) DeleteTagTemplate(ctx context.Context, req *datacatalogpb.D
 // Data Catalog Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: CreateTagTemplateField may be removed in a future version.
 func (c *restClient) CreateTagTemplateField(ctx context.Context, req *datacatalogpb.CreateTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTagTemplateField()
@@ -3099,17 +3058,7 @@ func (c *restClient) CreateTagTemplateField(ctx context.Context, req *datacatalo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateTagTemplateField")
 		if err != nil {
 			return err
 		}
@@ -3131,6 +3080,8 @@ func (c *restClient) CreateTagTemplateField(ctx context.Context, req *datacatalo
 // identified by the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: UpdateTagTemplateField may be removed in a future version.
 func (c *restClient) UpdateTagTemplateField(ctx context.Context, req *datacatalogpb.UpdateTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTagTemplateField()
@@ -3147,11 +3098,11 @@ func (c *restClient) UpdateTagTemplateField(ctx context.Context, req *datacatalo
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -3176,17 +3127,7 @@ func (c *restClient) UpdateTagTemplateField(ctx context.Context, req *datacatalo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateTagTemplateField")
 		if err != nil {
 			return err
 		}
@@ -3208,6 +3149,8 @@ func (c *restClient) UpdateTagTemplateField(ctx context.Context, req *datacatalo
 // Resource
 // Project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)
 // for more information).
+//
+// Deprecated: RenameTagTemplateField may be removed in a future version.
 func (c *restClient) RenameTagTemplateField(ctx context.Context, req *datacatalogpb.RenameTagTemplateFieldRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -3241,17 +3184,7 @@ func (c *restClient) RenameTagTemplateField(ctx context.Context, req *datacatalo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RenameTagTemplateField")
 		if err != nil {
 			return err
 		}
@@ -3271,6 +3204,8 @@ func (c *restClient) RenameTagTemplateField(ctx context.Context, req *datacatalo
 // RenameTagTemplateFieldEnumValue renames an enum value in a tag template. The enum values have to be unique
 // within one enum field. Thus, an enum value cannot be renamed with a name
 // used in any other enum value within the same enum field.
+//
+// Deprecated: RenameTagTemplateFieldEnumValue may be removed in a future version.
 func (c *restClient) RenameTagTemplateFieldEnumValue(ctx context.Context, req *datacatalogpb.RenameTagTemplateFieldEnumValueRequest, opts ...gax.CallOption) (*datacatalogpb.TagTemplateField, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -3304,17 +3239,7 @@ func (c *restClient) RenameTagTemplateFieldEnumValue(ctx context.Context, req *d
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RenameTagTemplateFieldEnumValue")
 		if err != nil {
 			return err
 		}
@@ -3336,6 +3261,8 @@ func (c *restClient) RenameTagTemplateFieldEnumValue(ctx context.Context, req *d
 // the name parameter (see [Data Catalog Resource Project]
 // (https://cloud.google.com/data-catalog/docs/concepts/resource-project (at https://cloud.google.com/data-catalog/docs/concepts/resource-project)) for
 // more information).
+//
+// Deprecated: DeleteTagTemplateField may be removed in a future version.
 func (c *restClient) DeleteTagTemplateField(ctx context.Context, req *datacatalogpb.DeleteTagTemplateFieldRequest, opts ...gax.CallOption) error {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -3365,15 +3292,8 @@ func (c *restClient) DeleteTagTemplateField(ctx context.Context, req *datacatalo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteTagTemplateField")
+		return err
 	}, opts...)
 }
 
@@ -3384,6 +3304,8 @@ func (c *restClient) DeleteTagTemplateField(ctx context.Context, req *datacatalo
 // tag
 // template (at https://cloud.google.com/data-catalog/docs/reference/rest/v1beta1/projects.locations.tagTemplates/create#path-parameters)
 // used to create the tag must be from the same organization.
+//
+// Deprecated: CreateTag may be removed in a future version.
 func (c *restClient) CreateTag(ctx context.Context, req *datacatalogpb.CreateTagRequest, opts ...gax.CallOption) (*datacatalogpb.Tag, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTag()
@@ -3418,17 +3340,7 @@ func (c *restClient) CreateTag(ctx context.Context, req *datacatalogpb.CreateTag
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateTag")
 		if err != nil {
 			return err
 		}
@@ -3446,6 +3358,8 @@ func (c *restClient) CreateTag(ctx context.Context, req *datacatalogpb.CreateTag
 }
 
 // UpdateTag updates an existing tag.
+//
+// Deprecated: UpdateTag may be removed in a future version.
 func (c *restClient) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTagRequest, opts ...gax.CallOption) (*datacatalogpb.Tag, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	body := req.GetTag()
@@ -3462,11 +3376,11 @@ func (c *restClient) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTag
 
 	params := url.Values{}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -3491,17 +3405,7 @@ func (c *restClient) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTag
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateTag")
 		if err != nil {
 			return err
 		}
@@ -3519,6 +3423,8 @@ func (c *restClient) UpdateTag(ctx context.Context, req *datacatalogpb.UpdateTag
 }
 
 // DeleteTag deletes a tag.
+//
+// Deprecated: DeleteTag may be removed in a future version.
 func (c *restClient) DeleteTag(ctx context.Context, req *datacatalogpb.DeleteTagRequest, opts ...gax.CallOption) error {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -3543,21 +3449,16 @@ func (c *restClient) DeleteTag(ctx context.Context, req *datacatalogpb.DeleteTag
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteTag")
+		return err
 	}, opts...)
 }
 
 // ListTags lists tags assigned to an Entry.
 // The columns in the response
 // are lowercased.
+//
+// Deprecated: ListTags may be removed in a future version.
 func (c *restClient) ListTags(ctx context.Context, req *datacatalogpb.ListTagsRequest, opts ...gax.CallOption) *TagIterator {
 	it := &TagIterator{}
 	req = proto.Clone(req).(*datacatalogpb.ListTagsRequest)
@@ -3601,21 +3502,10 @@ func (c *restClient) ListTags(ctx context.Context, req *datacatalogpb.ListTagsRe
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListTags")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3665,6 +3555,8 @@ func (c *restClient) ListTags(ctx context.Context, req *datacatalogpb.ListTagsRe
 //	datacatalog.entries.setIamPolicy to set policies on entries.
 //
 //	datacatalog.entryGroups.setIamPolicy to set policies on entry groups.
+//
+// Deprecated: SetIamPolicy may be removed in a future version.
 func (c *restClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -3698,17 +3590,7 @@ func (c *restClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -3747,6 +3629,8 @@ func (c *restClient) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRe
 //	datacatalog.entries.getIamPolicy to get policies on entries.
 //
 //	datacatalog.entryGroups.getIamPolicy to get policies on entry groups.
+//
+// Deprecated: GetIamPolicy may be removed in a future version.
 func (c *restClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -3780,17 +3664,7 @@ func (c *restClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "GetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -3823,6 +3697,8 @@ func (c *restClient) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRe
 //
 // A caller is not required to have Google IAM permission to make this
 // request.
+//
+// Deprecated: TestIamPermissions may be removed in a future version.
 func (c *restClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermissionsRequest, opts ...gax.CallOption) (*iampb.TestIamPermissionsResponse, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -3856,17 +3732,7 @@ func (c *restClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamP
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "TestIamPermissions")
 		if err != nil {
 			return err
 		}

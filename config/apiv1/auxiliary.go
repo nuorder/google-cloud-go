@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -496,7 +496,7 @@ type DeploymentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*configpb.Deployment, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DeploymentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -543,7 +543,7 @@ type LocationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*locationpb.Location, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *LocationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -590,7 +590,7 @@ type OperationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*longrunningpb.Operation, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *OperationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -637,7 +637,7 @@ type PreviewIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*configpb.Preview, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *PreviewIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -664,6 +664,100 @@ func (it *PreviewIterator) takeBuf() interface{} {
 	return b
 }
 
+// ResourceChangeIterator manages a stream of *configpb.ResourceChange.
+type ResourceChangeIterator struct {
+	items    []*configpb.ResourceChange
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*configpb.ResourceChange, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ResourceChangeIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ResourceChangeIterator) Next() (*configpb.ResourceChange, error) {
+	var item *configpb.ResourceChange
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ResourceChangeIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ResourceChangeIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// ResourceDriftIterator manages a stream of *configpb.ResourceDrift.
+type ResourceDriftIterator struct {
+	items    []*configpb.ResourceDrift
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*configpb.ResourceDrift, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ResourceDriftIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ResourceDriftIterator) Next() (*configpb.ResourceDrift, error) {
+	var item *configpb.ResourceDrift
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ResourceDriftIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ResourceDriftIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // ResourceIterator manages a stream of *configpb.Resource.
 type ResourceIterator struct {
 	items    []*configpb.Resource
@@ -684,7 +778,7 @@ type ResourceIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*configpb.Resource, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ResourceIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -731,7 +825,7 @@ type RevisionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*configpb.Revision, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *RevisionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -753,6 +847,53 @@ func (it *RevisionIterator) bufLen() int {
 }
 
 func (it *RevisionIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// TerraformVersionIterator manages a stream of *configpb.TerraformVersion.
+type TerraformVersionIterator struct {
+	items    []*configpb.TerraformVersion
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*configpb.TerraformVersion, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *TerraformVersionIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *TerraformVersionIterator) Next() (*configpb.TerraformVersion, error) {
+	var item *configpb.TerraformVersion
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *TerraformVersionIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *TerraformVersionIterator) takeBuf() interface{} {
 	b := it.items
 	it.items = nil
 	return b

@@ -39,7 +39,8 @@ func TestExternalDataConfig(t *testing.T) {
 				FieldDelimiter:      "f",
 				Quote:               "q",
 				SkipLeadingRows:     3,
-				NullMarker:          "marker",
+				NullMarkers:         []string{"marker"},
+				SourceColumnMatch:   SourceColumnMatchPosition,
 			},
 			ConnectionID: "connection",
 		},
@@ -98,6 +99,17 @@ func TestExternalDataConfig(t *testing.T) {
 			Options: &AvroOptions{
 				UseAvroLogicalTypes: true,
 			},
+		},
+		{
+			SourceFormat:      JSON,
+			MetadataCacheMode: Automatic,
+		},
+		{
+			TimeZone:        "America/Los_Angeles",
+			TimestampFormat: "%a %b %e %I:%M:%S %Y",
+			TimeFormat:      "%I:%M:%S",
+			DateFormat:      "%A %b %e %Y",
+			DatetimeFormat:  "%a %b %e %I:%M:%S %Y",
 		},
 	} {
 		q := want.toBQ()

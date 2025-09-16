@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 
 	adminpb "cloud.google.com/go/firestore/apiv1/admin/adminpb"
@@ -31,7 +33,6 @@ import (
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -47,24 +48,42 @@ var newFirestoreAdminClientHook clientHook
 
 // FirestoreAdminCallOptions contains the retry settings for each method of FirestoreAdminClient.
 type FirestoreAdminCallOptions struct {
-	CreateIndex     []gax.CallOption
-	ListIndexes     []gax.CallOption
-	GetIndex        []gax.CallOption
-	DeleteIndex     []gax.CallOption
-	GetField        []gax.CallOption
-	UpdateField     []gax.CallOption
-	ListFields      []gax.CallOption
-	ExportDocuments []gax.CallOption
-	ImportDocuments []gax.CallOption
-	CreateDatabase  []gax.CallOption
-	GetDatabase     []gax.CallOption
-	ListDatabases   []gax.CallOption
-	UpdateDatabase  []gax.CallOption
-	DeleteDatabase  []gax.CallOption
-	CancelOperation []gax.CallOption
-	DeleteOperation []gax.CallOption
-	GetOperation    []gax.CallOption
-	ListOperations  []gax.CallOption
+	CreateIndex          []gax.CallOption
+	ListIndexes          []gax.CallOption
+	GetIndex             []gax.CallOption
+	DeleteIndex          []gax.CallOption
+	GetField             []gax.CallOption
+	UpdateField          []gax.CallOption
+	ListFields           []gax.CallOption
+	ExportDocuments      []gax.CallOption
+	ImportDocuments      []gax.CallOption
+	BulkDeleteDocuments  []gax.CallOption
+	CreateDatabase       []gax.CallOption
+	GetDatabase          []gax.CallOption
+	ListDatabases        []gax.CallOption
+	UpdateDatabase       []gax.CallOption
+	DeleteDatabase       []gax.CallOption
+	CreateUserCreds      []gax.CallOption
+	GetUserCreds         []gax.CallOption
+	ListUserCreds        []gax.CallOption
+	EnableUserCreds      []gax.CallOption
+	DisableUserCreds     []gax.CallOption
+	ResetUserPassword    []gax.CallOption
+	DeleteUserCreds      []gax.CallOption
+	GetBackup            []gax.CallOption
+	ListBackups          []gax.CallOption
+	DeleteBackup         []gax.CallOption
+	RestoreDatabase      []gax.CallOption
+	CreateBackupSchedule []gax.CallOption
+	GetBackupSchedule    []gax.CallOption
+	ListBackupSchedules  []gax.CallOption
+	UpdateBackupSchedule []gax.CallOption
+	DeleteBackupSchedule []gax.CallOption
+	CloneDatabase        []gax.CallOption
+	CancelOperation      []gax.CallOption
+	DeleteOperation      []gax.CallOption
+	GetOperation         []gax.CallOption
+	ListOperations       []gax.CallOption
 }
 
 func defaultFirestoreAdminGRPCClientOptions() []option.ClientOption {
@@ -76,6 +95,7 @@ func defaultFirestoreAdminGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://firestore.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -165,11 +185,37 @@ func defaultFirestoreAdminCallOptions() *FirestoreAdminCallOptions {
 		ImportDocuments: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 		},
-		CreateDatabase:  []gax.CallOption{},
-		GetDatabase:     []gax.CallOption{},
-		ListDatabases:   []gax.CallOption{},
-		UpdateDatabase:  []gax.CallOption{},
-		DeleteDatabase:  []gax.CallOption{},
+		BulkDeleteDocuments: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		CreateDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
+		GetDatabase:       []gax.CallOption{},
+		ListDatabases:     []gax.CallOption{},
+		UpdateDatabase:    []gax.CallOption{},
+		DeleteDatabase:    []gax.CallOption{},
+		CreateUserCreds:   []gax.CallOption{},
+		GetUserCreds:      []gax.CallOption{},
+		ListUserCreds:     []gax.CallOption{},
+		EnableUserCreds:   []gax.CallOption{},
+		DisableUserCreds:  []gax.CallOption{},
+		ResetUserPassword: []gax.CallOption{},
+		DeleteUserCreds:   []gax.CallOption{},
+		GetBackup:         []gax.CallOption{},
+		ListBackups:       []gax.CallOption{},
+		DeleteBackup:      []gax.CallOption{},
+		RestoreDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
+		CreateBackupSchedule: []gax.CallOption{},
+		GetBackupSchedule:    []gax.CallOption{},
+		ListBackupSchedules:  []gax.CallOption{},
+		UpdateBackupSchedule: []gax.CallOption{},
+		DeleteBackupSchedule: []gax.CallOption{},
+		CloneDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
 		CancelOperation: []gax.CallOption{},
 		DeleteOperation: []gax.CallOption{},
 		GetOperation:    []gax.CallOption{},
@@ -256,11 +302,37 @@ func defaultFirestoreAdminRESTCallOptions() *FirestoreAdminCallOptions {
 		ImportDocuments: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 		},
-		CreateDatabase:  []gax.CallOption{},
-		GetDatabase:     []gax.CallOption{},
-		ListDatabases:   []gax.CallOption{},
-		UpdateDatabase:  []gax.CallOption{},
-		DeleteDatabase:  []gax.CallOption{},
+		BulkDeleteDocuments: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		CreateDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
+		GetDatabase:       []gax.CallOption{},
+		ListDatabases:     []gax.CallOption{},
+		UpdateDatabase:    []gax.CallOption{},
+		DeleteDatabase:    []gax.CallOption{},
+		CreateUserCreds:   []gax.CallOption{},
+		GetUserCreds:      []gax.CallOption{},
+		ListUserCreds:     []gax.CallOption{},
+		EnableUserCreds:   []gax.CallOption{},
+		DisableUserCreds:  []gax.CallOption{},
+		ResetUserPassword: []gax.CallOption{},
+		DeleteUserCreds:   []gax.CallOption{},
+		GetBackup:         []gax.CallOption{},
+		ListBackups:       []gax.CallOption{},
+		DeleteBackup:      []gax.CallOption{},
+		RestoreDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
+		CreateBackupSchedule: []gax.CallOption{},
+		GetBackupSchedule:    []gax.CallOption{},
+		ListBackupSchedules:  []gax.CallOption{},
+		UpdateBackupSchedule: []gax.CallOption{},
+		DeleteBackupSchedule: []gax.CallOption{},
+		CloneDatabase: []gax.CallOption{
+			gax.WithTimeout(120000 * time.Millisecond),
+		},
 		CancelOperation: []gax.CallOption{},
 		DeleteOperation: []gax.CallOption{},
 		GetOperation:    []gax.CallOption{},
@@ -286,6 +358,8 @@ type internalFirestoreAdminClient interface {
 	ExportDocumentsOperation(name string) *ExportDocumentsOperation
 	ImportDocuments(context.Context, *adminpb.ImportDocumentsRequest, ...gax.CallOption) (*ImportDocumentsOperation, error)
 	ImportDocumentsOperation(name string) *ImportDocumentsOperation
+	BulkDeleteDocuments(context.Context, *adminpb.BulkDeleteDocumentsRequest, ...gax.CallOption) (*BulkDeleteDocumentsOperation, error)
+	BulkDeleteDocumentsOperation(name string) *BulkDeleteDocumentsOperation
 	CreateDatabase(context.Context, *adminpb.CreateDatabaseRequest, ...gax.CallOption) (*CreateDatabaseOperation, error)
 	CreateDatabaseOperation(name string) *CreateDatabaseOperation
 	GetDatabase(context.Context, *adminpb.GetDatabaseRequest, ...gax.CallOption) (*adminpb.Database, error)
@@ -294,6 +368,25 @@ type internalFirestoreAdminClient interface {
 	UpdateDatabaseOperation(name string) *UpdateDatabaseOperation
 	DeleteDatabase(context.Context, *adminpb.DeleteDatabaseRequest, ...gax.CallOption) (*DeleteDatabaseOperation, error)
 	DeleteDatabaseOperation(name string) *DeleteDatabaseOperation
+	CreateUserCreds(context.Context, *adminpb.CreateUserCredsRequest, ...gax.CallOption) (*adminpb.UserCreds, error)
+	GetUserCreds(context.Context, *adminpb.GetUserCredsRequest, ...gax.CallOption) (*adminpb.UserCreds, error)
+	ListUserCreds(context.Context, *adminpb.ListUserCredsRequest, ...gax.CallOption) (*adminpb.ListUserCredsResponse, error)
+	EnableUserCreds(context.Context, *adminpb.EnableUserCredsRequest, ...gax.CallOption) (*adminpb.UserCreds, error)
+	DisableUserCreds(context.Context, *adminpb.DisableUserCredsRequest, ...gax.CallOption) (*adminpb.UserCreds, error)
+	ResetUserPassword(context.Context, *adminpb.ResetUserPasswordRequest, ...gax.CallOption) (*adminpb.UserCreds, error)
+	DeleteUserCreds(context.Context, *adminpb.DeleteUserCredsRequest, ...gax.CallOption) error
+	GetBackup(context.Context, *adminpb.GetBackupRequest, ...gax.CallOption) (*adminpb.Backup, error)
+	ListBackups(context.Context, *adminpb.ListBackupsRequest, ...gax.CallOption) (*adminpb.ListBackupsResponse, error)
+	DeleteBackup(context.Context, *adminpb.DeleteBackupRequest, ...gax.CallOption) error
+	RestoreDatabase(context.Context, *adminpb.RestoreDatabaseRequest, ...gax.CallOption) (*RestoreDatabaseOperation, error)
+	RestoreDatabaseOperation(name string) *RestoreDatabaseOperation
+	CreateBackupSchedule(context.Context, *adminpb.CreateBackupScheduleRequest, ...gax.CallOption) (*adminpb.BackupSchedule, error)
+	GetBackupSchedule(context.Context, *adminpb.GetBackupScheduleRequest, ...gax.CallOption) (*adminpb.BackupSchedule, error)
+	ListBackupSchedules(context.Context, *adminpb.ListBackupSchedulesRequest, ...gax.CallOption) (*adminpb.ListBackupSchedulesResponse, error)
+	UpdateBackupSchedule(context.Context, *adminpb.UpdateBackupScheduleRequest, ...gax.CallOption) (*adminpb.BackupSchedule, error)
+	DeleteBackupSchedule(context.Context, *adminpb.DeleteBackupScheduleRequest, ...gax.CallOption) error
+	CloneDatabase(context.Context, *adminpb.CloneDatabaseRequest, ...gax.CallOption) (*CloneDatabaseOperation, error)
+	CloneDatabaseOperation(name string) *CloneDatabaseOperation
 	CancelOperation(context.Context, *longrunningpb.CancelOperationRequest, ...gax.CallOption) error
 	DeleteOperation(context.Context, *longrunningpb.DeleteOperationRequest, ...gax.CallOption) error
 	GetOperation(context.Context, *longrunningpb.GetOperationRequest, ...gax.CallOption) (*longrunningpb.Operation, error)
@@ -476,6 +569,24 @@ func (c *FirestoreAdminClient) ImportDocumentsOperation(name string) *ImportDocu
 	return c.internalClient.ImportDocumentsOperation(name)
 }
 
+// BulkDeleteDocuments bulk deletes a subset of documents from Google Cloud Firestore.
+// Documents created or updated after the underlying system starts to process
+// the request will not be deleted. The bulk delete occurs in the background
+// and its progress can be monitored and managed via the Operation resource
+// that is created.
+//
+// For more details on bulk delete behavior, refer to:
+// https://cloud.google.com/firestore/docs/manage-data/bulk-delete (at https://cloud.google.com/firestore/docs/manage-data/bulk-delete)
+func (c *FirestoreAdminClient) BulkDeleteDocuments(ctx context.Context, req *adminpb.BulkDeleteDocumentsRequest, opts ...gax.CallOption) (*BulkDeleteDocumentsOperation, error) {
+	return c.internalClient.BulkDeleteDocuments(ctx, req, opts...)
+}
+
+// BulkDeleteDocumentsOperation returns a new BulkDeleteDocumentsOperation from a given name.
+// The name must be that of a previously created BulkDeleteDocumentsOperation, possibly from a different process.
+func (c *FirestoreAdminClient) BulkDeleteDocumentsOperation(name string) *BulkDeleteDocumentsOperation {
+	return c.internalClient.BulkDeleteDocumentsOperation(name)
+}
+
 // CreateDatabase create a database.
 func (c *FirestoreAdminClient) CreateDatabase(ctx context.Context, req *adminpb.CreateDatabaseRequest, opts ...gax.CallOption) (*CreateDatabaseOperation, error) {
 	return c.internalClient.CreateDatabase(ctx, req, opts...)
@@ -517,6 +628,139 @@ func (c *FirestoreAdminClient) DeleteDatabase(ctx context.Context, req *adminpb.
 // The name must be that of a previously created DeleteDatabaseOperation, possibly from a different process.
 func (c *FirestoreAdminClient) DeleteDatabaseOperation(name string) *DeleteDatabaseOperation {
 	return c.internalClient.DeleteDatabaseOperation(name)
+}
+
+// CreateUserCreds create a user creds.
+func (c *FirestoreAdminClient) CreateUserCreds(ctx context.Context, req *adminpb.CreateUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	return c.internalClient.CreateUserCreds(ctx, req, opts...)
+}
+
+// GetUserCreds gets a user creds resource. Note that the returned resource does not
+// contain the secret value itself.
+func (c *FirestoreAdminClient) GetUserCreds(ctx context.Context, req *adminpb.GetUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	return c.internalClient.GetUserCreds(ctx, req, opts...)
+}
+
+// ListUserCreds list all user creds in the database. Note that the returned resource
+// does not contain the secret value itself.
+func (c *FirestoreAdminClient) ListUserCreds(ctx context.Context, req *adminpb.ListUserCredsRequest, opts ...gax.CallOption) (*adminpb.ListUserCredsResponse, error) {
+	return c.internalClient.ListUserCreds(ctx, req, opts...)
+}
+
+// EnableUserCreds enables a user creds. No-op if the user creds are already enabled.
+func (c *FirestoreAdminClient) EnableUserCreds(ctx context.Context, req *adminpb.EnableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	return c.internalClient.EnableUserCreds(ctx, req, opts...)
+}
+
+// DisableUserCreds disables a user creds. No-op if the user creds are already disabled.
+func (c *FirestoreAdminClient) DisableUserCreds(ctx context.Context, req *adminpb.DisableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	return c.internalClient.DisableUserCreds(ctx, req, opts...)
+}
+
+// ResetUserPassword resets the password of a user creds.
+func (c *FirestoreAdminClient) ResetUserPassword(ctx context.Context, req *adminpb.ResetUserPasswordRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	return c.internalClient.ResetUserPassword(ctx, req, opts...)
+}
+
+// DeleteUserCreds deletes a user creds.
+func (c *FirestoreAdminClient) DeleteUserCreds(ctx context.Context, req *adminpb.DeleteUserCredsRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteUserCreds(ctx, req, opts...)
+}
+
+// GetBackup gets information about a backup.
+func (c *FirestoreAdminClient) GetBackup(ctx context.Context, req *adminpb.GetBackupRequest, opts ...gax.CallOption) (*adminpb.Backup, error) {
+	return c.internalClient.GetBackup(ctx, req, opts...)
+}
+
+// ListBackups lists all the backups.
+func (c *FirestoreAdminClient) ListBackups(ctx context.Context, req *adminpb.ListBackupsRequest, opts ...gax.CallOption) (*adminpb.ListBackupsResponse, error) {
+	return c.internalClient.ListBackups(ctx, req, opts...)
+}
+
+// DeleteBackup deletes a backup.
+func (c *FirestoreAdminClient) DeleteBackup(ctx context.Context, req *adminpb.DeleteBackupRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteBackup(ctx, req, opts...)
+}
+
+// RestoreDatabase creates a new database by restoring from an existing backup.
+//
+// The new database must be in the same cloud region or multi-region location
+// as the existing backup. This behaves similar to
+// FirestoreAdmin.CreateDatabase
+// except instead of creating a new empty database, a new database is created
+// with the database type, index configuration, and documents from an existing
+// backup.
+//
+// The [long-running operation][google.longrunning.Operation] can be used to
+// track the progress of the restore, with the Operation’s
+// metadata field type being the
+// RestoreDatabaseMetadata.
+// The response type is the
+// Database if the restore was
+// successful. The new database is not readable or writeable until the LRO has
+// completed.
+func (c *FirestoreAdminClient) RestoreDatabase(ctx context.Context, req *adminpb.RestoreDatabaseRequest, opts ...gax.CallOption) (*RestoreDatabaseOperation, error) {
+	return c.internalClient.RestoreDatabase(ctx, req, opts...)
+}
+
+// RestoreDatabaseOperation returns a new RestoreDatabaseOperation from a given name.
+// The name must be that of a previously created RestoreDatabaseOperation, possibly from a different process.
+func (c *FirestoreAdminClient) RestoreDatabaseOperation(name string) *RestoreDatabaseOperation {
+	return c.internalClient.RestoreDatabaseOperation(name)
+}
+
+// CreateBackupSchedule creates a backup schedule on a database.
+// At most two backup schedules can be configured on a database, one daily
+// backup schedule and one weekly backup schedule.
+func (c *FirestoreAdminClient) CreateBackupSchedule(ctx context.Context, req *adminpb.CreateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	return c.internalClient.CreateBackupSchedule(ctx, req, opts...)
+}
+
+// GetBackupSchedule gets information about a backup schedule.
+func (c *FirestoreAdminClient) GetBackupSchedule(ctx context.Context, req *adminpb.GetBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	return c.internalClient.GetBackupSchedule(ctx, req, opts...)
+}
+
+// ListBackupSchedules list backup schedules.
+func (c *FirestoreAdminClient) ListBackupSchedules(ctx context.Context, req *adminpb.ListBackupSchedulesRequest, opts ...gax.CallOption) (*adminpb.ListBackupSchedulesResponse, error) {
+	return c.internalClient.ListBackupSchedules(ctx, req, opts...)
+}
+
+// UpdateBackupSchedule updates a backup schedule.
+func (c *FirestoreAdminClient) UpdateBackupSchedule(ctx context.Context, req *adminpb.UpdateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	return c.internalClient.UpdateBackupSchedule(ctx, req, opts...)
+}
+
+// DeleteBackupSchedule deletes a backup schedule.
+func (c *FirestoreAdminClient) DeleteBackupSchedule(ctx context.Context, req *adminpb.DeleteBackupScheduleRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteBackupSchedule(ctx, req, opts...)
+}
+
+// CloneDatabase creates a new database by cloning an existing one.
+//
+// The new database must be in the same cloud region or multi-region location
+// as the existing database. This behaves similar to
+// FirestoreAdmin.CreateDatabase
+// except instead of creating a new empty database, a new database is created
+// with the database type, index configuration, and documents from an existing
+// database.
+//
+// The [long-running operation][google.longrunning.Operation] can be used to
+// track the progress of the clone, with the Operation’s
+// metadata field type being the
+// CloneDatabaseMetadata.
+// The response type is the
+// Database if the clone was
+// successful. The new database is not readable or writeable until the LRO has
+// completed.
+func (c *FirestoreAdminClient) CloneDatabase(ctx context.Context, req *adminpb.CloneDatabaseRequest, opts ...gax.CallOption) (*CloneDatabaseOperation, error) {
+	return c.internalClient.CloneDatabase(ctx, req, opts...)
+}
+
+// CloneDatabaseOperation returns a new CloneDatabaseOperation from a given name.
+// The name must be that of a previously created CloneDatabaseOperation, possibly from a different process.
+func (c *FirestoreAdminClient) CloneDatabaseOperation(name string) *CloneDatabaseOperation {
+	return c.internalClient.CloneDatabaseOperation(name)
 }
 
 // CancelOperation is a utility method from google.longrunning.Operations.
@@ -561,6 +805,8 @@ type firestoreAdminGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewFirestoreAdminClient creates a new firestore admin client based on gRPC.
@@ -614,6 +860,7 @@ func NewFirestoreAdminClient(ctx context.Context, opts ...option.ClientOption) (
 		connPool:             connPool,
 		firestoreAdminClient: adminpb.NewFirestoreAdminClient(connPool),
 		CallOptions:          &client.CallOptions,
+		logger:               internaloption.GetLogger(opts),
 		operationsClient:     longrunningpb.NewOperationsClient(connPool),
 	}
 	c.setGoogleClientInfo()
@@ -647,8 +894,10 @@ func (c *firestoreAdminGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *firestoreAdminGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -675,6 +924,8 @@ type firestoreAdminRESTClient struct {
 
 	// Points back to the CallOptions field of the containing FirestoreAdminClient
 	CallOptions **FirestoreAdminCallOptions
+
+	logger *slog.Logger
 }
 
 // NewFirestoreAdminRESTClient creates a new firestore admin rest client.
@@ -719,6 +970,7 @@ func NewFirestoreAdminRESTClient(ctx context.Context, opts ...option.ClientOptio
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -743,6 +995,7 @@ func defaultFirestoreAdminRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://firestore.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -751,8 +1004,10 @@ func defaultFirestoreAdminRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *firestoreAdminRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -778,7 +1033,7 @@ func (c *firestoreAdminGRPCClient) CreateIndex(ctx context.Context, req *adminpb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.CreateIndex(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.CreateIndex, req, settings.GRPC, c.logger, "CreateIndex")
 		return err
 	}, opts...)
 	if err != nil {
@@ -809,7 +1064,7 @@ func (c *firestoreAdminGRPCClient) ListIndexes(ctx context.Context, req *adminpb
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.firestoreAdminClient.ListIndexes(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.firestoreAdminClient.ListIndexes, req, settings.GRPC, c.logger, "ListIndexes")
 			return err
 		}, opts...)
 		if err != nil {
@@ -844,7 +1099,7 @@ func (c *firestoreAdminGRPCClient) GetIndex(ctx context.Context, req *adminpb.Ge
 	var resp *adminpb.Index
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.GetIndex(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetIndex, req, settings.GRPC, c.logger, "GetIndex")
 		return err
 	}, opts...)
 	if err != nil {
@@ -861,7 +1116,7 @@ func (c *firestoreAdminGRPCClient) DeleteIndex(ctx context.Context, req *adminpb
 	opts = append((*c.CallOptions).DeleteIndex[0:len((*c.CallOptions).DeleteIndex):len((*c.CallOptions).DeleteIndex)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.firestoreAdminClient.DeleteIndex(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.firestoreAdminClient.DeleteIndex, req, settings.GRPC, c.logger, "DeleteIndex")
 		return err
 	}, opts...)
 	return err
@@ -876,7 +1131,7 @@ func (c *firestoreAdminGRPCClient) GetField(ctx context.Context, req *adminpb.Ge
 	var resp *adminpb.Field
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.GetField(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetField, req, settings.GRPC, c.logger, "GetField")
 		return err
 	}, opts...)
 	if err != nil {
@@ -894,7 +1149,7 @@ func (c *firestoreAdminGRPCClient) UpdateField(ctx context.Context, req *adminpb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.UpdateField(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.UpdateField, req, settings.GRPC, c.logger, "UpdateField")
 		return err
 	}, opts...)
 	if err != nil {
@@ -925,7 +1180,7 @@ func (c *firestoreAdminGRPCClient) ListFields(ctx context.Context, req *adminpb.
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.firestoreAdminClient.ListFields(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.firestoreAdminClient.ListFields, req, settings.GRPC, c.logger, "ListFields")
 			return err
 		}, opts...)
 		if err != nil {
@@ -960,7 +1215,7 @@ func (c *firestoreAdminGRPCClient) ExportDocuments(ctx context.Context, req *adm
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.ExportDocuments(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ExportDocuments, req, settings.GRPC, c.logger, "ExportDocuments")
 		return err
 	}, opts...)
 	if err != nil {
@@ -980,13 +1235,33 @@ func (c *firestoreAdminGRPCClient) ImportDocuments(ctx context.Context, req *adm
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.ImportDocuments(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ImportDocuments, req, settings.GRPC, c.logger, "ImportDocuments")
 		return err
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &ImportDocumentsOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *firestoreAdminGRPCClient) BulkDeleteDocuments(ctx context.Context, req *adminpb.BulkDeleteDocumentsRequest, opts ...gax.CallOption) (*BulkDeleteDocumentsOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).BulkDeleteDocuments[0:len((*c.CallOptions).BulkDeleteDocuments):len((*c.CallOptions).BulkDeleteDocuments)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.BulkDeleteDocuments, req, settings.GRPC, c.logger, "BulkDeleteDocuments")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &BulkDeleteDocumentsOperation{
 		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
 }
@@ -1000,7 +1275,7 @@ func (c *firestoreAdminGRPCClient) CreateDatabase(ctx context.Context, req *admi
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.CreateDatabase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.CreateDatabase, req, settings.GRPC, c.logger, "CreateDatabase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1020,7 +1295,7 @@ func (c *firestoreAdminGRPCClient) GetDatabase(ctx context.Context, req *adminpb
 	var resp *adminpb.Database
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.GetDatabase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetDatabase, req, settings.GRPC, c.logger, "GetDatabase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1038,7 +1313,7 @@ func (c *firestoreAdminGRPCClient) ListDatabases(ctx context.Context, req *admin
 	var resp *adminpb.ListDatabasesResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.ListDatabases(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ListDatabases, req, settings.GRPC, c.logger, "ListDatabases")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1056,7 +1331,7 @@ func (c *firestoreAdminGRPCClient) UpdateDatabase(ctx context.Context, req *admi
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.UpdateDatabase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.UpdateDatabase, req, settings.GRPC, c.logger, "UpdateDatabase")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1076,13 +1351,323 @@ func (c *firestoreAdminGRPCClient) DeleteDatabase(ctx context.Context, req *admi
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.firestoreAdminClient.DeleteDatabase(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.DeleteDatabase, req, settings.GRPC, c.logger, "DeleteDatabase")
 		return err
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &DeleteDatabaseOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *firestoreAdminGRPCClient) CreateUserCreds(ctx context.Context, req *adminpb.CreateUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateUserCreds[0:len((*c.CallOptions).CreateUserCreds):len((*c.CallOptions).CreateUserCreds)], opts...)
+	var resp *adminpb.UserCreds
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.CreateUserCreds, req, settings.GRPC, c.logger, "CreateUserCreds")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) GetUserCreds(ctx context.Context, req *adminpb.GetUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetUserCreds[0:len((*c.CallOptions).GetUserCreds):len((*c.CallOptions).GetUserCreds)], opts...)
+	var resp *adminpb.UserCreds
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetUserCreds, req, settings.GRPC, c.logger, "GetUserCreds")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) ListUserCreds(ctx context.Context, req *adminpb.ListUserCredsRequest, opts ...gax.CallOption) (*adminpb.ListUserCredsResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListUserCreds[0:len((*c.CallOptions).ListUserCreds):len((*c.CallOptions).ListUserCreds)], opts...)
+	var resp *adminpb.ListUserCredsResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ListUserCreds, req, settings.GRPC, c.logger, "ListUserCreds")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) EnableUserCreds(ctx context.Context, req *adminpb.EnableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).EnableUserCreds[0:len((*c.CallOptions).EnableUserCreds):len((*c.CallOptions).EnableUserCreds)], opts...)
+	var resp *adminpb.UserCreds
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.EnableUserCreds, req, settings.GRPC, c.logger, "EnableUserCreds")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) DisableUserCreds(ctx context.Context, req *adminpb.DisableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DisableUserCreds[0:len((*c.CallOptions).DisableUserCreds):len((*c.CallOptions).DisableUserCreds)], opts...)
+	var resp *adminpb.UserCreds
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.DisableUserCreds, req, settings.GRPC, c.logger, "DisableUserCreds")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) ResetUserPassword(ctx context.Context, req *adminpb.ResetUserPasswordRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ResetUserPassword[0:len((*c.CallOptions).ResetUserPassword):len((*c.CallOptions).ResetUserPassword)], opts...)
+	var resp *adminpb.UserCreds
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ResetUserPassword, req, settings.GRPC, c.logger, "ResetUserPassword")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) DeleteUserCreds(ctx context.Context, req *adminpb.DeleteUserCredsRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteUserCreds[0:len((*c.CallOptions).DeleteUserCreds):len((*c.CallOptions).DeleteUserCreds)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.firestoreAdminClient.DeleteUserCreds, req, settings.GRPC, c.logger, "DeleteUserCreds")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *firestoreAdminGRPCClient) GetBackup(ctx context.Context, req *adminpb.GetBackupRequest, opts ...gax.CallOption) (*adminpb.Backup, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackup[0:len((*c.CallOptions).GetBackup):len((*c.CallOptions).GetBackup)], opts...)
+	var resp *adminpb.Backup
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetBackup, req, settings.GRPC, c.logger, "GetBackup")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) ListBackups(ctx context.Context, req *adminpb.ListBackupsRequest, opts ...gax.CallOption) (*adminpb.ListBackupsResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackups[0:len((*c.CallOptions).ListBackups):len((*c.CallOptions).ListBackups)], opts...)
+	var resp *adminpb.ListBackupsResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ListBackups, req, settings.GRPC, c.logger, "ListBackups")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) DeleteBackup(ctx context.Context, req *adminpb.DeleteBackupRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteBackup[0:len((*c.CallOptions).DeleteBackup):len((*c.CallOptions).DeleteBackup)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.firestoreAdminClient.DeleteBackup, req, settings.GRPC, c.logger, "DeleteBackup")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *firestoreAdminGRPCClient) RestoreDatabase(ctx context.Context, req *adminpb.RestoreDatabaseRequest, opts ...gax.CallOption) (*RestoreDatabaseOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).RestoreDatabase[0:len((*c.CallOptions).RestoreDatabase):len((*c.CallOptions).RestoreDatabase)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.RestoreDatabase, req, settings.GRPC, c.logger, "RestoreDatabase")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &RestoreDatabaseOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *firestoreAdminGRPCClient) CreateBackupSchedule(ctx context.Context, req *adminpb.CreateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateBackupSchedule[0:len((*c.CallOptions).CreateBackupSchedule):len((*c.CallOptions).CreateBackupSchedule)], opts...)
+	var resp *adminpb.BackupSchedule
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.CreateBackupSchedule, req, settings.GRPC, c.logger, "CreateBackupSchedule")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) GetBackupSchedule(ctx context.Context, req *adminpb.GetBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupSchedule[0:len((*c.CallOptions).GetBackupSchedule):len((*c.CallOptions).GetBackupSchedule)], opts...)
+	var resp *adminpb.BackupSchedule
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.GetBackupSchedule, req, settings.GRPC, c.logger, "GetBackupSchedule")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) ListBackupSchedules(ctx context.Context, req *adminpb.ListBackupSchedulesRequest, opts ...gax.CallOption) (*adminpb.ListBackupSchedulesResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackupSchedules[0:len((*c.CallOptions).ListBackupSchedules):len((*c.CallOptions).ListBackupSchedules)], opts...)
+	var resp *adminpb.ListBackupSchedulesResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.ListBackupSchedules, req, settings.GRPC, c.logger, "ListBackupSchedules")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) UpdateBackupSchedule(ctx context.Context, req *adminpb.UpdateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup_schedule.name", url.QueryEscape(req.GetBackupSchedule().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateBackupSchedule[0:len((*c.CallOptions).UpdateBackupSchedule):len((*c.CallOptions).UpdateBackupSchedule)], opts...)
+	var resp *adminpb.BackupSchedule
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.UpdateBackupSchedule, req, settings.GRPC, c.logger, "UpdateBackupSchedule")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *firestoreAdminGRPCClient) DeleteBackupSchedule(ctx context.Context, req *adminpb.DeleteBackupScheduleRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteBackupSchedule[0:len((*c.CallOptions).DeleteBackupSchedule):len((*c.CallOptions).DeleteBackupSchedule)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.firestoreAdminClient.DeleteBackupSchedule, req, settings.GRPC, c.logger, "DeleteBackupSchedule")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *firestoreAdminGRPCClient) CloneDatabase(ctx context.Context, req *adminpb.CloneDatabaseRequest, opts ...gax.CallOption) (*CloneDatabaseOperation, error) {
+	routingHeaders := ""
+	routingHeadersMap := make(map[string]string)
+	if reg := regexp.MustCompile("projects/(?P<project_id>[^/]+)(?:/.*)?"); reg.MatchString(req.GetPitrSnapshot().GetDatabase()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])) > 0 {
+		routingHeadersMap["project_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])
+	}
+	if reg := regexp.MustCompile("projects/[^/]+/databases/(?P<database_id>[^/]+)(?:/.*)?"); reg.MatchString(req.GetPitrSnapshot().GetDatabase()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])) > 0 {
+		routingHeadersMap["database_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])
+	}
+	for headerName, headerValue := range routingHeadersMap {
+		routingHeaders = fmt.Sprintf("%s%s=%s&", routingHeaders, headerName, headerValue)
+	}
+	routingHeaders = strings.TrimSuffix(routingHeaders, "&")
+	hds := []string{"x-goog-request-params", routingHeaders}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CloneDatabase[0:len((*c.CallOptions).CloneDatabase):len((*c.CallOptions).CloneDatabase)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.firestoreAdminClient.CloneDatabase, req, settings.GRPC, c.logger, "CloneDatabase")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &CloneDatabaseOperation{
 		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
 }
@@ -1095,7 +1680,7 @@ func (c *firestoreAdminGRPCClient) CancelOperation(ctx context.Context, req *lon
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -1109,7 +1694,7 @@ func (c *firestoreAdminGRPCClient) DeleteOperation(ctx context.Context, req *lon
 	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.DeleteOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
 		return err
 	}, opts...)
 	return err
@@ -1124,7 +1709,7 @@ func (c *firestoreAdminGRPCClient) GetOperation(ctx context.Context, req *longru
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1153,7 +1738,7 @@ func (c *firestoreAdminGRPCClient) ListOperations(ctx context.Context, req *long
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1222,21 +1807,10 @@ func (c *firestoreAdminRESTClient) CreateIndex(ctx context.Context, req *adminpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateIndex")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1302,21 +1876,10 @@ func (c *firestoreAdminRESTClient) ListIndexes(ctx context.Context, req *adminpb
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListIndexes")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1379,17 +1942,7 @@ func (c *firestoreAdminRESTClient) GetIndex(ctx context.Context, req *adminpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetIndex")
 		if err != nil {
 			return err
 		}
@@ -1436,15 +1989,8 @@ func (c *firestoreAdminRESTClient) DeleteIndex(ctx context.Context, req *adminpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteIndex")
+		return err
 	}, opts...)
 }
 
@@ -1481,17 +2027,7 @@ func (c *firestoreAdminRESTClient) GetField(ctx context.Context, req *adminpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetField")
 		if err != nil {
 			return err
 		}
@@ -1540,11 +2076,11 @@ func (c *firestoreAdminRESTClient) UpdateField(ctx context.Context, req *adminpb
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -1568,21 +2104,10 @@ func (c *firestoreAdminRESTClient) UpdateField(ctx context.Context, req *adminpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateField")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1656,21 +2181,10 @@ func (c *firestoreAdminRESTClient) ListFields(ctx context.Context, req *adminpb.
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListFields")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1748,21 +2262,10 @@ func (c *firestoreAdminRESTClient) ExportDocuments(ctx context.Context, req *adm
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "ExportDocuments")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1822,21 +2325,10 @@ func (c *firestoreAdminRESTClient) ImportDocuments(ctx context.Context, req *adm
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "ImportDocuments")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1849,6 +2341,72 @@ func (c *firestoreAdminRESTClient) ImportDocuments(ctx context.Context, req *adm
 
 	override := fmt.Sprintf("/v1/%s", resp.GetName())
 	return &ImportDocumentsOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// BulkDeleteDocuments bulk deletes a subset of documents from Google Cloud Firestore.
+// Documents created or updated after the underlying system starts to process
+// the request will not be deleted. The bulk delete occurs in the background
+// and its progress can be monitored and managed via the Operation resource
+// that is created.
+//
+// For more details on bulk delete behavior, refer to:
+// https://cloud.google.com/firestore/docs/manage-data/bulk-delete (at https://cloud.google.com/firestore/docs/manage-data/bulk-delete)
+func (c *firestoreAdminRESTClient) BulkDeleteDocuments(ctx context.Context, req *adminpb.BulkDeleteDocumentsRequest, opts ...gax.CallOption) (*BulkDeleteDocumentsOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:bulkDeleteDocuments", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "BulkDeleteDocuments")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &BulkDeleteDocumentsOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
 		pollPath: override,
 	}, nil
@@ -1894,21 +2452,10 @@ func (c *firestoreAdminRESTClient) CreateDatabase(ctx context.Context, req *admi
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateDatabase")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1959,17 +2506,7 @@ func (c *firestoreAdminRESTClient) GetDatabase(ctx context.Context, req *adminpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetDatabase")
 		if err != nil {
 			return err
 		}
@@ -1996,6 +2533,9 @@ func (c *firestoreAdminRESTClient) ListDatabases(ctx context.Context, req *admin
 
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetShowDeleted() {
+		params.Add("showDeleted", fmt.Sprintf("%v", req.GetShowDeleted()))
+	}
 
 	baseUrl.RawQuery = params.Encode()
 
@@ -2019,17 +2559,7 @@ func (c *firestoreAdminRESTClient) ListDatabases(ctx context.Context, req *admin
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListDatabases")
 		if err != nil {
 			return err
 		}
@@ -2064,11 +2594,11 @@ func (c *firestoreAdminRESTClient) UpdateDatabase(ctx context.Context, req *admi
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2092,21 +2622,10 @@ func (c *firestoreAdminRESTClient) UpdateDatabase(ctx context.Context, req *admi
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateDatabase")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2159,17 +2678,69 @@ func (c *firestoreAdminRESTClient) DeleteDatabase(ctx context.Context, req *admi
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteDatabase")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
+		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
 
-		buf, err := io.ReadAll(httpRsp.Body)
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &DeleteDatabaseOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// CreateUserCreds create a user creds.
+func (c *firestoreAdminRESTClient) CreateUserCreds(ctx context.Context, req *adminpb.CreateUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetUserCreds()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/userCreds", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	params.Add("userCredsId", fmt.Sprintf("%v", req.GetUserCredsId()))
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).CreateUserCreds[0:len((*c.CallOptions).CreateUserCreds):len((*c.CallOptions).CreateUserCreds)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.UserCreds{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateUserCreds")
 		if err != nil {
 			return err
 		}
@@ -2183,9 +2754,867 @@ func (c *firestoreAdminRESTClient) DeleteDatabase(ctx context.Context, req *admi
 	if e != nil {
 		return nil, e
 	}
+	return resp, nil
+}
+
+// GetUserCreds gets a user creds resource. Note that the returned resource does not
+// contain the secret value itself.
+func (c *firestoreAdminRESTClient) GetUserCreds(ctx context.Context, req *adminpb.GetUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetUserCreds[0:len((*c.CallOptions).GetUserCreds):len((*c.CallOptions).GetUserCreds)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.UserCreds{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetUserCreds")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ListUserCreds list all user creds in the database. Note that the returned resource
+// does not contain the secret value itself.
+func (c *firestoreAdminRESTClient) ListUserCreds(ctx context.Context, req *adminpb.ListUserCredsRequest, opts ...gax.CallOption) (*adminpb.ListUserCredsResponse, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/userCreds", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).ListUserCreds[0:len((*c.CallOptions).ListUserCreds):len((*c.CallOptions).ListUserCreds)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.ListUserCredsResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListUserCreds")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// EnableUserCreds enables a user creds. No-op if the user creds are already enabled.
+func (c *firestoreAdminRESTClient) EnableUserCreds(ctx context.Context, req *adminpb.EnableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:enable", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).EnableUserCreds[0:len((*c.CallOptions).EnableUserCreds):len((*c.CallOptions).EnableUserCreds)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.UserCreds{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "EnableUserCreds")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// DisableUserCreds disables a user creds. No-op if the user creds are already disabled.
+func (c *firestoreAdminRESTClient) DisableUserCreds(ctx context.Context, req *adminpb.DisableUserCredsRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:disable", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).DisableUserCreds[0:len((*c.CallOptions).DisableUserCreds):len((*c.CallOptions).DisableUserCreds)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.UserCreds{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "DisableUserCreds")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ResetUserPassword resets the password of a user creds.
+func (c *firestoreAdminRESTClient) ResetUserPassword(ctx context.Context, req *adminpb.ResetUserPasswordRequest, opts ...gax.CallOption) (*adminpb.UserCreds, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:resetPassword", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).ResetUserPassword[0:len((*c.CallOptions).ResetUserPassword):len((*c.CallOptions).ResetUserPassword)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.UserCreds{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "ResetUserPassword")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// DeleteUserCreds deletes a user creds.
+func (c *firestoreAdminRESTClient) DeleteUserCreds(ctx context.Context, req *adminpb.DeleteUserCredsRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteUserCreds")
+		return err
+	}, opts...)
+}
+
+// GetBackup gets information about a backup.
+func (c *firestoreAdminRESTClient) GetBackup(ctx context.Context, req *adminpb.GetBackupRequest, opts ...gax.CallOption) (*adminpb.Backup, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackup[0:len((*c.CallOptions).GetBackup):len((*c.CallOptions).GetBackup)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.Backup{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackup")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ListBackups lists all the backups.
+func (c *firestoreAdminRESTClient) ListBackups(ctx context.Context, req *adminpb.ListBackupsRequest, opts ...gax.CallOption) (*adminpb.ListBackupsResponse, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/backups", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetFilter() != "" {
+		params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackups[0:len((*c.CallOptions).ListBackups):len((*c.CallOptions).ListBackups)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.ListBackupsResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackups")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// DeleteBackup deletes a backup.
+func (c *firestoreAdminRESTClient) DeleteBackup(ctx context.Context, req *adminpb.DeleteBackupRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteBackup")
+		return err
+	}, opts...)
+}
+
+// RestoreDatabase creates a new database by restoring from an existing backup.
+//
+// The new database must be in the same cloud region or multi-region location
+// as the existing backup. This behaves similar to
+// FirestoreAdmin.CreateDatabase
+// except instead of creating a new empty database, a new database is created
+// with the database type, index configuration, and documents from an existing
+// backup.
+//
+// The [long-running operation][google.longrunning.Operation] can be used to
+// track the progress of the restore, with the Operation’s
+// metadata field type being the
+// RestoreDatabaseMetadata.
+// The response type is the
+// Database if the restore was
+// successful. The new database is not readable or writeable until the LRO has
+// completed.
+func (c *firestoreAdminRESTClient) RestoreDatabase(ctx context.Context, req *adminpb.RestoreDatabaseRequest, opts ...gax.CallOption) (*RestoreDatabaseOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/databases:restore", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "RestoreDatabase")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
 
 	override := fmt.Sprintf("/v1/%s", resp.GetName())
-	return &DeleteDatabaseOperation{
+	return &RestoreDatabaseOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// CreateBackupSchedule creates a backup schedule on a database.
+// At most two backup schedules can be configured on a database, one daily
+// backup schedule and one weekly backup schedule.
+func (c *firestoreAdminRESTClient) CreateBackupSchedule(ctx context.Context, req *adminpb.CreateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetBackupSchedule()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/backupSchedules", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).CreateBackupSchedule[0:len((*c.CallOptions).CreateBackupSchedule):len((*c.CallOptions).CreateBackupSchedule)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.BackupSchedule{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateBackupSchedule")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// GetBackupSchedule gets information about a backup schedule.
+func (c *firestoreAdminRESTClient) GetBackupSchedule(ctx context.Context, req *adminpb.GetBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupSchedule[0:len((*c.CallOptions).GetBackupSchedule):len((*c.CallOptions).GetBackupSchedule)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.BackupSchedule{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackupSchedule")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ListBackupSchedules list backup schedules.
+func (c *firestoreAdminRESTClient) ListBackupSchedules(ctx context.Context, req *adminpb.ListBackupSchedulesRequest, opts ...gax.CallOption) (*adminpb.ListBackupSchedulesResponse, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/backupSchedules", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackupSchedules[0:len((*c.CallOptions).ListBackupSchedules):len((*c.CallOptions).ListBackupSchedules)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.ListBackupSchedulesResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackupSchedules")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// UpdateBackupSchedule updates a backup schedule.
+func (c *firestoreAdminRESTClient) UpdateBackupSchedule(ctx context.Context, req *adminpb.UpdateBackupScheduleRequest, opts ...gax.CallOption) (*adminpb.BackupSchedule, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetBackupSchedule()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetBackupSchedule().GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetUpdateMask() != nil {
+		field, err := protojson.Marshal(req.GetUpdateMask())
+		if err != nil {
+			return nil, err
+		}
+		params.Add("updateMask", string(field[1:len(field)-1]))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup_schedule.name", url.QueryEscape(req.GetBackupSchedule().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateBackupSchedule[0:len((*c.CallOptions).UpdateBackupSchedule):len((*c.CallOptions).UpdateBackupSchedule)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &adminpb.BackupSchedule{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("PATCH", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateBackupSchedule")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// DeleteBackupSchedule deletes a backup schedule.
+func (c *firestoreAdminRESTClient) DeleteBackupSchedule(ctx context.Context, req *adminpb.DeleteBackupScheduleRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteBackupSchedule")
+		return err
+	}, opts...)
+}
+
+// CloneDatabase creates a new database by cloning an existing one.
+//
+// The new database must be in the same cloud region or multi-region location
+// as the existing database. This behaves similar to
+// FirestoreAdmin.CreateDatabase
+// except instead of creating a new empty database, a new database is created
+// with the database type, index configuration, and documents from an existing
+// database.
+//
+// The [long-running operation][google.longrunning.Operation] can be used to
+// track the progress of the clone, with the Operation’s
+// metadata field type being the
+// CloneDatabaseMetadata.
+// The response type is the
+// Database if the clone was
+// successful. The new database is not readable or writeable until the LRO has
+// completed.
+func (c *firestoreAdminRESTClient) CloneDatabase(ctx context.Context, req *adminpb.CloneDatabaseRequest, opts ...gax.CallOption) (*CloneDatabaseOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/databases:clone", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	routingHeaders := ""
+	routingHeadersMap := make(map[string]string)
+	if reg := regexp.MustCompile("projects/(?P<project_id>[^/]+)(?:/.*)?"); reg.MatchString(req.GetPitrSnapshot().GetDatabase()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])) > 0 {
+		routingHeadersMap["project_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])
+	}
+	if reg := regexp.MustCompile("projects/[^/]+/databases/(?P<database_id>[^/]+)(?:/.*)?"); reg.MatchString(req.GetPitrSnapshot().GetDatabase()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])) > 0 {
+		routingHeadersMap["database_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetPitrSnapshot().GetDatabase())[1])
+	}
+	for headerName, headerValue := range routingHeadersMap {
+		routingHeaders = fmt.Sprintf("%s%s=%s&", routingHeaders, headerName, headerValue)
+	}
+	routingHeaders = strings.TrimSuffix(routingHeaders, "&")
+	hds := []string{"x-goog-request-params", routingHeaders}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CloneDatabase")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &CloneDatabaseOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
 		pollPath: override,
 	}, nil
@@ -2227,15 +3656,8 @@ func (c *firestoreAdminRESTClient) CancelOperation(ctx context.Context, req *lon
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CancelOperation")
+		return err
 	}, opts...)
 }
 
@@ -2269,15 +3691,8 @@ func (c *firestoreAdminRESTClient) DeleteOperation(ctx context.Context, req *lon
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteOperation")
+		return err
 	}, opts...)
 }
 
@@ -2314,17 +3729,7 @@ func (c *firestoreAdminRESTClient) GetOperation(ctx context.Context, req *longru
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
 		if err != nil {
 			return err
 		}
@@ -2389,21 +3794,10 @@ func (c *firestoreAdminRESTClient) ListOperations(ctx context.Context, req *long
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2431,6 +3825,42 @@ func (c *firestoreAdminRESTClient) ListOperations(ctx context.Context, req *long
 	it.pageInfo.Token = req.GetPageToken()
 
 	return it
+}
+
+// BulkDeleteDocumentsOperation returns a new BulkDeleteDocumentsOperation from a given name.
+// The name must be that of a previously created BulkDeleteDocumentsOperation, possibly from a different process.
+func (c *firestoreAdminGRPCClient) BulkDeleteDocumentsOperation(name string) *BulkDeleteDocumentsOperation {
+	return &BulkDeleteDocumentsOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// BulkDeleteDocumentsOperation returns a new BulkDeleteDocumentsOperation from a given name.
+// The name must be that of a previously created BulkDeleteDocumentsOperation, possibly from a different process.
+func (c *firestoreAdminRESTClient) BulkDeleteDocumentsOperation(name string) *BulkDeleteDocumentsOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &BulkDeleteDocumentsOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// CloneDatabaseOperation returns a new CloneDatabaseOperation from a given name.
+// The name must be that of a previously created CloneDatabaseOperation, possibly from a different process.
+func (c *firestoreAdminGRPCClient) CloneDatabaseOperation(name string) *CloneDatabaseOperation {
+	return &CloneDatabaseOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// CloneDatabaseOperation returns a new CloneDatabaseOperation from a given name.
+// The name must be that of a previously created CloneDatabaseOperation, possibly from a different process.
+func (c *firestoreAdminRESTClient) CloneDatabaseOperation(name string) *CloneDatabaseOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &CloneDatabaseOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
 }
 
 // CreateDatabaseOperation returns a new CreateDatabaseOperation from a given name.
@@ -2518,6 +3948,24 @@ func (c *firestoreAdminGRPCClient) ImportDocumentsOperation(name string) *Import
 func (c *firestoreAdminRESTClient) ImportDocumentsOperation(name string) *ImportDocumentsOperation {
 	override := fmt.Sprintf("/v1/%s", name)
 	return &ImportDocumentsOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// RestoreDatabaseOperation returns a new RestoreDatabaseOperation from a given name.
+// The name must be that of a previously created RestoreDatabaseOperation, possibly from a different process.
+func (c *firestoreAdminGRPCClient) RestoreDatabaseOperation(name string) *RestoreDatabaseOperation {
+	return &RestoreDatabaseOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// RestoreDatabaseOperation returns a new RestoreDatabaseOperation from a given name.
+// The name must be that of a previously created RestoreDatabaseOperation, possibly from a different process.
+func (c *firestoreAdminRESTClient) RestoreDatabaseOperation(name string) *RestoreDatabaseOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &RestoreDatabaseOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 		pollPath: override,
 	}

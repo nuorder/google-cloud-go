@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,14 @@ package aiplatform
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/url"
 
 	aiplatformpb "cloud.google.com/go/aiplatform/apiv1/aiplatformpb"
 	iampb "cloud.google.com/go/iam/apiv1/iampb"
+	"cloud.google.com/go/longrunning"
+	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
@@ -40,6 +43,7 @@ var newModelGardenClientHook clientHook
 // ModelGardenCallOptions contains the retry settings for each method of ModelGardenClient.
 type ModelGardenCallOptions struct {
 	GetPublisherModel  []gax.CallOption
+	Deploy             []gax.CallOption
 	GetLocation        []gax.CallOption
 	ListLocations      []gax.CallOption
 	GetIamPolicy       []gax.CallOption
@@ -61,6 +65,7 @@ func defaultModelGardenGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://aiplatform.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -69,6 +74,7 @@ func defaultModelGardenGRPCClientOptions() []option.ClientOption {
 func defaultModelGardenCallOptions() *ModelGardenCallOptions {
 	return &ModelGardenCallOptions{
 		GetPublisherModel:  []gax.CallOption{},
+		Deploy:             []gax.CallOption{},
 		GetLocation:        []gax.CallOption{},
 		ListLocations:      []gax.CallOption{},
 		GetIamPolicy:       []gax.CallOption{},
@@ -88,6 +94,8 @@ type internalModelGardenClient interface {
 	setGoogleClientInfo(...string)
 	Connection() *grpc.ClientConn
 	GetPublisherModel(context.Context, *aiplatformpb.GetPublisherModelRequest, ...gax.CallOption) (*aiplatformpb.PublisherModel, error)
+	Deploy(context.Context, *aiplatformpb.DeployRequest, ...gax.CallOption) (*DeployOperation, error)
+	DeployOperation(name string) *DeployOperation
 	GetLocation(context.Context, *locationpb.GetLocationRequest, ...gax.CallOption) (*locationpb.Location, error)
 	ListLocations(context.Context, *locationpb.ListLocationsRequest, ...gax.CallOption) *LocationIterator
 	GetIamPolicy(context.Context, *iampb.GetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
@@ -110,6 +118,11 @@ type ModelGardenClient struct {
 
 	// The call options for this service.
 	CallOptions *ModelGardenCallOptions
+
+	// LROClient is used internally to handle long-running operations.
+	// It is exposed so that its CallOptions can be modified if required.
+	// Users should not Close this client.
+	LROClient *lroauto.OperationsClient
 }
 
 // Wrapper methods routed to the internal client.
@@ -138,6 +151,17 @@ func (c *ModelGardenClient) Connection() *grpc.ClientConn {
 // GetPublisherModel gets a Model Garden publisher model.
 func (c *ModelGardenClient) GetPublisherModel(ctx context.Context, req *aiplatformpb.GetPublisherModelRequest, opts ...gax.CallOption) (*aiplatformpb.PublisherModel, error) {
 	return c.internalClient.GetPublisherModel(ctx, req, opts...)
+}
+
+// Deploy deploys a model to a new endpoint.
+func (c *ModelGardenClient) Deploy(ctx context.Context, req *aiplatformpb.DeployRequest, opts ...gax.CallOption) (*DeployOperation, error) {
+	return c.internalClient.Deploy(ctx, req, opts...)
+}
+
+// DeployOperation returns a new DeployOperation from a given name.
+// The name must be that of a previously created DeployOperation, possibly from a different process.
+func (c *ModelGardenClient) DeployOperation(name string) *DeployOperation {
+	return c.internalClient.DeployOperation(name)
 }
 
 // GetLocation gets information about a location.
@@ -214,6 +238,11 @@ type modelGardenGRPCClient struct {
 	// The gRPC API client.
 	modelGardenClient aiplatformpb.ModelGardenServiceClient
 
+	// LROClient is used internally to handle long-running operations.
+	// It is exposed so that its CallOptions can be modified if required.
+	// Users should not Close this client.
+	LROClient **lroauto.OperationsClient
+
 	operationsClient longrunningpb.OperationsClient
 
 	iamPolicyClient iampb.IAMPolicyClient
@@ -222,6 +251,8 @@ type modelGardenGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewModelGardenClient creates a new model garden service client based on gRPC.
@@ -248,6 +279,7 @@ func NewModelGardenClient(ctx context.Context, opts ...option.ClientOption) (*Mo
 		connPool:          connPool,
 		modelGardenClient: aiplatformpb.NewModelGardenServiceClient(connPool),
 		CallOptions:       &client.CallOptions,
+		logger:            internaloption.GetLogger(opts),
 		operationsClient:  longrunningpb.NewOperationsClient(connPool),
 		iamPolicyClient:   iampb.NewIAMPolicyClient(connPool),
 		locationsClient:   locationpb.NewLocationsClient(connPool),
@@ -256,6 +288,17 @@ func NewModelGardenClient(ctx context.Context, opts ...option.ClientOption) (*Mo
 
 	client.internalClient = c
 
+	client.LROClient, err = lroauto.NewOperationsClient(ctx, gtransport.WithConnPool(connPool))
+	if err != nil {
+		// This error "should not happen", since we are just reusing old connection pool
+		// and never actually need to dial.
+		// If this does happen, we could leak connp. However, we cannot close conn:
+		// If the user invoked the constructor with option.WithGRPCConn,
+		// we would close a connection that's still in use.
+		// TODO: investigate error conditions.
+		return nil, err
+	}
+	c.LROClient = &client.LROClient
 	return &client, nil
 }
 
@@ -272,8 +315,10 @@ func (c *modelGardenGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *modelGardenGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -291,13 +336,33 @@ func (c *modelGardenGRPCClient) GetPublisherModel(ctx context.Context, req *aipl
 	var resp *aiplatformpb.PublisherModel
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.modelGardenClient.GetPublisherModel(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.modelGardenClient.GetPublisherModel, req, settings.GRPC, c.logger, "GetPublisherModel")
 		return err
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (c *modelGardenGRPCClient) Deploy(ctx context.Context, req *aiplatformpb.DeployRequest, opts ...gax.CallOption) (*DeployOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "destination", url.QueryEscape(req.GetDestination()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).Deploy[0:len((*c.CallOptions).Deploy):len((*c.CallOptions).Deploy)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.modelGardenClient.Deploy, req, settings.GRPC, c.logger, "Deploy")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &DeployOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
 }
 
 func (c *modelGardenGRPCClient) GetLocation(ctx context.Context, req *locationpb.GetLocationRequest, opts ...gax.CallOption) (*locationpb.Location, error) {
@@ -309,7 +374,7 @@ func (c *modelGardenGRPCClient) GetLocation(ctx context.Context, req *locationpb
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -338,7 +403,7 @@ func (c *modelGardenGRPCClient) ListLocations(ctx context.Context, req *location
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -373,7 +438,7 @@ func (c *modelGardenGRPCClient) GetIamPolicy(ctx context.Context, req *iampb.Get
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -391,7 +456,7 @@ func (c *modelGardenGRPCClient) SetIamPolicy(ctx context.Context, req *iampb.Set
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -409,7 +474,7 @@ func (c *modelGardenGRPCClient) TestIamPermissions(ctx context.Context, req *iam
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
 		return err
 	}, opts...)
 	if err != nil {
@@ -426,7 +491,7 @@ func (c *modelGardenGRPCClient) CancelOperation(ctx context.Context, req *longru
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -440,7 +505,7 @@ func (c *modelGardenGRPCClient) DeleteOperation(ctx context.Context, req *longru
 	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.DeleteOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
 		return err
 	}, opts...)
 	return err
@@ -455,7 +520,7 @@ func (c *modelGardenGRPCClient) GetOperation(ctx context.Context, req *longrunni
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -484,7 +549,7 @@ func (c *modelGardenGRPCClient) ListOperations(ctx context.Context, req *longrun
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -519,11 +584,19 @@ func (c *modelGardenGRPCClient) WaitOperation(ctx context.Context, req *longrunn
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.WaitOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.WaitOperation, req, settings.GRPC, c.logger, "WaitOperation")
 		return err
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+// DeployOperation returns a new DeployOperation from a given name.
+// The name must be that of a previously created DeployOperation, possibly from a different process.
+func (c *modelGardenGRPCClient) DeployOperation(name string) *DeployOperation {
+	return &DeployOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -31,7 +31,6 @@ import (
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -91,6 +90,7 @@ func defaultGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://edgenetwork.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -580,12 +580,18 @@ func (c *Client) InitializeZone(ctx context.Context, req *edgenetworkpb.Initiali
 	return c.internalClient.InitializeZone(ctx, req, opts...)
 }
 
-// ListZones lists Zones in a given project and location.
+// ListZones deprecated: not implemented.
+// Lists Zones in a given project and location.
+//
+// Deprecated: ListZones may be removed in a future version.
 func (c *Client) ListZones(ctx context.Context, req *edgenetworkpb.ListZonesRequest, opts ...gax.CallOption) *ZoneIterator {
 	return c.internalClient.ListZones(ctx, req, opts...)
 }
 
-// GetZone gets details of a single Zone.
+// GetZone deprecated: not implemented.
+// Gets details of a single Zone.
+//
+// Deprecated: GetZone may be removed in a future version.
 func (c *Client) GetZone(ctx context.Context, req *edgenetworkpb.GetZoneRequest, opts ...gax.CallOption) (*edgenetworkpb.Zone, error) {
 	return c.internalClient.GetZone(ctx, req, opts...)
 }
@@ -819,6 +825,8 @@ type gRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewClient creates a new edge network client based on gRPC.
@@ -848,6 +856,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 		connPool:         connPool,
 		client:           edgenetworkpb.NewEdgeNetworkClient(connPool),
 		CallOptions:      &client.CallOptions,
+		logger:           internaloption.GetLogger(opts),
 		operationsClient: longrunningpb.NewOperationsClient(connPool),
 		locationsClient:  locationpb.NewLocationsClient(connPool),
 	}
@@ -882,8 +891,10 @@ func (c *gRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *gRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -910,6 +921,8 @@ type restClient struct {
 
 	// Points back to the CallOptions field of the containing Client
 	CallOptions **CallOptions
+
+	logger *slog.Logger
 }
 
 // NewRESTClient creates a new edge network rest client.
@@ -930,6 +943,7 @@ func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, e
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -954,6 +968,7 @@ func defaultRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://edgenetwork.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -962,8 +977,10 @@ func defaultRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *restClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -989,7 +1006,7 @@ func (c *gRPCClient) InitializeZone(ctx context.Context, req *edgenetworkpb.Init
 	var resp *edgenetworkpb.InitializeZoneResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.InitializeZone(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.InitializeZone, req, settings.GRPC, c.logger, "InitializeZone")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1018,7 +1035,7 @@ func (c *gRPCClient) ListZones(ctx context.Context, req *edgenetworkpb.ListZones
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListZones(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListZones, req, settings.GRPC, c.logger, "ListZones")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1053,7 +1070,7 @@ func (c *gRPCClient) GetZone(ctx context.Context, req *edgenetworkpb.GetZoneRequ
 	var resp *edgenetworkpb.Zone
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetZone(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetZone, req, settings.GRPC, c.logger, "GetZone")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1082,7 +1099,7 @@ func (c *gRPCClient) ListNetworks(ctx context.Context, req *edgenetworkpb.ListNe
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListNetworks(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListNetworks, req, settings.GRPC, c.logger, "ListNetworks")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1117,7 +1134,7 @@ func (c *gRPCClient) GetNetwork(ctx context.Context, req *edgenetworkpb.GetNetwo
 	var resp *edgenetworkpb.Network
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetNetwork(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetNetwork, req, settings.GRPC, c.logger, "GetNetwork")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1135,7 +1152,7 @@ func (c *gRPCClient) DiagnoseNetwork(ctx context.Context, req *edgenetworkpb.Dia
 	var resp *edgenetworkpb.DiagnoseNetworkResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DiagnoseNetwork(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DiagnoseNetwork, req, settings.GRPC, c.logger, "DiagnoseNetwork")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1153,7 +1170,7 @@ func (c *gRPCClient) CreateNetwork(ctx context.Context, req *edgenetworkpb.Creat
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateNetwork(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateNetwork, req, settings.GRPC, c.logger, "CreateNetwork")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1173,7 +1190,7 @@ func (c *gRPCClient) DeleteNetwork(ctx context.Context, req *edgenetworkpb.Delet
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DeleteNetwork(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DeleteNetwork, req, settings.GRPC, c.logger, "DeleteNetwork")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1204,7 +1221,7 @@ func (c *gRPCClient) ListSubnets(ctx context.Context, req *edgenetworkpb.ListSub
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListSubnets(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListSubnets, req, settings.GRPC, c.logger, "ListSubnets")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1239,7 +1256,7 @@ func (c *gRPCClient) GetSubnet(ctx context.Context, req *edgenetworkpb.GetSubnet
 	var resp *edgenetworkpb.Subnet
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetSubnet(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetSubnet, req, settings.GRPC, c.logger, "GetSubnet")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1257,7 +1274,7 @@ func (c *gRPCClient) CreateSubnet(ctx context.Context, req *edgenetworkpb.Create
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateSubnet(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateSubnet, req, settings.GRPC, c.logger, "CreateSubnet")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1277,7 +1294,7 @@ func (c *gRPCClient) UpdateSubnet(ctx context.Context, req *edgenetworkpb.Update
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateSubnet(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateSubnet, req, settings.GRPC, c.logger, "UpdateSubnet")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1297,7 +1314,7 @@ func (c *gRPCClient) DeleteSubnet(ctx context.Context, req *edgenetworkpb.Delete
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DeleteSubnet(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DeleteSubnet, req, settings.GRPC, c.logger, "DeleteSubnet")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1328,7 +1345,7 @@ func (c *gRPCClient) ListInterconnects(ctx context.Context, req *edgenetworkpb.L
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListInterconnects(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListInterconnects, req, settings.GRPC, c.logger, "ListInterconnects")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1363,7 +1380,7 @@ func (c *gRPCClient) GetInterconnect(ctx context.Context, req *edgenetworkpb.Get
 	var resp *edgenetworkpb.Interconnect
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetInterconnect(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetInterconnect, req, settings.GRPC, c.logger, "GetInterconnect")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1381,7 +1398,7 @@ func (c *gRPCClient) DiagnoseInterconnect(ctx context.Context, req *edgenetworkp
 	var resp *edgenetworkpb.DiagnoseInterconnectResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DiagnoseInterconnect(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DiagnoseInterconnect, req, settings.GRPC, c.logger, "DiagnoseInterconnect")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1410,7 +1427,7 @@ func (c *gRPCClient) ListInterconnectAttachments(ctx context.Context, req *edgen
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListInterconnectAttachments(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListInterconnectAttachments, req, settings.GRPC, c.logger, "ListInterconnectAttachments")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1445,7 +1462,7 @@ func (c *gRPCClient) GetInterconnectAttachment(ctx context.Context, req *edgenet
 	var resp *edgenetworkpb.InterconnectAttachment
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetInterconnectAttachment(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetInterconnectAttachment, req, settings.GRPC, c.logger, "GetInterconnectAttachment")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1463,7 +1480,7 @@ func (c *gRPCClient) CreateInterconnectAttachment(ctx context.Context, req *edge
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateInterconnectAttachment(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateInterconnectAttachment, req, settings.GRPC, c.logger, "CreateInterconnectAttachment")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1483,7 +1500,7 @@ func (c *gRPCClient) DeleteInterconnectAttachment(ctx context.Context, req *edge
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DeleteInterconnectAttachment(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DeleteInterconnectAttachment, req, settings.GRPC, c.logger, "DeleteInterconnectAttachment")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1514,7 +1531,7 @@ func (c *gRPCClient) ListRouters(ctx context.Context, req *edgenetworkpb.ListRou
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListRouters(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListRouters, req, settings.GRPC, c.logger, "ListRouters")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1549,7 +1566,7 @@ func (c *gRPCClient) GetRouter(ctx context.Context, req *edgenetworkpb.GetRouter
 	var resp *edgenetworkpb.Router
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetRouter(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetRouter, req, settings.GRPC, c.logger, "GetRouter")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1567,7 +1584,7 @@ func (c *gRPCClient) DiagnoseRouter(ctx context.Context, req *edgenetworkpb.Diag
 	var resp *edgenetworkpb.DiagnoseRouterResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DiagnoseRouter(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DiagnoseRouter, req, settings.GRPC, c.logger, "DiagnoseRouter")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1585,7 +1602,7 @@ func (c *gRPCClient) CreateRouter(ctx context.Context, req *edgenetworkpb.Create
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateRouter(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateRouter, req, settings.GRPC, c.logger, "CreateRouter")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1605,7 +1622,7 @@ func (c *gRPCClient) UpdateRouter(ctx context.Context, req *edgenetworkpb.Update
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateRouter(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.UpdateRouter, req, settings.GRPC, c.logger, "UpdateRouter")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1625,7 +1642,7 @@ func (c *gRPCClient) DeleteRouter(ctx context.Context, req *edgenetworkpb.Delete
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.DeleteRouter(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.DeleteRouter, req, settings.GRPC, c.logger, "DeleteRouter")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1645,7 +1662,7 @@ func (c *gRPCClient) GetLocation(ctx context.Context, req *locationpb.GetLocatio
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1674,7 +1691,7 @@ func (c *gRPCClient) ListLocations(ctx context.Context, req *locationpb.ListLoca
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1708,7 +1725,7 @@ func (c *gRPCClient) CancelOperation(ctx context.Context, req *longrunningpb.Can
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -1722,7 +1739,7 @@ func (c *gRPCClient) DeleteOperation(ctx context.Context, req *longrunningpb.Del
 	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.DeleteOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
 		return err
 	}, opts...)
 	return err
@@ -1737,7 +1754,7 @@ func (c *gRPCClient) GetOperation(ctx context.Context, req *longrunningpb.GetOpe
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1766,7 +1783,7 @@ func (c *gRPCClient) ListOperations(ctx context.Context, req *longrunningpb.List
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1831,17 +1848,7 @@ func (c *restClient) InitializeZone(ctx context.Context, req *edgenetworkpb.Init
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "InitializeZone")
 		if err != nil {
 			return err
 		}
@@ -1858,7 +1865,10 @@ func (c *restClient) InitializeZone(ctx context.Context, req *edgenetworkpb.Init
 	return resp, nil
 }
 
-// ListZones lists Zones in a given project and location.
+// ListZones deprecated: not implemented.
+// Lists Zones in a given project and location.
+//
+// Deprecated: ListZones may be removed in a future version.
 func (c *restClient) ListZones(ctx context.Context, req *edgenetworkpb.ListZonesRequest, opts ...gax.CallOption) *ZoneIterator {
 	it := &ZoneIterator{}
 	req = proto.Clone(req).(*edgenetworkpb.ListZonesRequest)
@@ -1909,21 +1919,10 @@ func (c *restClient) ListZones(ctx context.Context, req *edgenetworkpb.ListZones
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListZones")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1953,7 +1952,10 @@ func (c *restClient) ListZones(ctx context.Context, req *edgenetworkpb.ListZones
 	return it
 }
 
-// GetZone gets details of a single Zone.
+// GetZone deprecated: not implemented.
+// Gets details of a single Zone.
+//
+// Deprecated: GetZone may be removed in a future version.
 func (c *restClient) GetZone(ctx context.Context, req *edgenetworkpb.GetZoneRequest, opts ...gax.CallOption) (*edgenetworkpb.Zone, error) {
 	baseUrl, err := url.Parse(c.endpoint)
 	if err != nil {
@@ -1986,17 +1988,7 @@ func (c *restClient) GetZone(ctx context.Context, req *edgenetworkpb.GetZoneRequ
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetZone")
 		if err != nil {
 			return err
 		}
@@ -2064,21 +2056,10 @@ func (c *restClient) ListNetworks(ctx context.Context, req *edgenetworkpb.ListNe
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListNetworks")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2141,17 +2122,7 @@ func (c *restClient) GetNetwork(ctx context.Context, req *edgenetworkpb.GetNetwo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetNetwork")
 		if err != nil {
 			return err
 		}
@@ -2201,17 +2172,7 @@ func (c *restClient) DiagnoseNetwork(ctx context.Context, req *edgenetworkpb.Dia
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DiagnoseNetwork")
 		if err != nil {
 			return err
 		}
@@ -2271,21 +2232,10 @@ func (c *restClient) CreateNetwork(ctx context.Context, req *edgenetworkpb.Creat
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateNetwork")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2338,21 +2288,10 @@ func (c *restClient) DeleteNetwork(ctx context.Context, req *edgenetworkpb.Delet
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteNetwork")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2421,21 +2360,10 @@ func (c *restClient) ListSubnets(ctx context.Context, req *edgenetworkpb.ListSub
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListSubnets")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2498,17 +2426,7 @@ func (c *restClient) GetSubnet(ctx context.Context, req *edgenetworkpb.GetSubnet
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetSubnet")
 		if err != nil {
 			return err
 		}
@@ -2568,21 +2486,10 @@ func (c *restClient) CreateSubnet(ctx context.Context, req *edgenetworkpb.Create
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateSubnet")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2621,11 +2528,11 @@ func (c *restClient) UpdateSubnet(ctx context.Context, req *edgenetworkpb.Update
 		params.Add("requestId", fmt.Sprintf("%v", req.GetRequestId()))
 	}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2649,21 +2556,10 @@ func (c *restClient) UpdateSubnet(ctx context.Context, req *edgenetworkpb.Update
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateSubnet")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2716,21 +2612,10 @@ func (c *restClient) DeleteSubnet(ctx context.Context, req *edgenetworkpb.Delete
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteSubnet")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2799,21 +2684,10 @@ func (c *restClient) ListInterconnects(ctx context.Context, req *edgenetworkpb.L
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInterconnects")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2876,17 +2750,7 @@ func (c *restClient) GetInterconnect(ctx context.Context, req *edgenetworkpb.Get
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetInterconnect")
 		if err != nil {
 			return err
 		}
@@ -2936,17 +2800,7 @@ func (c *restClient) DiagnoseInterconnect(ctx context.Context, req *edgenetworkp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DiagnoseInterconnect")
 		if err != nil {
 			return err
 		}
@@ -3014,21 +2868,10 @@ func (c *restClient) ListInterconnectAttachments(ctx context.Context, req *edgen
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInterconnectAttachments")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3091,17 +2934,7 @@ func (c *restClient) GetInterconnectAttachment(ctx context.Context, req *edgenet
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetInterconnectAttachment")
 		if err != nil {
 			return err
 		}
@@ -3161,21 +2994,10 @@ func (c *restClient) CreateInterconnectAttachment(ctx context.Context, req *edge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateInterconnectAttachment")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3228,21 +3050,10 @@ func (c *restClient) DeleteInterconnectAttachment(ctx context.Context, req *edge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteInterconnectAttachment")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3311,21 +3122,10 @@ func (c *restClient) ListRouters(ctx context.Context, req *edgenetworkpb.ListRou
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListRouters")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3388,17 +3188,7 @@ func (c *restClient) GetRouter(ctx context.Context, req *edgenetworkpb.GetRouter
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetRouter")
 		if err != nil {
 			return err
 		}
@@ -3448,17 +3238,7 @@ func (c *restClient) DiagnoseRouter(ctx context.Context, req *edgenetworkpb.Diag
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DiagnoseRouter")
 		if err != nil {
 			return err
 		}
@@ -3518,21 +3298,10 @@ func (c *restClient) CreateRouter(ctx context.Context, req *edgenetworkpb.Create
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateRouter")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3571,11 +3340,11 @@ func (c *restClient) UpdateRouter(ctx context.Context, req *edgenetworkpb.Update
 		params.Add("requestId", fmt.Sprintf("%v", req.GetRequestId()))
 	}
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -3599,21 +3368,10 @@ func (c *restClient) UpdateRouter(ctx context.Context, req *edgenetworkpb.Update
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateRouter")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3666,21 +3424,10 @@ func (c *restClient) DeleteRouter(ctx context.Context, req *edgenetworkpb.Delete
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteRouter")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3731,17 +3478,7 @@ func (c *restClient) GetLocation(ctx context.Context, req *locationpb.GetLocatio
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetLocation")
 		if err != nil {
 			return err
 		}
@@ -3806,21 +3543,10 @@ func (c *restClient) ListLocations(ctx context.Context, req *locationpb.ListLoca
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListLocations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3886,15 +3612,8 @@ func (c *restClient) CancelOperation(ctx context.Context, req *longrunningpb.Can
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CancelOperation")
+		return err
 	}, opts...)
 }
 
@@ -3928,15 +3647,8 @@ func (c *restClient) DeleteOperation(ctx context.Context, req *longrunningpb.Del
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteOperation")
+		return err
 	}, opts...)
 }
 
@@ -3973,17 +3685,7 @@ func (c *restClient) GetOperation(ctx context.Context, req *longrunningpb.GetOpe
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
 		if err != nil {
 			return err
 		}
@@ -4048,21 +3750,10 @@ func (c *restClient) ListOperations(ctx context.Context, req *longrunningpb.List
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}

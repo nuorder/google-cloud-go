@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,15 +28,81 @@ import (
 	locationpb "google.golang.org/genproto/googleapis/cloud/location"
 )
 
+// CreateAspectTypeOperation manages a long-running operation from CreateAspectType.
+type CreateAspectTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateAspectTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.AspectType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.AspectType
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateAspectTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.AspectType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.AspectType
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateAspectTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateAspectTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateAspectTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateAssetOperation manages a long-running operation from CreateAsset.
 type CreateAssetOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Asset, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Asset
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -54,6 +120,7 @@ func (op *CreateAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateAssetOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Asset, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Asset
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -91,13 +158,15 @@ func (op *CreateAssetOperation) Name() string {
 
 // CreateDataAttributeBindingOperation manages a long-running operation from CreateDataAttributeBinding.
 type CreateDataAttributeBindingOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateDataAttributeBindingOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttributeBinding, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttributeBinding
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -115,6 +184,7 @@ func (op *CreateDataAttributeBindingOperation) Wait(ctx context.Context, opts ..
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateDataAttributeBindingOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttributeBinding, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttributeBinding
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -152,13 +222,15 @@ func (op *CreateDataAttributeBindingOperation) Name() string {
 
 // CreateDataAttributeOperation manages a long-running operation from CreateDataAttribute.
 type CreateDataAttributeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateDataAttributeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttribute, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttribute
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -176,6 +248,7 @@ func (op *CreateDataAttributeOperation) Wait(ctx context.Context, opts ...gax.Ca
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateDataAttributeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttribute, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttribute
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -213,13 +286,15 @@ func (op *CreateDataAttributeOperation) Name() string {
 
 // CreateDataScanOperation manages a long-running operation from CreateDataScan.
 type CreateDataScanOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataScan, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataScan
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -237,6 +312,7 @@ func (op *CreateDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOpt
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateDataScanOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataScan, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataScan
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -274,13 +350,15 @@ func (op *CreateDataScanOperation) Name() string {
 
 // CreateDataTaxonomyOperation manages a long-running operation from CreateDataTaxonomy.
 type CreateDataTaxonomyOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataTaxonomy, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataTaxonomy
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -298,6 +376,7 @@ func (op *CreateDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.Cal
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateDataTaxonomyOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataTaxonomy, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataTaxonomy
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -333,15 +412,209 @@ func (op *CreateDataTaxonomyOperation) Name() string {
 	return op.lro.Name()
 }
 
+// CreateEncryptionConfigOperation manages a long-running operation from CreateEncryptionConfig.
+type CreateEncryptionConfigOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateEncryptionConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EncryptionConfig, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EncryptionConfig
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateEncryptionConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EncryptionConfig, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EncryptionConfig
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateEncryptionConfigOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateEncryptionConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateEncryptionConfigOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateEntryGroupOperation manages a long-running operation from CreateEntryGroup.
+type CreateEntryGroupOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateEntryGroupOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryGroup, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryGroup
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateEntryGroupOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryGroup, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryGroup
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateEntryGroupOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateEntryGroupOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateEntryGroupOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateEntryTypeOperation manages a long-running operation from CreateEntryType.
+type CreateEntryTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateEntryTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryType
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateEntryTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryType
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateEntryTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateEntryTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateEntryTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateEnvironmentOperation manages a long-running operation from CreateEnvironment.
 type CreateEnvironmentOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateEnvironmentOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Environment, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Environment
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -359,6 +632,7 @@ func (op *CreateEnvironmentOperation) Wait(ctx context.Context, opts ...gax.Call
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateEnvironmentOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Environment, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Environment
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -394,15 +668,81 @@ func (op *CreateEnvironmentOperation) Name() string {
 	return op.lro.Name()
 }
 
+// CreateGlossaryOperation manages a long-running operation from CreateGlossary.
+type CreateGlossaryOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateGlossaryOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Glossary, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.Glossary
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateGlossaryOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Glossary, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.Glossary
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateGlossaryOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateGlossaryOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateGlossaryOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateLakeOperation manages a long-running operation from CreateLake.
 type CreateLakeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Lake, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Lake
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -420,6 +760,7 @@ func (op *CreateLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateLakeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Lake, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Lake
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -455,15 +796,81 @@ func (op *CreateLakeOperation) Name() string {
 	return op.lro.Name()
 }
 
+// CreateMetadataJobOperation manages a long-running operation from CreateMetadataJob.
+type CreateMetadataJobOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateMetadataJobOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.MetadataJob, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.MetadataJob
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateMetadataJobOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.MetadataJob, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.MetadataJob
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateMetadataJobOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateMetadataJobOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateMetadataJobOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateTaskOperation manages a long-running operation from CreateTask.
 type CreateTaskOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Task, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Task
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -481,6 +888,7 @@ func (op *CreateTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateTaskOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Task, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Task
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -518,13 +926,15 @@ func (op *CreateTaskOperation) Name() string {
 
 // CreateZoneOperation manages a long-running operation from CreateZone.
 type CreateZoneOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *CreateZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Zone, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Zone
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -542,6 +952,7 @@ func (op *CreateZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *CreateZoneOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Zone, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Zone
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -577,15 +988,70 @@ func (op *CreateZoneOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DeleteAspectTypeOperation manages a long-running operation from DeleteAspectType.
+type DeleteAspectTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteAspectTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteAspectTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteAspectTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteAspectTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteAspectTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // DeleteAssetOperation manages a long-running operation from DeleteAsset.
 type DeleteAssetOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -599,6 +1065,7 @@ func (op *DeleteAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteAssetOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -629,13 +1096,15 @@ func (op *DeleteAssetOperation) Name() string {
 
 // DeleteDataAttributeBindingOperation manages a long-running operation from DeleteDataAttributeBinding.
 type DeleteDataAttributeBindingOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteDataAttributeBindingOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -649,6 +1118,7 @@ func (op *DeleteDataAttributeBindingOperation) Wait(ctx context.Context, opts ..
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteDataAttributeBindingOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -679,13 +1149,15 @@ func (op *DeleteDataAttributeBindingOperation) Name() string {
 
 // DeleteDataAttributeOperation manages a long-running operation from DeleteDataAttribute.
 type DeleteDataAttributeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteDataAttributeOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -699,6 +1171,7 @@ func (op *DeleteDataAttributeOperation) Wait(ctx context.Context, opts ...gax.Ca
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteDataAttributeOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -729,13 +1202,15 @@ func (op *DeleteDataAttributeOperation) Name() string {
 
 // DeleteDataScanOperation manages a long-running operation from DeleteDataScan.
 type DeleteDataScanOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -749,6 +1224,7 @@ func (op *DeleteDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOpt
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteDataScanOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -779,13 +1255,15 @@ func (op *DeleteDataScanOperation) Name() string {
 
 // DeleteDataTaxonomyOperation manages a long-running operation from DeleteDataTaxonomy.
 type DeleteDataTaxonomyOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -799,6 +1277,7 @@ func (op *DeleteDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.Cal
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteDataTaxonomyOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -827,15 +1306,176 @@ func (op *DeleteDataTaxonomyOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DeleteEncryptionConfigOperation manages a long-running operation from DeleteEncryptionConfig.
+type DeleteEncryptionConfigOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteEncryptionConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteEncryptionConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteEncryptionConfigOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteEncryptionConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteEncryptionConfigOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteEntryGroupOperation manages a long-running operation from DeleteEntryGroup.
+type DeleteEntryGroupOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteEntryGroupOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteEntryGroupOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteEntryGroupOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteEntryGroupOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteEntryGroupOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteEntryTypeOperation manages a long-running operation from DeleteEntryType.
+type DeleteEntryTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteEntryTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteEntryTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteEntryTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteEntryTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteEntryTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // DeleteEnvironmentOperation manages a long-running operation from DeleteEnvironment.
 type DeleteEnvironmentOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteEnvironmentOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -849,6 +1489,7 @@ func (op *DeleteEnvironmentOperation) Wait(ctx context.Context, opts ...gax.Call
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteEnvironmentOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -877,15 +1518,70 @@ func (op *DeleteEnvironmentOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DeleteGlossaryOperation manages a long-running operation from DeleteGlossary.
+type DeleteGlossaryOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteGlossaryOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteGlossaryOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteGlossaryOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteGlossaryOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteGlossaryOperation) Name() string {
+	return op.lro.Name()
+}
+
 // DeleteLakeOperation manages a long-running operation from DeleteLake.
 type DeleteLakeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -899,6 +1595,7 @@ func (op *DeleteLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteLakeOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -929,13 +1626,15 @@ func (op *DeleteLakeOperation) Name() string {
 
 // DeleteTaskOperation manages a long-running operation from DeleteTask.
 type DeleteTaskOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -949,6 +1648,7 @@ func (op *DeleteTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteTaskOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -979,13 +1679,15 @@ func (op *DeleteTaskOperation) Name() string {
 
 // DeleteZoneOperation manages a long-running operation from DeleteZone.
 type DeleteZoneOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *DeleteZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
 }
 
@@ -999,6 +1701,7 @@ func (op *DeleteZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *DeleteZoneOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	return op.lro.Poll(ctx, nil, opts...)
 }
 
@@ -1027,15 +1730,81 @@ func (op *DeleteZoneOperation) Name() string {
 	return op.lro.Name()
 }
 
+// UpdateAspectTypeOperation manages a long-running operation from UpdateAspectType.
+type UpdateAspectTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateAspectTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.AspectType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.AspectType
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateAspectTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.AspectType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.AspectType
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateAspectTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateAspectTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateAspectTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // UpdateAssetOperation manages a long-running operation from UpdateAsset.
 type UpdateAssetOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Asset, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Asset
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1053,6 +1822,7 @@ func (op *UpdateAssetOperation) Wait(ctx context.Context, opts ...gax.CallOption
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateAssetOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Asset, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Asset
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1090,13 +1860,15 @@ func (op *UpdateAssetOperation) Name() string {
 
 // UpdateDataAttributeBindingOperation manages a long-running operation from UpdateDataAttributeBinding.
 type UpdateDataAttributeBindingOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateDataAttributeBindingOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttributeBinding, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttributeBinding
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1114,6 +1886,7 @@ func (op *UpdateDataAttributeBindingOperation) Wait(ctx context.Context, opts ..
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateDataAttributeBindingOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttributeBinding, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttributeBinding
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1151,13 +1924,15 @@ func (op *UpdateDataAttributeBindingOperation) Name() string {
 
 // UpdateDataAttributeOperation manages a long-running operation from UpdateDataAttribute.
 type UpdateDataAttributeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateDataAttributeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttribute, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttribute
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1175,6 +1950,7 @@ func (op *UpdateDataAttributeOperation) Wait(ctx context.Context, opts ...gax.Ca
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateDataAttributeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataAttribute, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataAttribute
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1212,13 +1988,15 @@ func (op *UpdateDataAttributeOperation) Name() string {
 
 // UpdateDataScanOperation manages a long-running operation from UpdateDataScan.
 type UpdateDataScanOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataScan, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataScan
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1236,6 +2014,7 @@ func (op *UpdateDataScanOperation) Wait(ctx context.Context, opts ...gax.CallOpt
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateDataScanOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataScan, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataScan
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1273,13 +2052,15 @@ func (op *UpdateDataScanOperation) Name() string {
 
 // UpdateDataTaxonomyOperation manages a long-running operation from UpdateDataTaxonomy.
 type UpdateDataTaxonomyOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataTaxonomy, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataTaxonomy
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1297,6 +2078,7 @@ func (op *UpdateDataTaxonomyOperation) Wait(ctx context.Context, opts ...gax.Cal
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateDataTaxonomyOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.DataTaxonomy, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.DataTaxonomy
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1332,15 +2114,209 @@ func (op *UpdateDataTaxonomyOperation) Name() string {
 	return op.lro.Name()
 }
 
+// UpdateEncryptionConfigOperation manages a long-running operation from UpdateEncryptionConfig.
+type UpdateEncryptionConfigOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateEncryptionConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EncryptionConfig, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EncryptionConfig
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateEncryptionConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EncryptionConfig, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EncryptionConfig
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateEncryptionConfigOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateEncryptionConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateEncryptionConfigOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateEntryGroupOperation manages a long-running operation from UpdateEntryGroup.
+type UpdateEntryGroupOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateEntryGroupOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryGroup, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryGroup
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateEntryGroupOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryGroup, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryGroup
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateEntryGroupOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateEntryGroupOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateEntryGroupOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateEntryTypeOperation manages a long-running operation from UpdateEntryType.
+type UpdateEntryTypeOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateEntryTypeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryType
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateEntryTypeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.EntryType, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.EntryType
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateEntryTypeOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateEntryTypeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateEntryTypeOperation) Name() string {
+	return op.lro.Name()
+}
+
 // UpdateEnvironmentOperation manages a long-running operation from UpdateEnvironment.
 type UpdateEnvironmentOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateEnvironmentOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Environment, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Environment
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1358,6 +2334,7 @@ func (op *UpdateEnvironmentOperation) Wait(ctx context.Context, opts ...gax.Call
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateEnvironmentOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Environment, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Environment
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1393,15 +2370,81 @@ func (op *UpdateEnvironmentOperation) Name() string {
 	return op.lro.Name()
 }
 
+// UpdateGlossaryOperation manages a long-running operation from UpdateGlossary.
+type UpdateGlossaryOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateGlossaryOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Glossary, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.Glossary
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateGlossaryOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Glossary, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp dataplexpb.Glossary
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateGlossaryOperation) Metadata() (*dataplexpb.OperationMetadata, error) {
+	var meta dataplexpb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateGlossaryOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateGlossaryOperation) Name() string {
+	return op.lro.Name()
+}
+
 // UpdateLakeOperation manages a long-running operation from UpdateLake.
 type UpdateLakeOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Lake, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Lake
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1419,6 +2462,7 @@ func (op *UpdateLakeOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateLakeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Lake, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Lake
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1456,13 +2500,15 @@ func (op *UpdateLakeOperation) Name() string {
 
 // UpdateTaskOperation manages a long-running operation from UpdateTask.
 type UpdateTaskOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Task, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Task
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1480,6 +2526,7 @@ func (op *UpdateTaskOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateTaskOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Task, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Task
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1517,13 +2564,15 @@ func (op *UpdateTaskOperation) Name() string {
 
 // UpdateZoneOperation manages a long-running operation from UpdateZone.
 type UpdateZoneOperation struct {
-	lro *longrunning.Operation
+	lro      *longrunning.Operation
+	pollPath string
 }
 
 // Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
 //
 // See documentation of Poll for error-handling information.
 func (op *UpdateZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Zone, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Zone
 	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
 		return nil, err
@@ -1541,6 +2590,7 @@ func (op *UpdateZoneOperation) Wait(ctx context.Context, opts ...gax.CallOption)
 // op.Done will return true, and the response of the operation is returned.
 // If Poll succeeds and the operation has not completed, the returned response and error are both nil.
 func (op *UpdateZoneOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*dataplexpb.Zone, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
 	var resp dataplexpb.Zone
 	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
 		return nil, err
@@ -1596,7 +2646,7 @@ type ActionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Action, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ActionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1623,6 +2673,53 @@ func (it *ActionIterator) takeBuf() interface{} {
 	return b
 }
 
+// AspectTypeIterator manages a stream of *dataplexpb.AspectType.
+type AspectTypeIterator struct {
+	items    []*dataplexpb.AspectType
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.AspectType, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *AspectTypeIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *AspectTypeIterator) Next() (*dataplexpb.AspectType, error) {
+	var item *dataplexpb.AspectType
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *AspectTypeIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *AspectTypeIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // AssetIterator manages a stream of *dataplexpb.Asset.
 type AssetIterator struct {
 	items    []*dataplexpb.Asset
@@ -1643,7 +2740,7 @@ type AssetIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Asset, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *AssetIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1690,7 +2787,7 @@ type ContentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Content, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ContentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1737,7 +2834,7 @@ type DataAttributeBindingIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.DataAttributeBinding, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataAttributeBindingIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1784,7 +2881,7 @@ type DataAttributeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.DataAttribute, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataAttributeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1831,7 +2928,7 @@ type DataScanIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.DataScan, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataScanIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1878,7 +2975,7 @@ type DataScanJobIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.DataScanJob, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataScanJobIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1925,7 +3022,7 @@ type DataTaxonomyIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.DataTaxonomy, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DataTaxonomyIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1952,6 +3049,53 @@ func (it *DataTaxonomyIterator) takeBuf() interface{} {
 	return b
 }
 
+// EncryptionConfigIterator manages a stream of *dataplexpb.EncryptionConfig.
+type EncryptionConfigIterator struct {
+	items    []*dataplexpb.EncryptionConfig
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.EncryptionConfig, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *EncryptionConfigIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *EncryptionConfigIterator) Next() (*dataplexpb.EncryptionConfig, error) {
+	var item *dataplexpb.EncryptionConfig
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *EncryptionConfigIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *EncryptionConfigIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // EntityIterator manages a stream of *dataplexpb.Entity.
 type EntityIterator struct {
 	items    []*dataplexpb.Entity
@@ -1972,7 +3116,7 @@ type EntityIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Entity, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *EntityIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1999,6 +3143,147 @@ func (it *EntityIterator) takeBuf() interface{} {
 	return b
 }
 
+// EntryGroupIterator manages a stream of *dataplexpb.EntryGroup.
+type EntryGroupIterator struct {
+	items    []*dataplexpb.EntryGroup
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.EntryGroup, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *EntryGroupIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *EntryGroupIterator) Next() (*dataplexpb.EntryGroup, error) {
+	var item *dataplexpb.EntryGroup
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *EntryGroupIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *EntryGroupIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// EntryIterator manages a stream of *dataplexpb.Entry.
+type EntryIterator struct {
+	items    []*dataplexpb.Entry
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Entry, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *EntryIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *EntryIterator) Next() (*dataplexpb.Entry, error) {
+	var item *dataplexpb.Entry
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *EntryIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *EntryIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// EntryTypeIterator manages a stream of *dataplexpb.EntryType.
+type EntryTypeIterator struct {
+	items    []*dataplexpb.EntryType
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.EntryType, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *EntryTypeIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *EntryTypeIterator) Next() (*dataplexpb.EntryType, error) {
+	var item *dataplexpb.EntryType
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *EntryTypeIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *EntryTypeIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // EnvironmentIterator manages a stream of *dataplexpb.Environment.
 type EnvironmentIterator struct {
 	items    []*dataplexpb.Environment
@@ -2019,7 +3304,7 @@ type EnvironmentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Environment, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *EnvironmentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2046,6 +3331,147 @@ func (it *EnvironmentIterator) takeBuf() interface{} {
 	return b
 }
 
+// GlossaryCategoryIterator manages a stream of *dataplexpb.GlossaryCategory.
+type GlossaryCategoryIterator struct {
+	items    []*dataplexpb.GlossaryCategory
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.GlossaryCategory, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *GlossaryCategoryIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *GlossaryCategoryIterator) Next() (*dataplexpb.GlossaryCategory, error) {
+	var item *dataplexpb.GlossaryCategory
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *GlossaryCategoryIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *GlossaryCategoryIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// GlossaryIterator manages a stream of *dataplexpb.Glossary.
+type GlossaryIterator struct {
+	items    []*dataplexpb.Glossary
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Glossary, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *GlossaryIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *GlossaryIterator) Next() (*dataplexpb.Glossary, error) {
+	var item *dataplexpb.Glossary
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *GlossaryIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *GlossaryIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// GlossaryTermIterator manages a stream of *dataplexpb.GlossaryTerm.
+type GlossaryTermIterator struct {
+	items    []*dataplexpb.GlossaryTerm
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.GlossaryTerm, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *GlossaryTermIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *GlossaryTermIterator) Next() (*dataplexpb.GlossaryTerm, error) {
+	var item *dataplexpb.GlossaryTerm
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *GlossaryTermIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *GlossaryTermIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // JobIterator manages a stream of *dataplexpb.Job.
 type JobIterator struct {
 	items    []*dataplexpb.Job
@@ -2066,7 +3492,7 @@ type JobIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Job, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *JobIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2113,7 +3539,7 @@ type LakeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Lake, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *LakeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2160,7 +3586,7 @@ type LocationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*locationpb.Location, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *LocationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2187,6 +3613,53 @@ func (it *LocationIterator) takeBuf() interface{} {
 	return b
 }
 
+// MetadataJobIterator manages a stream of *dataplexpb.MetadataJob.
+type MetadataJobIterator struct {
+	items    []*dataplexpb.MetadataJob
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.MetadataJob, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *MetadataJobIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *MetadataJobIterator) Next() (*dataplexpb.MetadataJob, error) {
+	var item *dataplexpb.MetadataJob
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *MetadataJobIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *MetadataJobIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // OperationIterator manages a stream of *longrunningpb.Operation.
 type OperationIterator struct {
 	items    []*longrunningpb.Operation
@@ -2207,7 +3680,7 @@ type OperationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*longrunningpb.Operation, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *OperationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2254,7 +3727,7 @@ type PartitionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Partition, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *PartitionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2281,6 +3754,53 @@ func (it *PartitionIterator) takeBuf() interface{} {
 	return b
 }
 
+// SearchEntriesResultIterator manages a stream of *dataplexpb.SearchEntriesResult.
+type SearchEntriesResultIterator struct {
+	items    []*dataplexpb.SearchEntriesResult
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.SearchEntriesResult, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *SearchEntriesResultIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *SearchEntriesResultIterator) Next() (*dataplexpb.SearchEntriesResult, error) {
+	var item *dataplexpb.SearchEntriesResult
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *SearchEntriesResultIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *SearchEntriesResultIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // SessionIterator manages a stream of *dataplexpb.Session.
 type SessionIterator struct {
 	items    []*dataplexpb.Session
@@ -2301,7 +3821,7 @@ type SessionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Session, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *SessionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2348,7 +3868,7 @@ type TaskIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Task, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *TaskIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -2395,7 +3915,7 @@ type ZoneIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*dataplexpb.Zone, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ZoneIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }

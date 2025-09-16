@@ -25,6 +25,16 @@
                 "CreateTask"
               ]
             },
+            "DeleteDeliveryVehicle": {
+              "methods": [
+                "DeleteDeliveryVehicle"
+              ]
+            },
+            "DeleteTask": {
+              "methods": [
+                "DeleteTask"
+              ]
+            },
             "GetDeliveryVehicle": {
               "methods": [
                 "GetDeliveryVehicle"
@@ -48,11 +58,6 @@
             "ListTasks": {
               "methods": [
                 "ListTasks"
-              ]
-            },
-            "SearchTasks": {
-              "methods": [
-                "SearchTasks"
               ]
             },
             "UpdateDeliveryVehicle": {
@@ -85,6 +90,16 @@
                 "CreateTask"
               ]
             },
+            "DeleteDeliveryVehicle": {
+              "methods": [
+                "DeleteDeliveryVehicle"
+              ]
+            },
+            "DeleteTask": {
+              "methods": [
+                "DeleteTask"
+              ]
+            },
             "GetDeliveryVehicle": {
               "methods": [
                 "GetDeliveryVehicle"
@@ -108,11 +123,6 @@
             "ListTasks": {
               "methods": [
                 "ListTasks"
-              ]
-            },
-            "SearchTasks": {
-              "methods": [
-                "SearchTasks"
               ]
             },
             "UpdateDeliveryVehicle": {

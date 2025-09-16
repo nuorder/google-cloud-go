@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -372,6 +372,61 @@ func ExampleAlloyDBAdminClient_DeleteUser() {
 	}
 }
 
+func ExampleAlloyDBAdminClient_ExecuteSql() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := alloydb.NewAlloyDBAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &alloydbpb.ExecuteSqlRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#ExecuteSqlRequest.
+	}
+	resp, err := c.ExecuteSql(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAlloyDBAdminClient_ExportCluster() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := alloydb.NewAlloyDBAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &alloydbpb.ExportClusterRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#ExportClusterRequest.
+	}
+	op, err := c.ExportCluster(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAlloyDBAdminClient_FailoverInstance() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -552,6 +607,36 @@ func ExampleAlloyDBAdminClient_GetUser() {
 	_ = resp
 }
 
+func ExampleAlloyDBAdminClient_ImportCluster() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := alloydb.NewAlloyDBAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &alloydbpb.ImportClusterRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#ImportClusterRequest.
+	}
+	op, err := c.ImportCluster(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAlloyDBAdminClient_InjectFault() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -610,6 +695,12 @@ func ExampleAlloyDBAdminClient_ListBackups() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListBackupsResponse)
 	}
 }
 
@@ -641,6 +732,12 @@ func ExampleAlloyDBAdminClient_ListClusters() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListClustersResponse)
 	}
 }
 
@@ -672,6 +769,12 @@ func ExampleAlloyDBAdminClient_ListDatabases() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListDatabasesResponse)
 	}
 }
 
@@ -703,6 +806,12 @@ func ExampleAlloyDBAdminClient_ListInstances() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListInstancesResponse)
 	}
 }
 
@@ -734,6 +843,12 @@ func ExampleAlloyDBAdminClient_ListSupportedDatabaseFlags() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListSupportedDatabaseFlagsResponse)
 	}
 }
 
@@ -765,6 +880,12 @@ func ExampleAlloyDBAdminClient_ListUsers() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*alloydbpb.ListUsersResponse)
 	}
 }
 
@@ -846,6 +967,36 @@ func ExampleAlloyDBAdminClient_RestoreCluster() {
 		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#RestoreClusterRequest.
 	}
 	op, err := c.RestoreCluster(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAlloyDBAdminClient_SwitchoverCluster() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := alloydb.NewAlloyDBAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &alloydbpb.SwitchoverClusterRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#SwitchoverClusterRequest.
+	}
+	op, err := c.SwitchoverCluster(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -973,6 +1124,36 @@ func ExampleAlloyDBAdminClient_UpdateUser() {
 	_ = resp
 }
 
+func ExampleAlloyDBAdminClient_UpgradeCluster() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := alloydb.NewAlloyDBAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &alloydbpb.UpgradeClusterRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/alloydb/apiv1alpha/alloydbpb#UpgradeClusterRequest.
+	}
+	op, err := c.UpgradeCluster(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAlloyDBAdminClient_GetLocation() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -1026,6 +1207,12 @@ func ExampleAlloyDBAdminClient_ListLocations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*locationpb.ListLocationsResponse)
 	}
 }
 
@@ -1128,5 +1315,11 @@ func ExampleAlloyDBAdminClient_ListOperations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*longrunningpb.ListOperationsResponse)
 	}
 }

@@ -16,6 +16,7 @@ package pubsub_test
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"sync"
 	"testing"
@@ -25,6 +26,7 @@ import (
 	"cloud.google.com/go/pubsub/pstest"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // withGRPCHeadersAssertionAlt is named differently than
@@ -48,7 +50,7 @@ func TestPSTest(t *testing.T) {
 	srv := pstest.NewServer()
 	defer srv.Close()
 
-	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +91,7 @@ func TestPSTest(t *testing.T) {
 		mu.Unlock()
 		m.Ack()
 	})
-	if err != nil {
-		panic(err)
+	if err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
 	}
 }

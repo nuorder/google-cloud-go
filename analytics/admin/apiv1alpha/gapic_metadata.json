@@ -75,6 +75,11 @@
                 "CreateAudience"
               ]
             },
+            "CreateBigQueryLink": {
+              "methods": [
+                "CreateBigQueryLink"
+              ]
+            },
             "CreateCalculatedMetric": {
               "methods": [
                 "CreateCalculatedMetric"
@@ -83,11 +88,6 @@
             "CreateChannelGroup": {
               "methods": [
                 "CreateChannelGroup"
-              ]
-            },
-            "CreateConnectedSiteTag": {
-              "methods": [
-                "CreateConnectedSiteTag"
               ]
             },
             "CreateConversionEvent": {
@@ -125,6 +125,11 @@
                 "CreateEventCreateRule"
               ]
             },
+            "CreateEventEditRule": {
+              "methods": [
+                "CreateEventEditRule"
+              ]
+            },
             "CreateExpandedDataSet": {
               "methods": [
                 "CreateExpandedDataSet"
@@ -140,6 +145,11 @@
                 "CreateGoogleAdsLink"
               ]
             },
+            "CreateKeyEvent": {
+              "methods": [
+                "CreateKeyEvent"
+              ]
+            },
             "CreateMeasurementProtocolSecret": {
               "methods": [
                 "CreateMeasurementProtocolSecret"
@@ -148,6 +158,11 @@
             "CreateProperty": {
               "methods": [
                 "CreateProperty"
+              ]
+            },
+            "CreateReportingDataAnnotation": {
+              "methods": [
+                "CreateReportingDataAnnotation"
               ]
             },
             "CreateRollupProperty": {
@@ -170,11 +185,6 @@
                 "CreateSearchAds360Link"
               ]
             },
-            "CreateSubproperty": {
-              "methods": [
-                "CreateSubproperty"
-              ]
-            },
             "CreateSubpropertyEventFilter": {
               "methods": [
                 "CreateSubpropertyEventFilter"
@@ -195,6 +205,11 @@
                 "DeleteAdSenseLink"
               ]
             },
+            "DeleteBigQueryLink": {
+              "methods": [
+                "DeleteBigQueryLink"
+              ]
+            },
             "DeleteCalculatedMetric": {
               "methods": [
                 "DeleteCalculatedMetric"
@@ -203,11 +218,6 @@
             "DeleteChannelGroup": {
               "methods": [
                 "DeleteChannelGroup"
-              ]
-            },
-            "DeleteConnectedSiteTag": {
-              "methods": [
-                "DeleteConnectedSiteTag"
               ]
             },
             "DeleteConversionEvent": {
@@ -235,6 +245,11 @@
                 "DeleteEventCreateRule"
               ]
             },
+            "DeleteEventEditRule": {
+              "methods": [
+                "DeleteEventEditRule"
+              ]
+            },
             "DeleteExpandedDataSet": {
               "methods": [
                 "DeleteExpandedDataSet"
@@ -250,6 +265,11 @@
                 "DeleteGoogleAdsLink"
               ]
             },
+            "DeleteKeyEvent": {
+              "methods": [
+                "DeleteKeyEvent"
+              ]
+            },
             "DeleteMeasurementProtocolSecret": {
               "methods": [
                 "DeleteMeasurementProtocolSecret"
@@ -258,6 +278,11 @@
             "DeleteProperty": {
               "methods": [
                 "DeleteProperty"
+              ]
+            },
+            "DeleteReportingDataAnnotation": {
+              "methods": [
+                "DeleteReportingDataAnnotation"
               ]
             },
             "DeleteRollupPropertySourceLink": {
@@ -278,16 +303,6 @@
             "DeleteSubpropertyEventFilter": {
               "methods": [
                 "DeleteSubpropertyEventFilter"
-              ]
-            },
-            "FetchAutomatedGa4ConfigurationOptOut": {
-              "methods": [
-                "FetchAutomatedGa4ConfigurationOptOut"
-              ]
-            },
-            "FetchConnectedGa4Property": {
-              "methods": [
-                "FetchConnectedGa4Property"
               ]
             },
             "GetAccessBinding": {
@@ -385,6 +400,11 @@
                 "GetEventCreateRule"
               ]
             },
+            "GetEventEditRule": {
+              "methods": [
+                "GetEventEditRule"
+              ]
+            },
             "GetExpandedDataSet": {
               "methods": [
                 "GetExpandedDataSet"
@@ -400,6 +420,11 @@
                 "GetGoogleSignalsSettings"
               ]
             },
+            "GetKeyEvent": {
+              "methods": [
+                "GetKeyEvent"
+              ]
+            },
             "GetMeasurementProtocolSecret": {
               "methods": [
                 "GetMeasurementProtocolSecret"
@@ -408,6 +433,16 @@
             "GetProperty": {
               "methods": [
                 "GetProperty"
+              ]
+            },
+            "GetReportingDataAnnotation": {
+              "methods": [
+                "GetReportingDataAnnotation"
+              ]
+            },
+            "GetReportingIdentitySettings": {
+              "methods": [
+                "GetReportingIdentitySettings"
               ]
             },
             "GetRollupPropertySourceLink": {
@@ -428,6 +463,11 @@
             "GetSubpropertyEventFilter": {
               "methods": [
                 "GetSubpropertyEventFilter"
+              ]
+            },
+            "GetSubpropertySyncConfig": {
+              "methods": [
+                "GetSubpropertySyncConfig"
               ]
             },
             "ListAccessBindings": {
@@ -470,11 +510,6 @@
                 "ListChannelGroups"
               ]
             },
-            "ListConnectedSiteTags": {
-              "methods": [
-                "ListConnectedSiteTags"
-              ]
-            },
             "ListConversionEvents": {
               "methods": [
                 "ListConversionEvents"
@@ -510,6 +545,11 @@
                 "ListEventCreateRules"
               ]
             },
+            "ListEventEditRules": {
+              "methods": [
+                "ListEventEditRules"
+              ]
+            },
             "ListExpandedDataSets": {
               "methods": [
                 "ListExpandedDataSets"
@@ -525,6 +565,11 @@
                 "ListGoogleAdsLinks"
               ]
             },
+            "ListKeyEvents": {
+              "methods": [
+                "ListKeyEvents"
+              ]
+            },
             "ListMeasurementProtocolSecrets": {
               "methods": [
                 "ListMeasurementProtocolSecrets"
@@ -533,6 +578,11 @@
             "ListProperties": {
               "methods": [
                 "ListProperties"
+              ]
+            },
+            "ListReportingDataAnnotations": {
+              "methods": [
+                "ListReportingDataAnnotations"
               ]
             },
             "ListRollupPropertySourceLinks": {
@@ -555,9 +605,24 @@
                 "ListSubpropertyEventFilters"
               ]
             },
+            "ListSubpropertySyncConfigs": {
+              "methods": [
+                "ListSubpropertySyncConfigs"
+              ]
+            },
             "ProvisionAccountTicket": {
               "methods": [
                 "ProvisionAccountTicket"
+              ]
+            },
+            "ProvisionSubproperty": {
+              "methods": [
+                "ProvisionSubproperty"
+              ]
+            },
+            "ReorderEventEditRules": {
+              "methods": [
+                "ReorderEventEditRules"
               ]
             },
             "RunAccessReport": {
@@ -570,9 +635,9 @@
                 "SearchChangeHistoryEvents"
               ]
             },
-            "SetAutomatedGa4ConfigurationOptOut": {
+            "SubmitUserDeletion": {
               "methods": [
-                "SetAutomatedGa4ConfigurationOptOut"
+                "SubmitUserDeletion"
               ]
             },
             "UpdateAccessBinding": {
@@ -593,6 +658,11 @@
             "UpdateAudience": {
               "methods": [
                 "UpdateAudience"
+              ]
+            },
+            "UpdateBigQueryLink": {
+              "methods": [
+                "UpdateBigQueryLink"
               ]
             },
             "UpdateCalculatedMetric": {
@@ -650,6 +720,11 @@
                 "UpdateEventCreateRule"
               ]
             },
+            "UpdateEventEditRule": {
+              "methods": [
+                "UpdateEventEditRule"
+              ]
+            },
             "UpdateExpandedDataSet": {
               "methods": [
                 "UpdateExpandedDataSet"
@@ -665,6 +740,11 @@
                 "UpdateGoogleSignalsSettings"
               ]
             },
+            "UpdateKeyEvent": {
+              "methods": [
+                "UpdateKeyEvent"
+              ]
+            },
             "UpdateMeasurementProtocolSecret": {
               "methods": [
                 "UpdateMeasurementProtocolSecret"
@@ -673,6 +753,11 @@
             "UpdateProperty": {
               "methods": [
                 "UpdateProperty"
+              ]
+            },
+            "UpdateReportingDataAnnotation": {
+              "methods": [
+                "UpdateReportingDataAnnotation"
               ]
             },
             "UpdateSKAdNetworkConversionValueSchema": {
@@ -688,6 +773,11 @@
             "UpdateSubpropertyEventFilter": {
               "methods": [
                 "UpdateSubpropertyEventFilter"
+              ]
+            },
+            "UpdateSubpropertySyncConfig": {
+              "methods": [
+                "UpdateSubpropertySyncConfig"
               ]
             }
           }
@@ -760,6 +850,11 @@
                 "CreateAudience"
               ]
             },
+            "CreateBigQueryLink": {
+              "methods": [
+                "CreateBigQueryLink"
+              ]
+            },
             "CreateCalculatedMetric": {
               "methods": [
                 "CreateCalculatedMetric"
@@ -768,11 +863,6 @@
             "CreateChannelGroup": {
               "methods": [
                 "CreateChannelGroup"
-              ]
-            },
-            "CreateConnectedSiteTag": {
-              "methods": [
-                "CreateConnectedSiteTag"
               ]
             },
             "CreateConversionEvent": {
@@ -810,6 +900,11 @@
                 "CreateEventCreateRule"
               ]
             },
+            "CreateEventEditRule": {
+              "methods": [
+                "CreateEventEditRule"
+              ]
+            },
             "CreateExpandedDataSet": {
               "methods": [
                 "CreateExpandedDataSet"
@@ -825,6 +920,11 @@
                 "CreateGoogleAdsLink"
               ]
             },
+            "CreateKeyEvent": {
+              "methods": [
+                "CreateKeyEvent"
+              ]
+            },
             "CreateMeasurementProtocolSecret": {
               "methods": [
                 "CreateMeasurementProtocolSecret"
@@ -833,6 +933,11 @@
             "CreateProperty": {
               "methods": [
                 "CreateProperty"
+              ]
+            },
+            "CreateReportingDataAnnotation": {
+              "methods": [
+                "CreateReportingDataAnnotation"
               ]
             },
             "CreateRollupProperty": {
@@ -855,11 +960,6 @@
                 "CreateSearchAds360Link"
               ]
             },
-            "CreateSubproperty": {
-              "methods": [
-                "CreateSubproperty"
-              ]
-            },
             "CreateSubpropertyEventFilter": {
               "methods": [
                 "CreateSubpropertyEventFilter"
@@ -880,6 +980,11 @@
                 "DeleteAdSenseLink"
               ]
             },
+            "DeleteBigQueryLink": {
+              "methods": [
+                "DeleteBigQueryLink"
+              ]
+            },
             "DeleteCalculatedMetric": {
               "methods": [
                 "DeleteCalculatedMetric"
@@ -888,11 +993,6 @@
             "DeleteChannelGroup": {
               "methods": [
                 "DeleteChannelGroup"
-              ]
-            },
-            "DeleteConnectedSiteTag": {
-              "methods": [
-                "DeleteConnectedSiteTag"
               ]
             },
             "DeleteConversionEvent": {
@@ -920,6 +1020,11 @@
                 "DeleteEventCreateRule"
               ]
             },
+            "DeleteEventEditRule": {
+              "methods": [
+                "DeleteEventEditRule"
+              ]
+            },
             "DeleteExpandedDataSet": {
               "methods": [
                 "DeleteExpandedDataSet"
@@ -935,6 +1040,11 @@
                 "DeleteGoogleAdsLink"
               ]
             },
+            "DeleteKeyEvent": {
+              "methods": [
+                "DeleteKeyEvent"
+              ]
+            },
             "DeleteMeasurementProtocolSecret": {
               "methods": [
                 "DeleteMeasurementProtocolSecret"
@@ -943,6 +1053,11 @@
             "DeleteProperty": {
               "methods": [
                 "DeleteProperty"
+              ]
+            },
+            "DeleteReportingDataAnnotation": {
+              "methods": [
+                "DeleteReportingDataAnnotation"
               ]
             },
             "DeleteRollupPropertySourceLink": {
@@ -963,16 +1078,6 @@
             "DeleteSubpropertyEventFilter": {
               "methods": [
                 "DeleteSubpropertyEventFilter"
-              ]
-            },
-            "FetchAutomatedGa4ConfigurationOptOut": {
-              "methods": [
-                "FetchAutomatedGa4ConfigurationOptOut"
-              ]
-            },
-            "FetchConnectedGa4Property": {
-              "methods": [
-                "FetchConnectedGa4Property"
               ]
             },
             "GetAccessBinding": {
@@ -1070,6 +1175,11 @@
                 "GetEventCreateRule"
               ]
             },
+            "GetEventEditRule": {
+              "methods": [
+                "GetEventEditRule"
+              ]
+            },
             "GetExpandedDataSet": {
               "methods": [
                 "GetExpandedDataSet"
@@ -1085,6 +1195,11 @@
                 "GetGoogleSignalsSettings"
               ]
             },
+            "GetKeyEvent": {
+              "methods": [
+                "GetKeyEvent"
+              ]
+            },
             "GetMeasurementProtocolSecret": {
               "methods": [
                 "GetMeasurementProtocolSecret"
@@ -1093,6 +1208,16 @@
             "GetProperty": {
               "methods": [
                 "GetProperty"
+              ]
+            },
+            "GetReportingDataAnnotation": {
+              "methods": [
+                "GetReportingDataAnnotation"
+              ]
+            },
+            "GetReportingIdentitySettings": {
+              "methods": [
+                "GetReportingIdentitySettings"
               ]
             },
             "GetRollupPropertySourceLink": {
@@ -1113,6 +1238,11 @@
             "GetSubpropertyEventFilter": {
               "methods": [
                 "GetSubpropertyEventFilter"
+              ]
+            },
+            "GetSubpropertySyncConfig": {
+              "methods": [
+                "GetSubpropertySyncConfig"
               ]
             },
             "ListAccessBindings": {
@@ -1155,11 +1285,6 @@
                 "ListChannelGroups"
               ]
             },
-            "ListConnectedSiteTags": {
-              "methods": [
-                "ListConnectedSiteTags"
-              ]
-            },
             "ListConversionEvents": {
               "methods": [
                 "ListConversionEvents"
@@ -1195,6 +1320,11 @@
                 "ListEventCreateRules"
               ]
             },
+            "ListEventEditRules": {
+              "methods": [
+                "ListEventEditRules"
+              ]
+            },
             "ListExpandedDataSets": {
               "methods": [
                 "ListExpandedDataSets"
@@ -1210,6 +1340,11 @@
                 "ListGoogleAdsLinks"
               ]
             },
+            "ListKeyEvents": {
+              "methods": [
+                "ListKeyEvents"
+              ]
+            },
             "ListMeasurementProtocolSecrets": {
               "methods": [
                 "ListMeasurementProtocolSecrets"
@@ -1218,6 +1353,11 @@
             "ListProperties": {
               "methods": [
                 "ListProperties"
+              ]
+            },
+            "ListReportingDataAnnotations": {
+              "methods": [
+                "ListReportingDataAnnotations"
               ]
             },
             "ListRollupPropertySourceLinks": {
@@ -1240,9 +1380,24 @@
                 "ListSubpropertyEventFilters"
               ]
             },
+            "ListSubpropertySyncConfigs": {
+              "methods": [
+                "ListSubpropertySyncConfigs"
+              ]
+            },
             "ProvisionAccountTicket": {
               "methods": [
                 "ProvisionAccountTicket"
+              ]
+            },
+            "ProvisionSubproperty": {
+              "methods": [
+                "ProvisionSubproperty"
+              ]
+            },
+            "ReorderEventEditRules": {
+              "methods": [
+                "ReorderEventEditRules"
               ]
             },
             "RunAccessReport": {
@@ -1255,9 +1410,9 @@
                 "SearchChangeHistoryEvents"
               ]
             },
-            "SetAutomatedGa4ConfigurationOptOut": {
+            "SubmitUserDeletion": {
               "methods": [
-                "SetAutomatedGa4ConfigurationOptOut"
+                "SubmitUserDeletion"
               ]
             },
             "UpdateAccessBinding": {
@@ -1278,6 +1433,11 @@
             "UpdateAudience": {
               "methods": [
                 "UpdateAudience"
+              ]
+            },
+            "UpdateBigQueryLink": {
+              "methods": [
+                "UpdateBigQueryLink"
               ]
             },
             "UpdateCalculatedMetric": {
@@ -1335,6 +1495,11 @@
                 "UpdateEventCreateRule"
               ]
             },
+            "UpdateEventEditRule": {
+              "methods": [
+                "UpdateEventEditRule"
+              ]
+            },
             "UpdateExpandedDataSet": {
               "methods": [
                 "UpdateExpandedDataSet"
@@ -1350,6 +1515,11 @@
                 "UpdateGoogleSignalsSettings"
               ]
             },
+            "UpdateKeyEvent": {
+              "methods": [
+                "UpdateKeyEvent"
+              ]
+            },
             "UpdateMeasurementProtocolSecret": {
               "methods": [
                 "UpdateMeasurementProtocolSecret"
@@ -1358,6 +1528,11 @@
             "UpdateProperty": {
               "methods": [
                 "UpdateProperty"
+              ]
+            },
+            "UpdateReportingDataAnnotation": {
+              "methods": [
+                "UpdateReportingDataAnnotation"
               ]
             },
             "UpdateSKAdNetworkConversionValueSchema": {
@@ -1373,6 +1548,11 @@
             "UpdateSubpropertyEventFilter": {
               "methods": [
                 "UpdateSubpropertyEventFilter"
+              ]
+            },
+            "UpdateSubpropertySyncConfig": {
+              "methods": [
+                "UpdateSubpropertySyncConfig"
               ]
             }
           }

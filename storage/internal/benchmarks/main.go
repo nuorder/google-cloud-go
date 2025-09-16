@@ -29,10 +29,8 @@ import (
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	epb "github.com/cloudprober/cloudprober/probes/external/proto"
 	"github.com/cloudprober/cloudprober/probes/external/serverutils"
-	octrace "go.opencensus.io/trace"
 	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/bridge/opencensus"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -68,6 +66,7 @@ type benchmarkOptions struct {
 	numSamples int
 	numWorkers int
 	api        benchmarkAPI
+	integrity  benchmarkIC
 
 	objectSize    int64
 	minObjectSize int64
@@ -82,6 +81,9 @@ type benchmarkOptions struct {
 
 	minChunkSize int64
 	maxChunkSize int64
+
+	appendWrites  bool
+	gRPCBidiReads bool
 
 	forceGC      bool
 	connPoolSize int
@@ -132,6 +134,7 @@ func (b *benchmarkOptions) String() string {
 
 	stringifiedOpts := []string{
 		fmt.Sprintf("api:\t\t\t%s", b.api),
+		fmt.Sprintf("interity check:\t\t%v", b.integrity),
 		fmt.Sprintf("region:\t\t\t%s", b.region),
 		fmt.Sprintf("timeout:\t\t%s", b.timeout),
 		fmt.Sprintf("number of samples:\t%d", b.numSamples),
@@ -142,6 +145,8 @@ func (b *benchmarkOptions) String() string {
 		fmt.Sprintf("chunk size:\t\t%d - %d kib (library buffer for uploads)", b.minChunkSize/kib, b.maxChunkSize/kib),
 		fmt.Sprintf("range offset:\t\t%d - %d bytes ", b.minReadOffset, b.maxReadOffset),
 		fmt.Sprintf("range size:\t\t%d bytes (0 -> full object)", b.rangeSize),
+		fmt.Sprintf("append writes:\t\t%t", b.appendWrites),
+		fmt.Sprintf("gRPC bidi reads:\t%t", b.gRPCBidiReads),
 		fmt.Sprintf("connection pool size:\t%d (GRPC)", b.connPoolSize),
 		fmt.Sprintf("num workers:\t\t%d (max number of concurrent benchmark runs at a time)", b.numWorkers),
 		fmt.Sprintf("force garbage collection:%t", b.forceGC),
@@ -165,6 +170,7 @@ func parseFlags() {
 	flag.IntVar(&opts.numSamples, "samples", 8000, "number of samples to report")
 	flag.IntVar(&opts.numWorkers, "workers", 16, "number of concurrent workers")
 	flag.StringVar((*string)(&opts.api), "api", string(mixedAPIs), "api used to upload/download objects; JSON or XML values will use JSON to uplaod and XML to download")
+	flag.StringVar((*string)(&opts.integrity), "integrity", string(randomIC), "integrity check performed on uploads; crc32c, md5, none, or random (default) to randomly choose which to check on each upload")
 
 	objectRange := flag.String("object_size", fmt.Sprint(1024*kib), "object size in bytes")
 
@@ -183,6 +189,9 @@ func parseFlags() {
 
 	flag.Int64Var(&opts.minChunkSize, "min_chunksize", useDefault, "min chunksize in bytes")
 	flag.Int64Var(&opts.maxChunkSize, "max_chunksize", useDefault, "max chunksize in bytes")
+
+	flag.BoolVar(&opts.appendWrites, "append_writes", false, "use the append writer")
+	flag.BoolVar(&opts.gRPCBidiReads, "grpc_bidi_reads", false, "use BidiReadObject for gRPC reads")
 
 	flag.IntVar(&opts.connPoolSize, "connection_pool_size", 4, "GRPC connection pool size")
 
@@ -224,6 +233,16 @@ func parseFlags() {
 		opts.objectSize, err = strconv.ParseInt(min, 10, 64)
 		if err != nil {
 			log.Fatalln("Could not parse object size")
+		}
+	}
+
+	if opts.api != grpcAPI && opts.api != directPath {
+		if opts.appendWrites {
+			log.Fatalf("--append_writes requires GRPC or DirectPath; got %v", opts.api)
+		}
+
+		if opts.gRPCBidiReads {
+			log.Fatalf("--grpc_bidi_reads requires GRPC or DirectPath; got %v", opts.api)
 		}
 	}
 }
@@ -331,6 +350,15 @@ const (
 	directPath benchmarkAPI = "DirectPath"
 )
 
+type benchmarkIC string
+
+const (
+	crc32cIC benchmarkIC = "crc32c"
+	md5IC    benchmarkIC = "md5"
+	noneIC   benchmarkIC = "none"
+	randomIC benchmarkIC = "random"
+)
+
 func (api benchmarkAPI) validate() error {
 	switch api {
 	case jsonAPI, grpcAPI, xmlAPI, directPath, mixedAPIs:
@@ -398,11 +426,6 @@ func enableTracing(ctx context.Context, sampleRate float64) func() {
 	)
 
 	otel.SetTracerProvider(tp)
-
-	// Use opencensus bridge to pick up OC traces from the storage library.
-	// TODO: remove this when migration to OpenTelemetry is complete.
-	tracer := otel.GetTracerProvider().Tracer(tracerName)
-	octrace.DefaultTracer = opencensus.NewTracer(tracer)
 
 	return func() {
 		tp.ForceFlush(ctx)

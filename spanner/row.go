@@ -17,12 +17,14 @@ limitations under the License.
 package spanner
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	proto3 "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc/codes"
+	proto3 "google.golang.org/protobuf/types/known/structpb"
 )
 
 // A Row is a view of a row of data returned by a Cloud Spanner read.
@@ -56,6 +58,8 @@ import (
 //	*[]int64, *[]NullInt64 - INT64 ARRAY
 //	*bool(not NULL), *NullBool - BOOL
 //	*[]bool, *[]NullBool - BOOL ARRAY
+//	*float32(not NULL), *NullFloat32 - FLOAT32
+//	*[]float32, *[]NullFloat32 - FLOAT32 ARRAY
 //	*float64(not NULL), *NullFloat64 - FLOAT64
 //	*[]float64, *[]NullFloat64 - FLOAT64 ARRAY
 //	*big.Rat(not NULL), *NullNumeric - NUMERIC
@@ -64,6 +68,8 @@ import (
 //	*[]time.Time, *[]NullTime - TIMESTAMP ARRAY
 //	*Date(not NULL), *NullDate - DATE
 //	*[]civil.Date, *[]NullDate - DATE ARRAY
+//	*uuid.UUID(not NULL), *NullUuid - UUID
+//	*[]uuid.UUID, *[]NullUuid - UUID Array
 //	*[]*some_go_struct, *[]NullRow - STRUCT ARRAY
 //	*NullJSON - JSON
 //	*[]NullJSON - JSON ARRAY
@@ -202,7 +208,7 @@ func errDecodeColumn(i int, err error) error {
 		return nil
 	}
 	var se *Error
-	if !errorAs(err, &se) {
+	if !errors.As(err, &se) {
 		return spannerErrorf(codes.InvalidArgument, "failed to decode column %v, error = <%v>", i, err)
 	}
 	se.decorate(fmt.Sprintf("failed to decode column %v", i))
@@ -414,10 +420,10 @@ func (r *Row) ToStructLenient(p interface{}) error {
 //	err := spanner.SelectAll(row, &singersByPtr, spanner.WithLenient())
 func SelectAll(rows rowIterator, destination interface{}, options ...DecodeOptions) error {
 	if rows == nil {
-		return fmt.Errorf("rows is nil")
+		return errors.New("rows is nil")
 	}
 	if destination == nil {
-		return fmt.Errorf("destination is nil")
+		return errors.New("destination is nil")
 	}
 	dstVal := reflect.ValueOf(destination)
 	if !dstVal.IsValid() || (dstVal.Kind() == reflect.Ptr && dstVal.IsNil()) {
@@ -458,13 +464,24 @@ func SelectAll(rows rowIterator, destination interface{}, options ...DecodeOptio
 	var err error
 	return rows.Do(func(row *Row) error {
 		sliceItem := reflect.New(itemType)
-		if isFirstRow && !isPrimitive {
-			defer func() {
-				isFirstRow = false
-			}()
-			if pointers, err = structPointers(sliceItem.Elem(), row.fields, s.Lenient); err != nil {
-				return err
+		if !isPrimitive {
+			if isFirstRow {
+				defer func() {
+					isFirstRow = false
+				}()
+				if pointers, err = structPointers(sliceItem.Elem(), row.fields, s.Lenient); err != nil {
+					return err
+				}
 			}
+			defer func() {
+				for _, ptr := range pointers {
+					v := reflect.ValueOf(ptr)
+					if v.IsValid() && !(v.IsNil() || v.IsZero()) {
+						e := v.Elem()
+						e.Set(reflect.Zero(e.Type()))
+					}
+				}
+			}()
 		} else if isPrimitive {
 			if len(row.fields) > 1 && !s.Lenient {
 				return errTooManyColumns()
@@ -480,11 +497,13 @@ func SelectAll(rows rowIterator, destination interface{}, options ...DecodeOptio
 		}
 		if !isPrimitive {
 			e := sliceItem.Elem()
-			for i, p := range pointers {
+			idx := 0
+			for _, p := range pointers {
 				if p == nil {
 					continue
 				}
-				e.Field(i).Set(reflect.ValueOf(p).Elem())
+				e.Field(idx).Set(reflect.ValueOf(p).Elem())
+				idx++
 			}
 		}
 		var elemVal reflect.Value
@@ -510,9 +529,13 @@ func structPointers(sliceItem reflect.Value, cols []*sppb.StructType_Field, leni
 	fieldTag := make(map[string]reflect.Value, len(cols))
 	initFieldTag(sliceItem, &fieldTag)
 
-	for _, colName := range cols {
+	for i, colName := range cols {
+		if colName.Name == "" {
+			return nil, errColNotFound(fmt.Sprintf("column %d", i))
+		}
+
 		var fieldVal reflect.Value
-		if v, ok := fieldTag[colName.GetName()]; ok {
+		if v, ok := fieldTag[strings.ToLower(colName.GetName())]; ok {
 			fieldVal = v
 		} else {
 			if !lenient {
@@ -548,9 +571,11 @@ func initFieldTag(sliceItem reflect.Value, fieldTagMap *map[string]reflect.Value
 		}
 		if fieldType.Type.Kind() == reflect.Struct {
 			// found an embedded struct
-			sliceItemOfAnonymous := sliceItem.Field(i)
-			initFieldTag(sliceItemOfAnonymous, fieldTagMap)
-			continue
+			if fieldType.Anonymous {
+				sliceItemOfAnonymous := sliceItem.Field(i)
+				initFieldTag(sliceItemOfAnonymous, fieldTagMap)
+				continue
+			}
 		}
 		name, keep, _, _ := spannerTagParser(fieldType.Tag)
 		if !keep {
@@ -559,6 +584,6 @@ func initFieldTag(sliceItem reflect.Value, fieldTagMap *map[string]reflect.Value
 		if name == "" {
 			name = fieldType.Name
 		}
-		(*fieldTagMap)[name] = sliceItem.Field(i)
+		(*fieldTagMap)[strings.ToLower(name)] = sliceItem.Field(i)
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,6 +91,36 @@ func ExampleBackupForGKEClient_CreateBackup() {
 	_ = resp
 }
 
+func ExampleBackupForGKEClient_CreateBackupChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.CreateBackupChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#CreateBackupChannelRequest.
+	}
+	op, err := c.CreateBackupChannel(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleBackupForGKEClient_CreateBackupPlan() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -139,6 +169,36 @@ func ExampleBackupForGKEClient_CreateRestore() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#CreateRestoreRequest.
 	}
 	op, err := c.CreateRestore(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_CreateRestoreChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.CreateRestoreChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#CreateRestoreChannelRequest.
+	}
+	op, err := c.CreateRestoreChannel(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -209,6 +269,34 @@ func ExampleBackupForGKEClient_DeleteBackup() {
 	}
 }
 
+func ExampleBackupForGKEClient_DeleteBackupChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.DeleteBackupChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#DeleteBackupChannelRequest.
+	}
+	op, err := c.DeleteBackupChannel(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	err = op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
 func ExampleBackupForGKEClient_DeleteBackupPlan() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -255,6 +343,34 @@ func ExampleBackupForGKEClient_DeleteRestore() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#DeleteRestoreRequest.
 	}
 	op, err := c.DeleteRestore(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	err = op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
+func ExampleBackupForGKEClient_DeleteRestoreChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.DeleteRestoreChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#DeleteRestoreChannelRequest.
+	}
+	op, err := c.DeleteRestoreChannel(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -318,6 +434,56 @@ func ExampleBackupForGKEClient_GetBackup() {
 	_ = resp
 }
 
+func ExampleBackupForGKEClient_GetBackupChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.GetBackupChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetBackupChannelRequest.
+	}
+	resp, err := c.GetBackupChannel(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_GetBackupIndexDownloadUrl() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.GetBackupIndexDownloadUrlRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetBackupIndexDownloadUrlRequest.
+	}
+	resp, err := c.GetBackupIndexDownloadUrl(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleBackupForGKEClient_GetBackupPlan() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -336,6 +502,31 @@ func ExampleBackupForGKEClient_GetBackupPlan() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetBackupPlanRequest.
 	}
 	resp, err := c.GetBackupPlan(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_GetBackupPlanBinding() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.GetBackupPlanBindingRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetBackupPlanBindingRequest.
+	}
+	resp, err := c.GetBackupPlanBinding(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -368,6 +559,31 @@ func ExampleBackupForGKEClient_GetRestore() {
 	_ = resp
 }
 
+func ExampleBackupForGKEClient_GetRestoreChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.GetRestoreChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetRestoreChannelRequest.
+	}
+	resp, err := c.GetRestoreChannel(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleBackupForGKEClient_GetRestorePlan() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -386,6 +602,31 @@ func ExampleBackupForGKEClient_GetRestorePlan() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetRestorePlanRequest.
 	}
 	resp, err := c.GetRestorePlan(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_GetRestorePlanBinding() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.GetRestorePlanBindingRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#GetRestorePlanBindingRequest.
+	}
+	resp, err := c.GetRestorePlanBinding(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -443,6 +684,80 @@ func ExampleBackupForGKEClient_GetVolumeRestore() {
 	_ = resp
 }
 
+func ExampleBackupForGKEClient_ListBackupChannels() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.ListBackupChannelsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#ListBackupChannelsRequest.
+	}
+	it := c.ListBackupChannels(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListBackupChannelsResponse)
+	}
+}
+
+func ExampleBackupForGKEClient_ListBackupPlanBindings() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.ListBackupPlanBindingsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#ListBackupPlanBindingsRequest.
+	}
+	it := c.ListBackupPlanBindings(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListBackupPlanBindingsResponse)
+	}
+}
+
 func ExampleBackupForGKEClient_ListBackupPlans() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -471,6 +786,12 @@ func ExampleBackupForGKEClient_ListBackupPlans() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListBackupPlansResponse)
 	}
 }
 
@@ -502,6 +823,86 @@ func ExampleBackupForGKEClient_ListBackups() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListBackupsResponse)
+	}
+}
+
+func ExampleBackupForGKEClient_ListRestoreChannels() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.ListRestoreChannelsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#ListRestoreChannelsRequest.
+	}
+	it := c.ListRestoreChannels(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListRestoreChannelsResponse)
+	}
+}
+
+func ExampleBackupForGKEClient_ListRestorePlanBindings() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.ListRestorePlanBindingsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#ListRestorePlanBindingsRequest.
+	}
+	it := c.ListRestorePlanBindings(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListRestorePlanBindingsResponse)
 	}
 }
 
@@ -533,6 +934,12 @@ func ExampleBackupForGKEClient_ListRestorePlans() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListRestorePlansResponse)
 	}
 }
 
@@ -564,6 +971,12 @@ func ExampleBackupForGKEClient_ListRestores() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListRestoresResponse)
 	}
 }
 
@@ -595,6 +1008,12 @@ func ExampleBackupForGKEClient_ListVolumeBackups() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListVolumeBackupsResponse)
 	}
 }
 
@@ -626,6 +1045,12 @@ func ExampleBackupForGKEClient_ListVolumeRestores() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*gkebackuppb.ListVolumeRestoresResponse)
 	}
 }
 
@@ -647,6 +1072,36 @@ func ExampleBackupForGKEClient_UpdateBackup() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#UpdateBackupRequest.
 	}
 	op, err := c.UpdateBackup(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_UpdateBackupChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.UpdateBackupChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#UpdateBackupChannelRequest.
+	}
+	op, err := c.UpdateBackupChannel(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -707,6 +1162,36 @@ func ExampleBackupForGKEClient_UpdateRestore() {
 		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#UpdateRestoreRequest.
 	}
 	op, err := c.UpdateRestore(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleBackupForGKEClient_UpdateRestoreChannel() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := gkebackup.NewBackupForGKEClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &gkebackuppb.UpdateRestoreChannelRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/gkebackup/apiv1/gkebackuppb#UpdateRestoreChannelRequest.
+	}
+	op, err := c.UpdateRestoreChannel(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -802,6 +1287,12 @@ func ExampleBackupForGKEClient_ListLocations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*locationpb.ListLocationsResponse)
 	}
 }
 
@@ -979,5 +1470,11 @@ func ExampleBackupForGKEClient_ListOperations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*longrunningpb.ListOperationsResponse)
 	}
 }

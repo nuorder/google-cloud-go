@@ -57,6 +57,7 @@ func init() {
 	flag.StringVar(&c.Project2, "it.project2", "", "Optional secondary project to use for copy backup integration test")
 	flag.StringVar(&c.Instance, "it.instance", "", "Bigtable instance to use")
 	flag.StringVar(&c.Cluster, "it.cluster", "", "Bigtable cluster to use")
+	flag.StringVar(&c.Cluster2, "it.cluster2", "", "Optional Bigtable secondary cluster in primary project to use for copy backup integration test")
 	flag.StringVar(&c.Table, "it.table", "", "Bigtable table to create")
 	flag.BoolVar(&c.AttemptDirectPath, "it.attempt-directpath", false, "Attempt DirectPath")
 	flag.BoolVar(&c.DirectPathIPV4Only, "it.directpath-ipv4-only", false, "Run DirectPath on a ipv4-only VM")
@@ -80,16 +81,19 @@ func init() {
 
 // IntegrationTestConfig contains parameters to pick and setup a IntegrationEnv for testing
 type IntegrationTestConfig struct {
-	UseProd            bool
-	AdminEndpoint      string
-	DataEndpoint       string
-	Project            string
-	Project2           string
-	Instance           string
-	Cluster            string
-	Table              string
-	AttemptDirectPath  bool
-	DirectPathIPV4Only bool
+	UseProd               bool
+	AdminEndpoint         string
+	DataEndpoint          string
+	Project               string
+	Project2              string
+	Instance              string
+	Cluster               string
+	Cluster2              string
+	Table                 string
+	ClientOpts            []option.ClientOption
+	AttemptDirectPath     bool
+	DirectPathIPV4Only    bool
+	EmulatedServerOptions []grpc.ServerOption
 }
 
 // IntegrationEnv represents a testing environment.
@@ -101,6 +105,7 @@ type IntegrationEnv interface {
 	// NewInstanceAdminClient will return nil if instance administration is unsupported in this environment
 	NewInstanceAdminClient() (*InstanceAdminClient, error)
 	NewClient() (*Client, error)
+	NewClientWithConfig(ClientConfig) (*Client, error)
 	Close()
 	Peer() *peer.Peer
 }
@@ -122,6 +127,11 @@ func NewIntegrationEnv() (IntegrationEnv, error) {
 	if c.Cluster == "" {
 		c.Cluster = os.Getenv("GCLOUD_TESTS_BIGTABLE_CLUSTER")
 	}
+	if c.Cluster2 == "" {
+		c.Cluster2 = os.Getenv("GCLOUD_TESTS_BIGTABLE_PRI_PROJ_SEC_CLUSTER")
+	}
+	universeDomain := os.Getenv("GCLOUD_TESTS_BIGTABLE_UNIVERSE_DOMAIN")
+	c.ClientOpts = append(c.ClientOpts, option.WithUniverseDomain(universeDomain))
 
 	if legacyUseProd != "" {
 		fmt.Println("WARNING: using legacy commandline arg -use_prod, please switch to -it.*")
@@ -154,7 +164,9 @@ type EmulatedEnv struct {
 
 // NewEmulatedEnv builds and starts the emulator based environment
 func NewEmulatedEnv(config IntegrationTestConfig) (*EmulatedEnv, error) {
-	srv, err := bttest.NewServer("localhost:0", grpc.MaxRecvMsgSize(200<<20), grpc.MaxSendMsgSize(100<<20))
+	serverOptions := []grpc.ServerOption{grpc.MaxRecvMsgSize(200 << 20), grpc.MaxSendMsgSize(100 << 20)}
+	serverOptions = append(serverOptions, config.EmulatedServerOptions...)
+	srv, err := bttest.NewServer("localhost:0", serverOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +220,8 @@ func (e *EmulatedEnv) AdminClientOptions() (context.Context, []option.ClientOpti
 		headersInterceptor.UnaryInterceptors())...)
 
 	timeout := 20 * time.Second
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	_ = cancel // ignore for test
 
 	o = append(o, option.WithGRPCDialOption(grpc.WithBlock()))
 	conn, err := gtransport.DialInsecure(ctx, o...)
@@ -234,6 +247,15 @@ func (e *EmulatedEnv) NewInstanceAdminClient() (*InstanceAdminClient, error) {
 
 // NewClient builds a new connected data client for this environment
 func (e *EmulatedEnv) NewClient() (*Client, error) {
+	return e.newEmulatedClient(ClientConfig{MetricsProvider: NoopMetricsProvider{}})
+}
+
+// NewClient builds a new connected data client with provided config for this environment
+func (e *EmulatedEnv) NewClientWithConfig(config ClientConfig) (*Client, error) {
+	return e.newEmulatedClient(config)
+}
+
+func (e *EmulatedEnv) newEmulatedClient(config ClientConfig) (*Client, error) {
 	o, err := btopt.DefaultClientOptions(e.server.Addr, e.server.Addr, Scope, clientUserAgent)
 	if err != nil {
 		return nil, err
@@ -247,7 +269,8 @@ func (e *EmulatedEnv) NewClient() (*Client, error) {
 		headersInterceptor.UnaryInterceptors())...)
 
 	timeout := 20 * time.Second
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	_ = cancel // ignore for test
 
 	o = append(o, option.WithGRPCDialOption(grpc.WithBlock()))
 	o = append(o, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
@@ -256,7 +279,7 @@ func (e *EmulatedEnv) NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(ctx, e.config.Project, e.config.Instance, option.WithGRPCConn(conn))
+	return NewClientWithConfig(ctx, e.config.Project, e.config.Instance, config, option.WithGRPCConn(conn))
 }
 
 // ProdEnv encapsulates the state necessary to connect to the external Bigtable service
@@ -304,6 +327,7 @@ func (e *ProdEnv) AdminClientOptions() (context.Context, []option.ClientOption, 
 	if endpoint := e.config.AdminEndpoint; endpoint != "" {
 		clientOpts = append(clientOpts, option.WithEndpoint(endpoint))
 	}
+	clientOpts = append(clientOpts, e.config.ClientOpts...)
 	return context.Background(), clientOpts, nil
 }
 
@@ -327,6 +351,15 @@ func (e *ProdEnv) NewInstanceAdminClient() (*InstanceAdminClient, error) {
 
 // NewClient builds a connected data client for this environment
 func (e *ProdEnv) NewClient() (*Client, error) {
+	return e.newProdClient(ClientConfig{})
+}
+
+// NewClientWithConfig builds a connected data client with provided config for this environment
+func (e *ProdEnv) NewClientWithConfig(config ClientConfig) (*Client, error) {
+	return e.newProdClient(config)
+}
+
+func (e *ProdEnv) newProdClient(config ClientConfig) (*Client, error) {
 	clientOpts := headersInterceptor.CallOptions()
 	if endpoint := e.config.DataEndpoint; endpoint != "" {
 		clientOpts = append(clientOpts, option.WithEndpoint(endpoint))
@@ -336,6 +369,6 @@ func (e *ProdEnv) NewClient() (*Client, error) {
 		// For DirectPath tests, we need to add an interceptor to check the peer IP.
 		clientOpts = append(clientOpts, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.Peer(e.peerInfo))))
 	}
-
-	return NewClient(context.Background(), e.config.Project, e.config.Instance, clientOpts...)
+	clientOpts = append(clientOpts, e.config.ClientOpts...)
+	return NewClientWithConfig(context.Background(), e.config.Project, e.config.Instance, config, clientOpts...)
 }

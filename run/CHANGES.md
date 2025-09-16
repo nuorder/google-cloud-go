@@ -1,6 +1,220 @@
 # Changelog
 
 
+## [1.12.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.11.0...run/v1.12.0) (2025-08-12)
+
+
+### Features
+
+* **run:** Adding new resource tpye run.googleapis.com/WorkerPool. ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+
+
+### Bug Fixes
+
+* **run:** A type of an existing resource_reference option of the field `worker_pool` in message `.google.cloud.run.v2.BuildConfig` is changed from `cloudbuild.googleapis.com/WorkerPool` to `cloudbuild.googleapis.com/BuildWorkerPool` ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+* **run:** A type of an existing resource_reference option of the field `worker_pool` in message `.google.cloud.run.v2.SubmitBuildRequest` is changed from `cloudbuild.googleapis.com/WorkerPool` to `cloudbuild.googleapis.com/BuildWorkerPool` ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+* **run:** An existing resource_definition `cloudbuild.googleapis.com/WorkerPool` is removed ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+
+## [1.11.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.10.1...run/v1.11.0) (2025-07-16)
+
+
+### Features
+
+* **run:** Add new field `term_signal` to `.google.cloud.run.v2.TaskAttemptResult` ([f3c3c1a](https://github.com/googleapis/google-cloud-go/commit/f3c3c1ace2e36aa5e5c4c73e39a42cf3fbe2dbcb))
+* **run:** Support GPU zonal redundancy setting for Cloud Run jobs ([f3c3c1a](https://github.com/googleapis/google-cloud-go/commit/f3c3c1ace2e36aa5e5c4c73e39a42cf3fbe2dbcb))
+
+## [1.10.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.10.0...run/v1.10.1) (2025-06-04)
+
+
+### Bug Fixes
+
+* **run:** Manually fix default endpoints in frozen locations_client.go ([#12399](https://github.com/googleapis/google-cloud-go/issues/12399)) ([c2af696](https://github.com/googleapis/google-cloud-go/commit/c2af696abbdf356fdc76df557204ce54cd7a036e)), refs [#12389](https://github.com/googleapis/google-cloud-go/issues/12389)
+
+## [1.10.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.9.3...run/v1.10.0) (2025-05-21)
+
+
+### Features
+
+* **run:** Support GPU zonal redundancy setting in Cloud Run services ([2aaada3](https://github.com/googleapis/google-cloud-go/commit/2aaada3fb7a9d3eaacec3351019e225c4038646b))
+* **run:** Support node selector in Cloud Run jobs for GPU setting ([2aaada3](https://github.com/googleapis/google-cloud-go/commit/2aaada3fb7a9d3eaacec3351019e225c4038646b))
+
+## [1.9.3](https://github.com/googleapis/google-cloud-go/compare/run/v1.9.2...run/v1.9.3) (2025-04-15)
+
+
+### Bug Fixes
+
+* **run:** Update google.golang.org/api to 0.229.0 ([3319672](https://github.com/googleapis/google-cloud-go/commit/3319672f3dba84a7150772ccb5433e02dab7e201))
+
+## [1.9.2](https://github.com/googleapis/google-cloud-go/compare/run/v1.9.1...run/v1.9.2) (2025-03-13)
+
+
+### Bug Fixes
+
+* **run:** Update golang.org/x/net to 0.37.0 ([1144978](https://github.com/googleapis/google-cloud-go/commit/11449782c7fb4896bf8b8b9cde8e7441c84fb2fd))
+
+## [1.9.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.9.0...run/v1.9.1) (2025-03-06)
+
+
+### Bug Fixes
+
+* **run:** Fix out-of-sync version.go ([28f0030](https://github.com/googleapis/google-cloud-go/commit/28f00304ebb13abfd0da2f45b9b79de093cca1ec))
+
+## [1.9.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.8.1...run/v1.9.0) (2025-02-05)
+
+
+### Features
+
+* **run:** Add Base Image URI to Container ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+* **run:** Add BuildConfig to Services for configuring Run functions ([#11559](https://github.com/googleapis/google-cloud-go/issues/11559)) ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+* **run:** Add BuildInfo to Revision for displaying BuildConfig used for a specific revision deployment ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+* **run:** Add creator field to Execution ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+* **run:** Add project_descriptor to BuildspackBuild ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+
+
+### Documentation
+
+* **run:** Some typos were fixed and formatting changed ([72046f5](https://github.com/googleapis/google-cloud-go/commit/72046f59d15f19aa901cd43de23b42ded1860745))
+
+## [1.8.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.8.0...run/v1.8.1) (2025-01-02)
+
+
+### Bug Fixes
+
+* **run:** Update golang.org/x/net to v0.33.0 ([e9b0b69](https://github.com/googleapis/google-cloud-go/commit/e9b0b69644ea5b276cacff0a707e8a5e87efafc9))
+
+## [1.8.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.7.0...run/v1.8.0) (2024-11-19)
+
+
+### Features
+
+* **run:** Support manual instance count in Cloud Run for manual scaling feature ([c1e936d](https://github.com/googleapis/google-cloud-go/commit/c1e936df6527933f5e7c31be0f95aa46ff2c0e61))
+
+## [1.7.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.6.1...run/v1.7.0) (2024-11-14)
+
+
+### Features
+
+* **run:** Add EncryptionKeyRevocationAction and shutdown duration configuration to Services ([f329c4c](https://github.com/googleapis/google-cloud-go/commit/f329c4c7782fc5f52751235d969bb8de11616ec3))
+
+
+### Documentation
+
+* **run:** Fixed formatting of some documentation ([f329c4c](https://github.com/googleapis/google-cloud-go/commit/f329c4c7782fc5f52751235d969bb8de11616ec3))
+
+## [1.6.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.6.0...run/v1.6.1) (2024-10-23)
+
+
+### Bug Fixes
+
+* **run:** Update google.golang.org/api to v0.203.0 ([8bb87d5](https://github.com/googleapis/google-cloud-go/commit/8bb87d56af1cba736e0fe243979723e747e5e11e))
+* **run:** WARNING: On approximately Dec 1, 2024, an update to Protobuf will change service registration function signatures to use an interface instead of a concrete type in generated .pb.go files. This change is expected to affect very few if any users of this client library. For more information, see https://togithub.com/googleapis/google-cloud-go/issues/11020. ([2b8ca4b](https://github.com/googleapis/google-cloud-go/commit/2b8ca4b4127ce3025c7a21cc7247510e07cc5625))
+
+## [1.6.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.5.1...run/v1.6.0) (2024-10-09)
+
+
+### Features
+
+* **run:** Add Builds API ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+* **run:** Add GPU configuration to Services ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+* **run:** Add INGRESS_TRAFFIC_NONE to Services ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+* **run:** Add Service Mesh configuration to Services ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+* **run:** Add ServiceScaling to Services ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+
+
+### Documentation
+
+* **run:** Fixed formatting of some documentation ([78d8513](https://github.com/googleapis/google-cloud-go/commit/78d8513f7e31c6ef118bdfc784049b8c7f1e3249))
+
+## [1.5.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.5.0...run/v1.5.1) (2024-09-12)
+
+
+### Bug Fixes
+
+* **run:** Bump dependencies ([2ddeb15](https://github.com/googleapis/google-cloud-go/commit/2ddeb1544a53188a7592046b98913982f1b0cf04))
+
+## [1.5.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.4.1...run/v1.5.0) (2024-08-20)
+
+
+### Features
+
+* **run:** Add support for Go 1.23 iterators ([84461c0](https://github.com/googleapis/google-cloud-go/commit/84461c0ba464ec2f951987ba60030e37c8a8fc18))
+
+## [1.4.1](https://github.com/googleapis/google-cloud-go/compare/run/v1.4.0...run/v1.4.1) (2024-08-08)
+
+
+### Bug Fixes
+
+* **run:** Update google.golang.org/api to v0.191.0 ([5b32644](https://github.com/googleapis/google-cloud-go/commit/5b32644eb82eb6bd6021f80b4fad471c60fb9d73))
+
+## [1.4.0](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.10...run/v1.4.0) (2024-07-24)
+
+
+### Features
+
+* **run:** Add Job ExecutionReference.completion_status to show status of the most recent execution ([eb63f0d](https://github.com/googleapis/google-cloud-go/commit/eb63f0d4f42a06581e1425f99c2a03d52d6cb404))
+* **run:** Add Job start_execution_token and run_execution_token to execute jobs immediately on creation ([eb63f0d](https://github.com/googleapis/google-cloud-go/commit/eb63f0d4f42a06581e1425f99c2a03d52d6cb404))
+* **run:** Support update_mask in Cloud Run UpdateService ([eb63f0d](https://github.com/googleapis/google-cloud-go/commit/eb63f0d4f42a06581e1425f99c2a03d52d6cb404))
+
+
+### Bug Fixes
+
+* **run:** Update dependencies ([257c40b](https://github.com/googleapis/google-cloud-go/commit/257c40bd6d7e59730017cf32bda8823d7a232758))
+
+
+### Documentation
+
+* **run:** Clarify optional fields in Cloud Run requests ([eb63f0d](https://github.com/googleapis/google-cloud-go/commit/eb63f0d4f42a06581e1425f99c2a03d52d6cb404))
+
+## [1.3.10](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.9...run/v1.3.10) (2024-07-10)
+
+
+### Bug Fixes
+
+* **run:** Bump google.golang.org/grpc@v1.64.1 ([8ecc4e9](https://github.com/googleapis/google-cloud-go/commit/8ecc4e9622e5bbe9b90384d5848ab816027226c5))
+
+## [1.3.9](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.8...run/v1.3.9) (2024-07-01)
+
+
+### Bug Fixes
+
+* **run:** Bump google.golang.org/api@v0.187.0 ([8fa9e39](https://github.com/googleapis/google-cloud-go/commit/8fa9e398e512fd8533fd49060371e61b5725a85b))
+
+## [1.3.8](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.7...run/v1.3.8) (2024-06-26)
+
+
+### Bug Fixes
+
+* **run:** Enable new auth lib ([b95805f](https://github.com/googleapis/google-cloud-go/commit/b95805f4c87d3e8d10ea23bd7a2d68d7a4157568))
+
+## [1.3.7](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.6...run/v1.3.7) (2024-05-01)
+
+
+### Bug Fixes
+
+* **run:** Add internaloption.WithDefaultEndpointTemplate ([3b41408](https://github.com/googleapis/google-cloud-go/commit/3b414084450a5764a0248756e95e13383a645f90))
+* **run:** Bump x/net to v0.24.0 ([ba31ed5](https://github.com/googleapis/google-cloud-go/commit/ba31ed5fda2c9664f2e1cf972469295e63deb5b4))
+
+## [1.3.6](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.5...run/v1.3.6) (2024-03-14)
+
+
+### Bug Fixes
+
+* **run:** Update protobuf dep to v1.33.0 ([30b038d](https://github.com/googleapis/google-cloud-go/commit/30b038d8cac0b8cd5dd4761c87f3f298760dd33a))
+
+## [1.3.5](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.4...run/v1.3.5) (2024-03-07)
+
+
+### Documentation
+
+* **run:** Clarify some defaults and required or optional values ([#9505](https://github.com/googleapis/google-cloud-go/issues/9505)) ([1cf28f6](https://github.com/googleapis/google-cloud-go/commit/1cf28f61b26d52a9e2303c52e9aba7a0cdfbe7eb))
+
+## [1.3.4](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.3...run/v1.3.4) (2024-01-30)
+
+
+### Bug Fixes
+
+* **run:** Enable universe domain resolution options ([fd1d569](https://github.com/googleapis/google-cloud-go/commit/fd1d56930fa8a747be35a224611f4797b8aeb698))
+
 ## [1.3.3](https://github.com/googleapis/google-cloud-go/compare/run/v1.3.2...run/v1.3.3) (2023-11-01)
 
 
@@ -170,4 +384,3 @@
 ### Features
 
 * **run:** start generating apiv2 ([#5825](https://github.com/googleapis/google-cloud-go/issues/5825)) ([2602a20](https://github.com/googleapis/google-cloud-go/commit/2602a20ca8eba1ba2b1e59bb27a7b44132d63032))
-

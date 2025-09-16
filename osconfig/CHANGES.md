@@ -1,5 +1,150 @@
 # Changes
 
+
+## [1.15.0](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.6...osconfig/v1.15.0) (2025-08-12)
+
+
+### Features
+
+* **osconfig:** Add highest_upgradable_cve_severity field to Vulnerability report ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+
+
+### Documentation
+
+* **osconfig:** A comment for field `filter` in message `.google.cloud.osconfig.v1.ListVulnerabilityReportsRequest` is changed ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+* **osconfig:** A comment for field `update_time` in message `.google.cloud.osconfig.v1.VulnerabilityReport` is changed ([53f9781](https://github.com/googleapis/google-cloud-go/commit/53f97813d99aeaaf45108c642a2d94f598d1bb6b))
+
+## [1.14.6](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.5...osconfig/v1.14.6) (2025-05-06)
+
+
+### Bug Fixes
+
+* **osconfig:** Upgrade gRPC service registration func ([7c01015](https://github.com/googleapis/google-cloud-go/commit/7c01015f2aafb5eeb0237accced76b059bc7635d))
+
+## [1.14.5](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.4...osconfig/v1.14.5) (2025-04-15)
+
+
+### Bug Fixes
+
+* **osconfig:** Update google.golang.org/api to 0.229.0 ([3319672](https://github.com/googleapis/google-cloud-go/commit/3319672f3dba84a7150772ccb5433e02dab7e201))
+
+## [1.14.4](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.3...osconfig/v1.14.4) (2025-03-13)
+
+
+### Bug Fixes
+
+* **osconfig:** Update golang.org/x/net to 0.37.0 ([1144978](https://github.com/googleapis/google-cloud-go/commit/11449782c7fb4896bf8b8b9cde8e7441c84fb2fd))
+
+## [1.14.3](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.2...osconfig/v1.14.3) (2025-01-02)
+
+
+### Bug Fixes
+
+* **osconfig:** Update golang.org/x/net to v0.33.0 ([e9b0b69](https://github.com/googleapis/google-cloud-go/commit/e9b0b69644ea5b276cacff0a707e8a5e87efafc9))
+
+## [1.14.2](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.1...osconfig/v1.14.2) (2024-10-23)
+
+
+### Bug Fixes
+
+* **osconfig:** Update google.golang.org/api to v0.203.0 ([8bb87d5](https://github.com/googleapis/google-cloud-go/commit/8bb87d56af1cba736e0fe243979723e747e5e11e))
+* **osconfig:** WARNING: On approximately Dec 1, 2024, an update to Protobuf will change service registration function signatures to use an interface instead of a concrete type in generated .pb.go files. This change is expected to affect very few if any users of this client library. For more information, see https://togithub.com/googleapis/google-cloud-go/issues/11020. ([8bb87d5](https://github.com/googleapis/google-cloud-go/commit/8bb87d56af1cba736e0fe243979723e747e5e11e))
+
+## [1.14.1](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.14.0...osconfig/v1.14.1) (2024-09-12)
+
+
+### Bug Fixes
+
+* **osconfig:** Bump dependencies ([2ddeb15](https://github.com/googleapis/google-cloud-go/commit/2ddeb1544a53188a7592046b98913982f1b0cf04))
+
+## [1.14.0](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.13.3...osconfig/v1.14.0) (2024-08-20)
+
+
+### Features
+
+* **osconfig:** Add support for Go 1.23 iterators ([84461c0](https://github.com/googleapis/google-cloud-go/commit/84461c0ba464ec2f951987ba60030e37c8a8fc18))
+
+## [1.13.3](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.13.2...osconfig/v1.13.3) (2024-08-08)
+
+
+### Bug Fixes
+
+* **osconfig:** Update google.golang.org/api to v0.191.0 ([5b32644](https://github.com/googleapis/google-cloud-go/commit/5b32644eb82eb6bd6021f80b4fad471c60fb9d73))
+
+## [1.13.2](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.13.1...osconfig/v1.13.2) (2024-07-24)
+
+
+### Bug Fixes
+
+* **osconfig:** Update dependencies ([257c40b](https://github.com/googleapis/google-cloud-go/commit/257c40bd6d7e59730017cf32bda8823d7a232758))
+
+## [1.13.1](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.13.0...osconfig/v1.13.1) (2024-07-10)
+
+
+### Bug Fixes
+
+* **osconfig:** Bump google.golang.org/grpc@v1.64.1 ([8ecc4e9](https://github.com/googleapis/google-cloud-go/commit/8ecc4e9622e5bbe9b90384d5848ab816027226c5))
+
+## [1.13.0](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.8...osconfig/v1.13.0) (2024-07-01)
+
+
+### Features
+
+* **osconfig/agentendpoint:** Add data about source of the package to VersionedPackage ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+
+
+### Bug Fixes
+
+* **osconfig:** Bump google.golang.org/api@v0.187.0 ([8fa9e39](https://github.com/googleapis/google-cloud-go/commit/8fa9e398e512fd8533fd49060371e61b5725a85b))
+
+
+### Documentation
+
+* **osconfig/agentendpoint:** A comment for enum `Interpreter` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for enum value `INTERPRETER_UNSPECIFIED` in enum `Interpreter` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for enum value `NONE` in enum `Interpreter` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for enum value `POWERSHELL` in enum `Interpreter` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for enum value `SHELL` in enum `Interpreter` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `archive_type` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `components` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `desired_state` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `exit_code` in message `.google.cloud.osconfig.agentendpoint.v1.ExecStepTaskOutput` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `id` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `id` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `inventory_checksum` in message `.google.cloud.osconfig.agentendpoint.v1.ReportInventoryRequest` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `inventory` in message `.google.cloud.osconfig.agentendpoint.v1.ReportInventoryRequest` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `task_type` in message `.google.cloud.osconfig.agentendpoint.v1.ReportTaskProgressRequest` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `uri` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+* **osconfig/agentendpoint:** A comment for field `validate` in message `.google.cloud.osconfig.agentendpoint.v1.OSPolicy` is changed ([6a9c12a](https://github.com/googleapis/google-cloud-go/commit/6a9c12a395245d8500c267437c2dfa897049a719))
+
+## [1.12.8](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.7...osconfig/v1.12.8) (2024-06-26)
+
+
+### Bug Fixes
+
+* **osconfig:** Enable new auth lib ([b95805f](https://github.com/googleapis/google-cloud-go/commit/b95805f4c87d3e8d10ea23bd7a2d68d7a4157568))
+
+## [1.12.7](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.6...osconfig/v1.12.7) (2024-05-01)
+
+
+### Bug Fixes
+
+* **osconfig:** Bump x/net to v0.24.0 ([ba31ed5](https://github.com/googleapis/google-cloud-go/commit/ba31ed5fda2c9664f2e1cf972469295e63deb5b4))
+
+## [1.12.6](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.5...osconfig/v1.12.6) (2024-03-14)
+
+
+### Bug Fixes
+
+* **osconfig:** Update protobuf dep to v1.33.0 ([30b038d](https://github.com/googleapis/google-cloud-go/commit/30b038d8cac0b8cd5dd4761c87f3f298760dd33a))
+
+## [1.12.5](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.4...osconfig/v1.12.5) (2024-01-30)
+
+
+### Bug Fixes
+
+* **osconfig:** Enable universe domain resolution options ([fd1d569](https://github.com/googleapis/google-cloud-go/commit/fd1d56930fa8a747be35a224611f4797b8aeb698))
+
 ## [1.12.4](https://github.com/googleapis/google-cloud-go/compare/osconfig/v1.12.3...osconfig/v1.12.4) (2023-11-01)
 
 
@@ -144,4 +289,3 @@ Stabilize GA surface.
 
 This is the first tag to carve out osconfig as its own module. See
 [Add a module to a multi-module repository](https://github.com/golang/go/wiki/Modules#is-it-possible-to-add-a-module-to-a-multi-module-repository).
-

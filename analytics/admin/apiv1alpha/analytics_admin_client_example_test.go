@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -375,6 +375,31 @@ func ExampleAnalyticsAdminClient_CreateAudience() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_CreateBigQueryLink() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.CreateBigQueryLinkRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateBigQueryLinkRequest.
+	}
+	resp, err := c.CreateBigQueryLink(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_CreateCalculatedMetric() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -418,31 +443,6 @@ func ExampleAnalyticsAdminClient_CreateChannelGroup() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateChannelGroupRequest.
 	}
 	resp, err := c.CreateChannelGroup(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
-func ExampleAnalyticsAdminClient_CreateConnectedSiteTag() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	defer c.Close()
-
-	req := &adminpb.CreateConnectedSiteTagRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateConnectedSiteTagRequest.
-	}
-	resp, err := c.CreateConnectedSiteTag(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -625,6 +625,31 @@ func ExampleAnalyticsAdminClient_CreateEventCreateRule() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_CreateEventEditRule() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.CreateEventEditRuleRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateEventEditRuleRequest.
+	}
+	resp, err := c.CreateEventEditRule(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_CreateExpandedDataSet() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -700,6 +725,31 @@ func ExampleAnalyticsAdminClient_CreateGoogleAdsLink() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_CreateKeyEvent() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.CreateKeyEventRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateKeyEventRequest.
+	}
+	resp, err := c.CreateKeyEvent(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_CreateMeasurementProtocolSecret() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -743,6 +793,31 @@ func ExampleAnalyticsAdminClient_CreateProperty() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreatePropertyRequest.
 	}
 	resp, err := c.CreateProperty(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_CreateReportingDataAnnotation() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.CreateReportingDataAnnotationRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateReportingDataAnnotationRequest.
+	}
+	resp, err := c.CreateReportingDataAnnotation(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -850,31 +925,6 @@ func ExampleAnalyticsAdminClient_CreateSearchAds360Link() {
 	_ = resp
 }
 
-func ExampleAnalyticsAdminClient_CreateSubproperty() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	defer c.Close()
-
-	req := &adminpb.CreateSubpropertyRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#CreateSubpropertyRequest.
-	}
-	resp, err := c.CreateSubproperty(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
 func ExampleAnalyticsAdminClient_CreateSubpropertyEventFilter() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -969,6 +1019,29 @@ func ExampleAnalyticsAdminClient_DeleteAdSenseLink() {
 	}
 }
 
+func ExampleAnalyticsAdminClient_DeleteBigQueryLink() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.DeleteBigQueryLinkRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteBigQueryLinkRequest.
+	}
+	err = c.DeleteBigQueryLink(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
 func ExampleAnalyticsAdminClient_DeleteCalculatedMetric() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -1010,29 +1083,6 @@ func ExampleAnalyticsAdminClient_DeleteChannelGroup() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteChannelGroupRequest.
 	}
 	err = c.DeleteChannelGroup(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-}
-
-func ExampleAnalyticsAdminClient_DeleteConnectedSiteTag() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	defer c.Close()
-
-	req := &adminpb.DeleteConnectedSiteTagRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteConnectedSiteTagRequest.
-	}
-	err = c.DeleteConnectedSiteTag(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -1153,6 +1203,29 @@ func ExampleAnalyticsAdminClient_DeleteEventCreateRule() {
 	}
 }
 
+func ExampleAnalyticsAdminClient_DeleteEventEditRule() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.DeleteEventEditRuleRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteEventEditRuleRequest.
+	}
+	err = c.DeleteEventEditRule(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
 func ExampleAnalyticsAdminClient_DeleteExpandedDataSet() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -1222,6 +1295,29 @@ func ExampleAnalyticsAdminClient_DeleteGoogleAdsLink() {
 	}
 }
 
+func ExampleAnalyticsAdminClient_DeleteKeyEvent() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.DeleteKeyEventRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteKeyEventRequest.
+	}
+	err = c.DeleteKeyEvent(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
 func ExampleAnalyticsAdminClient_DeleteMeasurementProtocolSecret() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -1268,6 +1364,29 @@ func ExampleAnalyticsAdminClient_DeleteProperty() {
 	}
 	// TODO: Use resp.
 	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_DeleteReportingDataAnnotation() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.DeleteReportingDataAnnotationRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#DeleteReportingDataAnnotationRequest.
+	}
+	err = c.DeleteReportingDataAnnotation(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
 }
 
 func ExampleAnalyticsAdminClient_DeleteRollupPropertySourceLink() {
@@ -1360,56 +1479,6 @@ func ExampleAnalyticsAdminClient_DeleteSubpropertyEventFilter() {
 	if err != nil {
 		// TODO: Handle error.
 	}
-}
-
-func ExampleAnalyticsAdminClient_FetchAutomatedGa4ConfigurationOptOut() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	defer c.Close()
-
-	req := &adminpb.FetchAutomatedGa4ConfigurationOptOutRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#FetchAutomatedGa4ConfigurationOptOutRequest.
-	}
-	resp, err := c.FetchAutomatedGa4ConfigurationOptOut(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
-func ExampleAnalyticsAdminClient_FetchConnectedGa4Property() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	defer c.Close()
-
-	req := &adminpb.FetchConnectedGa4PropertyRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#FetchConnectedGa4PropertyRequest.
-	}
-	resp, err := c.FetchConnectedGa4Property(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
 }
 
 func ExampleAnalyticsAdminClient_GetAccessBinding() {
@@ -1887,6 +1956,31 @@ func ExampleAnalyticsAdminClient_GetEventCreateRule() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_GetEventEditRule() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.GetEventEditRuleRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetEventEditRuleRequest.
+	}
+	resp, err := c.GetEventEditRule(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_GetExpandedDataSet() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -1962,6 +2056,31 @@ func ExampleAnalyticsAdminClient_GetGoogleSignalsSettings() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_GetKeyEvent() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.GetKeyEventRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetKeyEventRequest.
+	}
+	resp, err := c.GetKeyEvent(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_GetMeasurementProtocolSecret() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -2005,6 +2124,56 @@ func ExampleAnalyticsAdminClient_GetProperty() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetPropertyRequest.
 	}
 	resp, err := c.GetProperty(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_GetReportingDataAnnotation() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.GetReportingDataAnnotationRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetReportingDataAnnotationRequest.
+	}
+	resp, err := c.GetReportingDataAnnotation(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_GetReportingIdentitySettings() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.GetReportingIdentitySettingsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetReportingIdentitySettingsRequest.
+	}
+	resp, err := c.GetReportingIdentitySettings(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -2112,6 +2281,31 @@ func ExampleAnalyticsAdminClient_GetSubpropertyEventFilter() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_GetSubpropertySyncConfig() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.GetSubpropertySyncConfigRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#GetSubpropertySyncConfigRequest.
+	}
+	resp, err := c.GetSubpropertySyncConfig(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_ListAccessBindings() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -2140,6 +2334,12 @@ func ExampleAnalyticsAdminClient_ListAccessBindings() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListAccessBindingsResponse)
 	}
 }
 
@@ -2171,6 +2371,12 @@ func ExampleAnalyticsAdminClient_ListAccountSummaries() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListAccountSummariesResponse)
 	}
 }
 
@@ -2202,6 +2408,12 @@ func ExampleAnalyticsAdminClient_ListAccounts() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListAccountsResponse)
 	}
 }
 
@@ -2233,6 +2445,12 @@ func ExampleAnalyticsAdminClient_ListAdSenseLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListAdSenseLinksResponse)
 	}
 }
 
@@ -2264,6 +2482,12 @@ func ExampleAnalyticsAdminClient_ListAudiences() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListAudiencesResponse)
 	}
 }
 
@@ -2295,6 +2519,12 @@ func ExampleAnalyticsAdminClient_ListBigQueryLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListBigQueryLinksResponse)
 	}
 }
 
@@ -2326,6 +2556,12 @@ func ExampleAnalyticsAdminClient_ListCalculatedMetrics() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListCalculatedMetricsResponse)
 	}
 }
 
@@ -2357,32 +2593,13 @@ func ExampleAnalyticsAdminClient_ListChannelGroups() {
 		}
 		// TODO: Use resp.
 		_ = resp
-	}
-}
 
-func ExampleAnalyticsAdminClient_ListConnectedSiteTags() {
-	ctx := context.Background()
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := admin.NewAnalyticsAdminClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListChannelGroupsResponse)
 	}
-	defer c.Close()
-
-	req := &adminpb.ListConnectedSiteTagsRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ListConnectedSiteTagsRequest.
-	}
-	resp, err := c.ListConnectedSiteTags(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
 }
 
 func ExampleAnalyticsAdminClient_ListConversionEvents() {
@@ -2413,6 +2630,12 @@ func ExampleAnalyticsAdminClient_ListConversionEvents() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListConversionEventsResponse)
 	}
 }
 
@@ -2444,6 +2667,12 @@ func ExampleAnalyticsAdminClient_ListCustomDimensions() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListCustomDimensionsResponse)
 	}
 }
 
@@ -2475,6 +2704,12 @@ func ExampleAnalyticsAdminClient_ListCustomMetrics() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListCustomMetricsResponse)
 	}
 }
 
@@ -2506,6 +2741,12 @@ func ExampleAnalyticsAdminClient_ListDataStreams() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListDataStreamsResponse)
 	}
 }
 
@@ -2537,6 +2778,12 @@ func ExampleAnalyticsAdminClient_ListDisplayVideo360AdvertiserLinkProposals() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListDisplayVideo360AdvertiserLinkProposalsResponse)
 	}
 }
 
@@ -2568,6 +2815,12 @@ func ExampleAnalyticsAdminClient_ListDisplayVideo360AdvertiserLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListDisplayVideo360AdvertiserLinksResponse)
 	}
 }
 
@@ -2599,6 +2852,49 @@ func ExampleAnalyticsAdminClient_ListEventCreateRules() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListEventCreateRulesResponse)
+	}
+}
+
+func ExampleAnalyticsAdminClient_ListEventEditRules() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ListEventEditRulesRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ListEventEditRulesRequest.
+	}
+	it := c.ListEventEditRules(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListEventEditRulesResponse)
 	}
 }
 
@@ -2630,6 +2926,12 @@ func ExampleAnalyticsAdminClient_ListExpandedDataSets() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListExpandedDataSetsResponse)
 	}
 }
 
@@ -2661,6 +2963,12 @@ func ExampleAnalyticsAdminClient_ListFirebaseLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListFirebaseLinksResponse)
 	}
 }
 
@@ -2692,6 +3000,49 @@ func ExampleAnalyticsAdminClient_ListGoogleAdsLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListGoogleAdsLinksResponse)
+	}
+}
+
+func ExampleAnalyticsAdminClient_ListKeyEvents() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ListKeyEventsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ListKeyEventsRequest.
+	}
+	it := c.ListKeyEvents(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListKeyEventsResponse)
 	}
 }
 
@@ -2723,6 +3074,12 @@ func ExampleAnalyticsAdminClient_ListMeasurementProtocolSecrets() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListMeasurementProtocolSecretsResponse)
 	}
 }
 
@@ -2754,6 +3111,49 @@ func ExampleAnalyticsAdminClient_ListProperties() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListPropertiesResponse)
+	}
+}
+
+func ExampleAnalyticsAdminClient_ListReportingDataAnnotations() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ListReportingDataAnnotationsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ListReportingDataAnnotationsRequest.
+	}
+	it := c.ListReportingDataAnnotations(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListReportingDataAnnotationsResponse)
 	}
 }
 
@@ -2785,6 +3185,12 @@ func ExampleAnalyticsAdminClient_ListRollupPropertySourceLinks() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListRollupPropertySourceLinksResponse)
 	}
 }
 
@@ -2816,6 +3222,12 @@ func ExampleAnalyticsAdminClient_ListSKAdNetworkConversionValueSchemas() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListSKAdNetworkConversionValueSchemasResponse)
 	}
 }
 
@@ -2847,6 +3259,12 @@ func ExampleAnalyticsAdminClient_ListSearchAds360Links() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListSearchAds360LinksResponse)
 	}
 }
 
@@ -2878,6 +3296,49 @@ func ExampleAnalyticsAdminClient_ListSubpropertyEventFilters() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListSubpropertyEventFiltersResponse)
+	}
+}
+
+func ExampleAnalyticsAdminClient_ListSubpropertySyncConfigs() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ListSubpropertySyncConfigsRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ListSubpropertySyncConfigsRequest.
+	}
+	it := c.ListSubpropertySyncConfigs(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.ListSubpropertySyncConfigsResponse)
 	}
 }
 
@@ -2904,6 +3365,54 @@ func ExampleAnalyticsAdminClient_ProvisionAccountTicket() {
 	}
 	// TODO: Use resp.
 	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_ProvisionSubproperty() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ProvisionSubpropertyRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ProvisionSubpropertyRequest.
+	}
+	resp, err := c.ProvisionSubproperty(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_ReorderEventEditRules() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.ReorderEventEditRulesRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#ReorderEventEditRulesRequest.
+	}
+	err = c.ReorderEventEditRules(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
 }
 
 func ExampleAnalyticsAdminClient_RunAccessReport() {
@@ -2959,10 +3468,16 @@ func ExampleAnalyticsAdminClient_SearchChangeHistoryEvents() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*adminpb.SearchChangeHistoryEventsResponse)
 	}
 }
 
-func ExampleAnalyticsAdminClient_SetAutomatedGa4ConfigurationOptOut() {
+func ExampleAnalyticsAdminClient_SubmitUserDeletion() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
 	// It will require modifications to work:
@@ -2975,11 +3490,11 @@ func ExampleAnalyticsAdminClient_SetAutomatedGa4ConfigurationOptOut() {
 	}
 	defer c.Close()
 
-	req := &adminpb.SetAutomatedGa4ConfigurationOptOutRequest{
+	req := &adminpb.SubmitUserDeletionRequest{
 		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#SetAutomatedGa4ConfigurationOptOutRequest.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#SubmitUserDeletionRequest.
 	}
-	resp, err := c.SetAutomatedGa4ConfigurationOptOut(ctx, req)
+	resp, err := c.SubmitUserDeletion(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -3080,6 +3595,31 @@ func ExampleAnalyticsAdminClient_UpdateAudience() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateAudienceRequest.
 	}
 	resp, err := c.UpdateAudience(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_UpdateBigQueryLink() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.UpdateBigQueryLinkRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateBigQueryLinkRequest.
+	}
+	resp, err := c.UpdateBigQueryLink(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -3362,6 +3902,31 @@ func ExampleAnalyticsAdminClient_UpdateEventCreateRule() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_UpdateEventEditRule() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.UpdateEventEditRuleRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateEventEditRuleRequest.
+	}
+	resp, err := c.UpdateEventEditRule(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_UpdateExpandedDataSet() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -3437,6 +4002,31 @@ func ExampleAnalyticsAdminClient_UpdateGoogleSignalsSettings() {
 	_ = resp
 }
 
+func ExampleAnalyticsAdminClient_UpdateKeyEvent() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.UpdateKeyEventRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateKeyEventRequest.
+	}
+	resp, err := c.UpdateKeyEvent(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
 func ExampleAnalyticsAdminClient_UpdateMeasurementProtocolSecret() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -3480,6 +4070,31 @@ func ExampleAnalyticsAdminClient_UpdateProperty() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdatePropertyRequest.
 	}
 	resp, err := c.UpdateProperty(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_UpdateReportingDataAnnotation() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.UpdateReportingDataAnnotationRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateReportingDataAnnotationRequest.
+	}
+	resp, err := c.UpdateReportingDataAnnotation(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -3555,6 +4170,31 @@ func ExampleAnalyticsAdminClient_UpdateSubpropertyEventFilter() {
 		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateSubpropertyEventFilterRequest.
 	}
 	resp, err := c.UpdateSubpropertyEventFilter(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleAnalyticsAdminClient_UpdateSubpropertySyncConfig() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := admin.NewAnalyticsAdminClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &adminpb.UpdateSubpropertySyncConfigRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/analytics/admin/apiv1alpha/adminpb#UpdateSubpropertySyncConfigRequest.
+	}
+	resp, err := c.UpdateSubpropertySyncConfig(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}

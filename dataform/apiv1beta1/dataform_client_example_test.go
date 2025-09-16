@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,10 +77,12 @@ func ExampleClient_CancelWorkflowInvocation() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#CancelWorkflowInvocationRequest.
 	}
-	err = c.CancelWorkflowInvocation(ctx, req)
+	resp, err := c.CancelWorkflowInvocation(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_CommitRepositoryChanges() {
@@ -100,10 +102,12 @@ func ExampleClient_CommitRepositoryChanges() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#CommitRepositoryChangesRequest.
 	}
-	err = c.CommitRepositoryChanges(ctx, req)
+	resp, err := c.CommitRepositoryChanges(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_CommitWorkspaceChanges() {
@@ -123,10 +127,12 @@ func ExampleClient_CommitWorkspaceChanges() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#CommitWorkspaceChangesRequest.
 	}
-	err = c.CommitWorkspaceChanges(ctx, req)
+	resp, err := c.CommitWorkspaceChanges(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_ComputeRepositoryAccessTokenStatus() {
@@ -547,6 +553,12 @@ func ExampleClient_FetchRepositoryHistory() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.FetchRepositoryHistoryResponse)
 	}
 }
 
@@ -568,6 +580,31 @@ func ExampleClient_GetCompilationResult() {
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#GetCompilationResultRequest.
 	}
 	resp, err := c.GetCompilationResult(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_GetConfig() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := dataform.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &dataformpb.GetConfigRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#GetConfigRequest.
+	}
+	resp, err := c.GetConfig(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -753,6 +790,12 @@ func ExampleClient_ListCompilationResults() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListCompilationResultsResponse)
 	}
 }
 
@@ -784,6 +827,12 @@ func ExampleClient_ListReleaseConfigs() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListReleaseConfigsResponse)
 	}
 }
 
@@ -815,6 +864,12 @@ func ExampleClient_ListRepositories() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListRepositoriesResponse)
 	}
 }
 
@@ -846,6 +901,12 @@ func ExampleClient_ListWorkflowConfigs() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListWorkflowConfigsResponse)
 	}
 }
 
@@ -877,6 +938,12 @@ func ExampleClient_ListWorkflowInvocations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListWorkflowInvocationsResponse)
 	}
 }
 
@@ -908,6 +975,12 @@ func ExampleClient_ListWorkspaces() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.ListWorkspacesResponse)
 	}
 }
 
@@ -1003,10 +1076,12 @@ func ExampleClient_PullGitCommits() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#PullGitCommitsRequest.
 	}
-	err = c.PullGitCommits(ctx, req)
+	resp, err := c.PullGitCommits(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_PushGitCommits() {
@@ -1026,10 +1101,12 @@ func ExampleClient_PushGitCommits() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#PushGitCommitsRequest.
 	}
-	err = c.PushGitCommits(ctx, req)
+	resp, err := c.PushGitCommits(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_QueryCompilationResultActions() {
@@ -1060,6 +1137,12 @@ func ExampleClient_QueryCompilationResultActions() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.QueryCompilationResultActionsResponse)
 	}
 }
 
@@ -1091,6 +1174,12 @@ func ExampleClient_QueryDirectoryContents() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.QueryDirectoryContentsResponse)
 	}
 }
 
@@ -1122,6 +1211,12 @@ func ExampleClient_QueryRepositoryDirectoryContents() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.QueryRepositoryDirectoryContentsResponse)
 	}
 }
 
@@ -1153,6 +1248,12 @@ func ExampleClient_QueryWorkflowInvocationActions() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.QueryWorkflowInvocationActionsResponse)
 	}
 }
 
@@ -1223,10 +1324,12 @@ func ExampleClient_RemoveDirectory() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#RemoveDirectoryRequest.
 	}
-	err = c.RemoveDirectory(ctx, req)
+	resp, err := c.RemoveDirectory(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_RemoveFile() {
@@ -1246,10 +1349,12 @@ func ExampleClient_RemoveFile() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#RemoveFileRequest.
 	}
-	err = c.RemoveFile(ctx, req)
+	resp, err := c.RemoveFile(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_ResetWorkspaceChanges() {
@@ -1269,10 +1374,74 @@ func ExampleClient_ResetWorkspaceChanges() {
 		// TODO: Fill request struct fields.
 		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#ResetWorkspaceChangesRequest.
 	}
-	err = c.ResetWorkspaceChanges(ctx, req)
+	resp, err := c.ResetWorkspaceChanges(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_SearchFiles() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := dataform.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &dataformpb.SearchFilesRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#SearchFilesRequest.
+	}
+	it := c.SearchFiles(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*dataformpb.SearchFilesResponse)
+	}
+}
+
+func ExampleClient_UpdateConfig() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := dataform.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &dataformpb.UpdateConfigRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/dataform/apiv1beta1/dataformpb#UpdateConfigRequest.
+	}
+	resp, err := c.UpdateConfig(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
 }
 
 func ExampleClient_UpdateReleaseConfig() {
@@ -1428,6 +1597,12 @@ func ExampleClient_ListLocations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*locationpb.ListLocationsResponse)
 	}
 }
 

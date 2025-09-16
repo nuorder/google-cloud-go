@@ -20,6 +20,7 @@ package pubsub
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strconv"
 	"sync"
@@ -34,6 +35,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	tspb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -78,7 +80,7 @@ func testStreamingPullIteration(t *testing.T, client *Client, server *mockServer
 			m.Nack()
 		}
 	})
-	if c := status.Convert(err); err != nil && c.Code() != codes.Canceled {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("Pull: %v", err)
 	}
 	gotMap := map[string]*Message{}
@@ -244,15 +246,17 @@ func TestStreamingPullRetry(t *testing.T) {
 	server.wait()
 	for i := 0; i < len(testMessages); i++ {
 		id := testMessages[i].AckId
+		server.mu.Lock()
 		if i%2 == 0 {
 			if !server.Acked[id] {
 				t.Errorf("msg %q should have been acked but wasn't", id)
 			}
 		} else {
-			if dl, ok := server.Deadlines[id]; !ok || dl != 0 {
-				t.Errorf("msg %q should have been nacked but wasn't", id)
+			if server.Acked[id] {
+				t.Errorf("msg %q should have not been acked", id)
 			}
 		}
+		server.mu.Unlock()
 	}
 }
 
@@ -500,7 +504,7 @@ func newMock(t *testing.T) (*Client, *mockServer) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}

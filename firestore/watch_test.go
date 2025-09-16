@@ -22,10 +22,10 @@ import (
 
 	pb "cloud.google.com/go/firestore/apiv1/firestorepb"
 	"cloud.google.com/go/internal/btree"
-	"github.com/golang/protobuf/proto"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestWatchRecv(t *testing.T) {
@@ -40,9 +40,9 @@ func TestWatchRecv(t *testing.T) {
 	ws := newWatchStream(ctx, c, nil, &pb.Target{})
 	request := &pb.ListenRequest{
 		Database:     "projects/projectID/databases/(default)",
-		TargetChange: &pb.ListenRequest_AddTarget{&pb.Target{}},
+		TargetChange: &pb.ListenRequest_AddTarget{AddTarget: &pb.Target{}},
 	}
-	response := &pb.ListenResponse{ResponseType: &pb.ListenResponse_DocumentChange{&pb.DocumentChange{}}}
+	response := &pb.ListenResponse{ResponseType: &pb.ListenResponse_DocumentChange{DocumentChange: &pb.DocumentChange{}}}
 	// Stream should retry on non-permanent errors, returning only the responses.
 	srv.addRPC(request, []interface{}{response, status.Error(codes.Unknown, "")})
 	srv.addRPC(request, []interface{}{response}) // stream will return io.EOF
@@ -196,15 +196,17 @@ func TestWatchCancel(t *testing.T) {
 
 	request := &pb.ListenRequest{
 		Database:     "projects/projectID/databases/(default)",
-		TargetChange: &pb.ListenRequest_AddTarget{ws.target},
+		TargetChange: &pb.ListenRequest_AddTarget{AddTarget: ws.target},
 	}
-	current := &pb.ListenResponse{ResponseType: &pb.ListenResponse_TargetChange{&pb.TargetChange{
-		TargetChangeType: pb.TargetChange_CURRENT,
-	}}}
-	noChange := &pb.ListenResponse{ResponseType: &pb.ListenResponse_TargetChange{&pb.TargetChange{
-		TargetChangeType: pb.TargetChange_NO_CHANGE,
-		ReadTime:         aTimestamp,
-	}}}
+	current := &pb.ListenResponse{ResponseType: &pb.ListenResponse_TargetChange{
+		TargetChange: &pb.TargetChange{
+			TargetChangeType: pb.TargetChange_CURRENT,
+		}}}
+	noChange := &pb.ListenResponse{ResponseType: &pb.ListenResponse_TargetChange{
+		TargetChange: &pb.TargetChange{
+			TargetChangeType: pb.TargetChange_NO_CHANGE,
+			ReadTime:         aTimestamp,
+		}}}
 
 	// Cancel from gax.Sleep. We should still see a gRPC error with codes.Canceled, not a
 	// context.Canceled error.
@@ -225,4 +227,36 @@ func TestWatchCancel(t *testing.T) {
 
 	// TODO(jba): Test that we get codes.Canceled when canceling an RPC.
 	// We had a test for this in a21236af, but it was flaky for unclear reasons.
+}
+
+func TestDocumentChangeKindString(t *testing.T) {
+	tests := []struct {
+		Name string
+		Kind DocumentChangeKind
+	}{
+		{
+			Name: "DocumentAdded",
+			Kind: DocumentAdded,
+		},
+		{
+			Name: "DocumentModified",
+			Kind: DocumentModified,
+		},
+		{
+			Name: "DocumentRemoved",
+			Kind: DocumentRemoved,
+		},
+		{
+			Name: "Unknown",
+			Kind: DocumentChangeKind(-1),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			got := test.Kind.String()
+			if got != test.Name {
+				t.Errorf("%s: DocumentChangeKindString(%d).String() = %q; want %q", test.Name, test.Kind, got, test.Name)
+			}
+		})
+	}
 }

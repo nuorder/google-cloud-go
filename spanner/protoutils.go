@@ -24,7 +24,10 @@ import (
 
 	"cloud.google.com/go/civil"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	proto3 "github.com/golang/protobuf/ptypes/struct"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	proto3 "google.golang.org/protobuf/types/known/structpb"
 )
 
 // Helpers to generate protobuf values and Cloud Spanner types.
@@ -57,6 +60,14 @@ func intType() *sppb.Type {
 	return &sppb.Type{Code: sppb.TypeCode_INT64}
 }
 
+func float32Proto(n float32) *proto3.Value {
+	return &proto3.Value{Kind: &proto3.Value_NumberValue{NumberValue: float64(n)}}
+}
+
+func float32Type() *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_FLOAT32}
+}
+
 func floatProto(n float64) *proto3.Value {
 	return &proto3.Value{Kind: &proto3.Value_NumberValue{NumberValue: n}}
 }
@@ -75,6 +86,10 @@ func numericType() *sppb.Type {
 
 func pgNumericType() *sppb.Type {
 	return &sppb.Type{Code: sppb.TypeCode_NUMERIC, TypeAnnotation: sppb.TypeAnnotationCode_PG_NUMERIC}
+}
+
+func pgOidType() *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_INT64, TypeAnnotation: sppb.TypeAnnotationCode_PG_OID}
 }
 
 func jsonType() *sppb.Type {
@@ -109,6 +124,18 @@ func dateType() *sppb.Type {
 	return &sppb.Type{Code: sppb.TypeCode_DATE}
 }
 
+func uuidProto(u uuid.UUID) *proto3.Value {
+	return stringProto(u.String())
+}
+
+func uuidType() *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_UUID}
+}
+
+func intervalType() *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_INTERVAL}
+}
+
 func listProto(p ...*proto3.Value) *proto3.Value {
 	return &proto3.Value{Kind: &proto3.Value_ListValue{ListValue: &proto3.ListValue{Values: p}}}
 }
@@ -131,4 +158,21 @@ func structType(fields ...*sppb.StructType_Field) *sppb.Type {
 
 func nullProto() *proto3.Value {
 	return &proto3.Value{Kind: &proto3.Value_NullValue{NullValue: proto3.NullValue_NULL_VALUE}}
+}
+
+func protoMessageType(fqn string) *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_PROTO, ProtoTypeFqn: fqn}
+}
+
+func protoEnumType(fqn string) *sppb.Type {
+	return &sppb.Type{Code: sppb.TypeCode_ENUM, ProtoTypeFqn: fqn}
+}
+
+func protoMessageProto(m proto.Message) *proto3.Value {
+	var b, _ = proto.Marshal(m)
+	return &proto3.Value{Kind: &proto3.Value_StringValue{StringValue: base64.StdEncoding.EncodeToString(b)}}
+}
+
+func protoEnumProto(e protoreflect.Enum) *proto3.Value {
+	return &proto3.Value{Kind: &proto3.Value_StringValue{StringValue: strconv.FormatInt(int64(e.Number()), 10)}}
 }

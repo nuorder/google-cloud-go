@@ -17,9 +17,14 @@ package bttest
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
+	"net"
+	"os"
 	"sort"
 	"strconv"
 	"sync"
@@ -29,19 +34,101 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	"cloud.google.com/go/bigtable/internal/option"
+	btapb "cloud.google.com/go/bigtable/admin/apiv2/adminpb"
+	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
 	"cloud.google.com/go/internal/testutil"
 	"github.com/google/go-cmp/cmp"
-	btapb "google.golang.org/genproto/googleapis/bigtable/admin/v2"
-	btpb "google.golang.org/genproto/googleapis/bigtable/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+type closeSpyListener struct {
+	net.Listener
+	closed bool
+}
+
+func (s *closeSpyListener) Close() error {
+	s.closed = true
+	return s.Listener.Close()
+}
+
+func TestNewServer(t *testing.T) {
+	t.Run("TCP", func(t *testing.T) {
+		srv, err := NewServer("localhost:0")
+		if err != nil {
+			t.Fatalf("NewServer() error = %v", err)
+		}
+		if srv == nil {
+			t.Fatal("NewServer() returned nil server")
+		}
+		defer srv.Close()
+		if srv.Addr == "" {
+			t.Error("NewServer() returned server with empty Addr")
+		}
+	})
+
+	t.Run("Unix", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		sockPath := tmpDir + "/bttest.sock"
+		srv, err := NewServer(sockPath)
+		if err != nil {
+			t.Fatalf("NewServer() error = %v", err)
+		}
+		if srv == nil {
+			t.Fatal("NewServer() returned nil server")
+		}
+
+		if srv.Addr != sockPath {
+			t.Errorf("srv.Addr got %q, want %q", srv.Addr, sockPath)
+		}
+
+		srv.Close()
+
+		// Check that the unix socket file was removed.
+		if _, err := os.Stat(sockPath); !os.IsNotExist(err) {
+			t.Errorf("socket file %q was not removed after Close()", sockPath)
+		}
+	})
+
+	t.Run("WithListener", func(t *testing.T) {
+		l, err := net.Listen("tcp", "localhost:0")
+		if err != nil {
+			t.Fatalf("net.Listen() error = %v", err)
+		}
+
+		// Create a spy that can tell us if its Close method was called.
+		spy := &closeSpyListener{Listener: l}
+		srv, err := NewServerWithListener(spy) // This should not call spy.Close().
+		if err != nil {
+			l.Close()
+			t.Fatalf("NewServerWithListener() error = %v", err)
+		}
+
+		srv.Close() // This should NOT call the Close method on our spy.
+		if spy.closed {
+			t.Error("Listener was closed by the server, but it should not have been.")
+		}
+
+		// Clean up the real listener now that the test is done.
+		l.Close()
+
+		// Validate that the listener is now actually closed.
+		_, err = l.Accept()
+		if err == nil {
+			t.Fatal("l.Accept() should have failed for a closed listener, but it did not")
+		}
+		if !errors.Is(err, net.ErrClosed) {
+			t.Errorf("Expected net.ErrClosed, but got a different error: %v", err)
+		}
+	})
+}
 
 func TestConcurrentMutationsReadModifyAndGC(t *testing.T) {
 	s := &server{
@@ -219,6 +306,52 @@ func TestCreateTableWithFamily(t *testing.T) {
 	}
 }
 
+func TestGetPartitionsByTableName(t *testing.T) {
+	s := &server{
+		tables: make(map[string]*table),
+	}
+	ctx := context.Background()
+	newTbl := btapb.Table{
+		ColumnFamilies: map[string]*btapb.ColumnFamily{
+			"cf1": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{MaxNumVersions: 123}}},
+			"cf2": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{MaxNumVersions: 456}}},
+		},
+	}
+	_, err1 := s.CreateTable(ctx, &btapb.CreateTableRequest{Parent: "cluster", TableId: "t1", Table: &newTbl})
+	if err1 != nil {
+		t.Fatalf("Creating table: %v", err1)
+	}
+
+	newTbl = btapb.Table{
+		ColumnFamilies: map[string]*btapb.ColumnFamily{
+			"cf3": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{MaxNumVersions: 567}}},
+			"cf4": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{MaxNumVersions: 890}}},
+		},
+	}
+	_, err2 := s.CreateTable(ctx, &btapb.CreateTableRequest{Parent: "cluster", TableId: "t2", Table: &newTbl})
+	if err2 != nil {
+		t.Fatalf("Creating table: %v", err2)
+	}
+
+	tblNamePrefix := "cluster" + "/tables/"
+
+	// A random table name doesn't return partitions.
+	partitions := s.GetPartitionsByTableName(tblNamePrefix + "random")
+	if partitions != nil {
+		t.Fatalf("Getting partitions for table random")
+	}
+
+	partitions = s.GetPartitionsByTableName(tblNamePrefix + "t1")
+	if len(partitions) != 10 {
+		t.Fatalf("Getting partitions for table t1")
+	}
+
+	partitions = s.GetPartitionsByTableName(tblNamePrefix + "t2")
+	if len(partitions) != 10 {
+		t.Fatalf("Getting partitions for table t2")
+	}
+}
+
 type MockSampleRowKeysServer struct {
 	responses []*btpb.SampleRowKeysResponse
 	grpc.ServerStream
@@ -272,11 +405,25 @@ func TestSampleRowKeys(t *testing.T) {
 	if len(mock.responses) == 0 {
 		t.Fatal("Response count: got 0, want > 0")
 	}
-	// Make sure the offset of the final response is the offset of the final row
-	got := mock.responses[len(mock.responses)-1].OffsetBytes
+	// Make sure the offset of the penultimate response is the offset of the final row
+	got := mock.responses[len(mock.responses)-2].OffsetBytes
 	want := int64((rowCount - 1) * len(val))
 	if got != want {
-		t.Errorf("Invalid offset: got %d, want %d", got, want)
+		t.Errorf("Invalid penultimate offset: got %d, want %d", got, want)
+	}
+
+	// Make sure the offset of the final response is the offset of all the rows
+	got = mock.responses[len(mock.responses)-1].OffsetBytes
+	want = int64(rowCount * len(val))
+	if got != want {
+		t.Errorf("Invalid final offset: got %d, want %d", got, want)
+	}
+
+	// Make sure the key of the final response is empty
+	gotLastKey := mock.responses[len(mock.responses)-1].RowKey
+	wantLastKey := ""
+	if got != want {
+		t.Errorf("Invalid final RowKey: got %s, want %s", gotLastKey, wantLastKey)
 	}
 }
 
@@ -470,6 +617,72 @@ func TestModifyColumnFamilies(t *testing.T) {
 	}
 
 	readRows(18, 6, 2)
+}
+
+func TestGC(t *testing.T) {
+	// Create server
+	s := &server{
+		tables: make(map[string]*table),
+	}
+	ctx := context.Background()
+
+	colFamilyID := "colFam"
+	colName := "colName"
+	rowKey := "rowKey"
+
+	// Create table with max age gc rule
+	newTbl := btapb.Table{
+		ColumnFamilies: map[string]*btapb.ColumnFamily{},
+	}
+	newTbl.ColumnFamilies[colFamilyID] = &btapb.ColumnFamily{GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxAge{MaxAge: durationpb.New(time.Millisecond)}}}
+
+	tblInfo, err := s.CreateTable(ctx, &btapb.CreateTableRequest{Parent: "cluster", TableId: "t", Table: &newTbl})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Populate the table
+	for i := 0; i < 2; i++ {
+		req := &btpb.MutateRowRequest{
+			TableName: tblInfo.Name,
+			RowKey:    []byte(rowKey),
+			Mutations: []*btpb.Mutation{{
+				Mutation: &btpb.Mutation_SetCell_{
+					SetCell: &btpb.Mutation_SetCell{
+						FamilyName:      colFamilyID,
+						ColumnQualifier: []byte(colName),
+						TimestampMicros: 1000, // MaxAge is 1ms
+						Value:           []byte{},
+					}},
+			}},
+		}
+		if _, err := s.MutateRow(ctx, req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sleep till maxAge passes
+	time.Sleep(2 * time.Millisecond)
+
+	// Trigger gc
+	tbl := s.tables[tblInfo.Name]
+	tbl.gc()
+
+	// Verify that the row was deleted after garbage collection
+	readRowsReq := &btpb.ReadRowsRequest{
+		TableName: tblInfo.Name,
+		Rows:      &btpb.RowSet{RowKeys: [][]byte{[]byte(rowKey)}},
+	}
+	mock := &MockReadRowsServer{}
+	if err = s.ReadRows(readRowsReq, mock); err != nil {
+		t.Errorf("ReadRows error: %v", err)
+	}
+	if got, want := len(mock.responses), 0; got != want {
+		t.Errorf("response count: got %d, want %d", got, want)
+	}
 }
 
 func TestDropRowRange(t *testing.T) {
@@ -719,6 +932,22 @@ func TestReadRows(t *testing.T) {
 	}
 }
 
+// withFeatureFlags set the feature flags the client supports in the
+// `bigtable-features` header sent on each request.
+func withFeatureFlags() metadata.MD {
+	ffStr := ""
+	ff := btpb.FeatureFlags{
+		ReverseScans:             true,
+		LastScannedRowResponses:  true,
+		ClientSideMetricsEnabled: false, // Not suppported in emulator
+	}
+	b, err := proto.Marshal(&ff)
+	if err == nil {
+		ffStr = base64.URLEncoding.EncodeToString(b)
+	}
+	return metadata.Pairs("bigtable-features", ffStr)
+}
+
 func TestReadRowsLastScannedRow(t *testing.T) {
 	ctx := context.Background()
 	s := &server{
@@ -758,7 +987,7 @@ func TestReadRowsLastScannedRow(t *testing.T) {
 			EndKey:   &btpb.RowRange_EndKeyOpen{EndKeyOpen: []byte("s")},
 		}}},
 	} {
-		featureFlags := option.WithFeatureFlags()
+		featureFlags := withFeatureFlags()
 		ctx := metadata.NewIncomingContext(context.Background(), featureFlags)
 
 		mock := &MockReadRowsServer{ctx: ctx}
@@ -1164,7 +1393,7 @@ func TestReadRowsReversed(t *testing.T) {
 		}
 	}
 
-	serverCtx := metadata.NewIncomingContext(context.Background(), option.WithFeatureFlags())
+	serverCtx := metadata.NewIncomingContext(context.Background(), withFeatureFlags())
 	rrss := &MockReadRowsServer{ctx: serverCtx}
 	rreq := &btpb.ReadRowsRequest{TableName: tbl.Name, Reversed: true}
 	if err := srv.ReadRows(rreq, rrss); err != nil {
@@ -1623,7 +1852,7 @@ func TestServer_ReadModifyWriteRow(t *testing.T) {
 func populateTable(ctx context.Context, s *server) (*btapb.Table, error) {
 	newTbl := btapb.Table{
 		ColumnFamilies: map[string]*btapb.ColumnFamily{
-			"cf0": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{1}}},
+			"cf0": {GcRule: &btapb.GcRule{Rule: &btapb.GcRule_MaxNumVersions{MaxNumVersions: 1}}},
 		},
 	}
 	tblInfo, err := s.CreateTable(ctx, &btapb.CreateTableRequest{Parent: "cluster", TableId: "t", Table: &newTbl})
@@ -1636,7 +1865,7 @@ func populateTable(ctx context.Context, s *server) (*btapb.Table, error) {
 			Name: tblInfo.Name,
 			Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{{
 				Id:  "cf" + strconv.Itoa(i),
-				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Create{&btapb.ColumnFamily{}},
+				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Create{Create: &btapb.ColumnFamily{}},
 			}},
 		}
 	}
@@ -1654,12 +1883,13 @@ func populateTable(ctx context.Context, s *server) (*btapb.Table, error) {
 					TableName: tblInfo.Name,
 					RowKey:    []byte("row"),
 					Mutations: []*btpb.Mutation{{
-						Mutation: &btpb.Mutation_SetCell_{&btpb.Mutation_SetCell{
-							FamilyName:      "cf" + strconv.Itoa(fc),
-							ColumnQualifier: []byte("col" + strconv.Itoa(cc)),
-							TimestampMicros: int64((tc + 1) * 1000),
-							Value:           []byte{},
-						}},
+						Mutation: &btpb.Mutation_SetCell_{
+							SetCell: &btpb.Mutation_SetCell{
+								FamilyName:      "cf" + strconv.Itoa(fc),
+								ColumnQualifier: []byte("col" + strconv.Itoa(cc)),
+								TimestampMicros: int64((tc + 1) * 1000),
+								Value:           []byte{},
+							}},
 					}},
 				}
 				if _, err := s.MutateRow(ctx, req); err != nil {
@@ -1678,10 +1908,10 @@ func TestFilters(t *testing.T) {
 		code codes.Code
 		out  int
 	}{
-		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_BlockAllFilter{true}}, out: 0},
-		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_BlockAllFilter{false}}, code: codes.InvalidArgument},
-		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_PassAllFilter{true}}, out: 1},
-		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_PassAllFilter{false}}, code: codes.InvalidArgument},
+		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_BlockAllFilter{BlockAllFilter: true}}, out: 0},
+		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_BlockAllFilter{BlockAllFilter: false}}, code: codes.InvalidArgument},
+		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_PassAllFilter{PassAllFilter: true}}, out: 1},
+		{in: &btpb.RowFilter{Filter: &btpb.RowFilter_PassAllFilter{PassAllFilter: false}}, code: codes.InvalidArgument},
 	}
 
 	ctx := context.Background()
@@ -1722,6 +1952,186 @@ func TestFilters(t *testing.T) {
 			t.Errorf("Response count: got %d, want %d", len(mock.responses), tc.out)
 			continue
 		}
+	}
+}
+
+func TestMutateRowsAggregate_AddToCell(t *testing.T) {
+	ctx := context.Background()
+
+	s := &server{
+		tables: make(map[string]*table),
+	}
+
+	tblInfo, err := populateTable(ctx, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{{
+			Id: "sum",
+			Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Create{
+				Create: &btapb.ColumnFamily{
+					ValueType: &btapb.Type{
+						Kind: &btapb.Type_AggregateType{
+							AggregateType: &btapb.Type_Aggregate{
+								InputType: &btapb.Type{
+									Kind: &btapb.Type_Int64Type{},
+								},
+								Aggregator: &btapb.Type_Aggregate_Sum_{
+									Sum: &btapb.Type_Aggregate_Sum{},
+								},
+							},
+						},
+					},
+				},
+			}},
+		}})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.MutateRow(ctx, &btpb.MutateRowRequest{
+		TableName: tblInfo.GetName(),
+		RowKey:    []byte("row1"),
+		Mutations: []*btpb.Mutation{{
+			Mutation: &btpb.Mutation_AddToCell_{AddToCell: &btpb.Mutation_AddToCell{
+				FamilyName:      "sum",
+				ColumnQualifier: &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: []byte("col1")}},
+				Timestamp:       &btpb.Value{Kind: &btpb.Value_RawTimestampMicros{RawTimestampMicros: 0}},
+				Input:           &btpb.Value{Kind: &btpb.Value_IntValue{IntValue: 1}},
+			}},
+		}},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.MutateRow(ctx, &btpb.MutateRowRequest{
+		TableName: tblInfo.GetName(),
+		RowKey:    []byte("row1"),
+		Mutations: []*btpb.Mutation{{
+			Mutation: &btpb.Mutation_AddToCell_{AddToCell: &btpb.Mutation_AddToCell{
+				FamilyName:      "sum",
+				ColumnQualifier: &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: []byte("col1")}},
+				Timestamp:       &btpb.Value{Kind: &btpb.Value_RawTimestampMicros{RawTimestampMicros: 0}},
+				Input:           &btpb.Value{Kind: &btpb.Value_IntValue{IntValue: 2}},
+			}},
+		}},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &MockReadRowsServer{}
+	err = s.ReadRows(&btpb.ReadRowsRequest{
+		TableName: tblInfo.GetName(),
+		Rows: &btpb.RowSet{
+			RowKeys: [][]byte{
+				[]byte("row1"),
+			},
+		}}, mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mock.responses[0]
+
+	if !bytes.Equal(got.Chunks[0].Value, binary.BigEndian.AppendUint64([]byte{}, 3)) {
+		t.Error()
+	}
+}
+
+func TestMutateRowsAggregate_MergeToCell(t *testing.T) {
+	ctx := context.Background()
+
+	s := &server{
+		tables: make(map[string]*table),
+	}
+
+	tblInfo, err := populateTable(ctx, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{{
+			Id: "sum",
+			Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Create{
+				Create: &btapb.ColumnFamily{
+					ValueType: &btapb.Type{
+						Kind: &btapb.Type_AggregateType{
+							AggregateType: &btapb.Type_Aggregate{
+								InputType: &btapb.Type{
+									Kind: &btapb.Type_Int64Type{},
+								},
+								Aggregator: &btapb.Type_Aggregate_Sum_{
+									Sum: &btapb.Type_Aggregate_Sum{},
+								},
+							},
+						},
+					},
+				},
+			}},
+		}})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.MutateRow(ctx, &btpb.MutateRowRequest{
+		TableName: tblInfo.GetName(),
+		RowKey:    []byte("row1"),
+		Mutations: []*btpb.Mutation{{
+			Mutation: &btpb.Mutation_MergeToCell_{MergeToCell: &btpb.Mutation_MergeToCell{
+				FamilyName:      "sum",
+				ColumnQualifier: &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: []byte("col1")}},
+				Timestamp:       &btpb.Value{Kind: &btpb.Value_RawTimestampMicros{RawTimestampMicros: 0}},
+				Input:           &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: binary.BigEndian.AppendUint64([]byte{}, 1)}},
+			}},
+		}},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.MutateRow(ctx, &btpb.MutateRowRequest{
+		TableName: tblInfo.GetName(),
+		RowKey:    []byte("row1"),
+		Mutations: []*btpb.Mutation{{
+			Mutation: &btpb.Mutation_MergeToCell_{MergeToCell: &btpb.Mutation_MergeToCell{
+				FamilyName:      "sum",
+				ColumnQualifier: &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: []byte("col1")}},
+				Timestamp:       &btpb.Value{Kind: &btpb.Value_RawTimestampMicros{RawTimestampMicros: 0}},
+				Input:           &btpb.Value{Kind: &btpb.Value_RawValue{RawValue: binary.BigEndian.AppendUint64([]byte{}, 2)}},
+			}},
+		}},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mock := &MockReadRowsServer{}
+	err = s.ReadRows(&btpb.ReadRowsRequest{
+		TableName: tblInfo.GetName(),
+		Rows: &btpb.RowSet{
+			RowKeys: [][]byte{
+				[]byte("row1"),
+			},
+		}}, mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mock.responses[0]
+
+	if !bytes.Equal(got.Chunks[0].Value, binary.BigEndian.AppendUint64([]byte{}, 3)) {
+		t.Error()
 	}
 }
 
@@ -1840,30 +2250,30 @@ func TestFilterRow(t *testing.T) {
 		want   bool
 	}{
 		// The regexp-based filters perform whole-string, case-sensitive matches.
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{[]byte("row")}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{[]byte("ro")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{[]byte("ROW")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{[]byte("moo")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{RowKeyRegexFilter: []byte("row")}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{RowKeyRegexFilter: []byte("ro")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{RowKeyRegexFilter: []byte("ROW")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{RowKeyRegexFilter: []byte("moo")}}, false},
 
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"fam"}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"f.*"}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"[fam]+"}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"fa"}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"FAM"}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"moo"}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "fam"}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "f.*"}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "[fam]+"}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "fa"}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "FAM"}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "moo"}}, false},
 
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte("col")}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte("co")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte("COL")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte("moo")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte("col")}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte("co")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte("COL")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte("moo")}}, false},
 
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("val")}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("va")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("VAL")}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("moo")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("val")}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("va")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("VAL")}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("moo")}}, false},
 
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{&btpb.TimestampRange{StartTimestampMicros: int64(0), EndTimestampMicros: int64(1000)}}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{&btpb.TimestampRange{StartTimestampMicros: int64(1000), EndTimestampMicros: int64(2000)}}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{TimestampRangeFilter: &btpb.TimestampRange{StartTimestampMicros: int64(0), EndTimestampMicros: int64(1000)}}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{TimestampRangeFilter: &btpb.TimestampRange{StartTimestampMicros: int64(1000), EndTimestampMicros: int64(2001)}}}, true},
 	} {
 		got, err := filterRow(test.filter, row.copy())
 		if err != nil {
@@ -1890,27 +2300,25 @@ func TestFilterRowWithErrors(t *testing.T) {
 	for _, test := range []struct {
 		badRegex *btpb.RowFilter
 	}{
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{[]byte("[")}}},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{"["}}},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte("[")}}},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("[")}}},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowKeyRegexFilter{RowKeyRegexFilter: []byte("[")}}},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_FamilyNameRegexFilter{FamilyNameRegexFilter: "["}}},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte("[")}}},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("[")}}},
 		{&btpb.RowFilter{Filter: &btpb.RowFilter_Chain_{
 			Chain: &btpb.RowFilter_Chain{
 				Filters: []*btpb.RowFilter{
-					{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("[")}},
+					{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("[")}},
 				},
 			},
 		}}},
 		{&btpb.RowFilter{Filter: &btpb.RowFilter_Condition_{
 			Condition: &btpb.RowFilter_Condition{
-				PredicateFilter: &btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{[]byte("[")}},
+				PredicateFilter: &btpb.RowFilter{Filter: &btpb.RowFilter_ValueRegexFilter{ValueRegexFilter: []byte("[")}},
 			},
 		}}},
 
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{0.0}}},                                                                                        // 0.0 is invalid.
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{1.0}}},                                                                                        // 1.0 is invalid.
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{&btpb.TimestampRange{StartTimestampMicros: int64(1), EndTimestampMicros: int64(1000)}}}}, // Server only supports millisecond precision.
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_TimestampRangeFilter{&btpb.TimestampRange{StartTimestampMicros: int64(1000), EndTimestampMicros: int64(1)}}}}, // Server only supports millisecond precision.
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{RowSampleFilter: 0.0}}}, // 0.0 is invalid.
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{RowSampleFilter: 1.0}}}, // 1.0 is invalid.
 	} {
 		got, err := filterRow(test.badRegex, row.copy())
 		if got != false {
@@ -1934,7 +2342,7 @@ func TestFilterRowWithRowSampleFilter(t *testing.T) {
 		{0.5, false}, // Equal to random float. Return no rows.
 		{0.9, true},  // Greater than random float. Return all rows.
 	} {
-		got, err := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{test.p}}, &row{})
+		got, err := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_RowSampleFilter{RowSampleFilter: test.p}}, &row{})
 		if err != nil {
 			t.Fatalf("%f: %v", test.p, err)
 		}
@@ -1968,7 +2376,7 @@ func TestFilterRowWithBinaryColumnQualifier(t *testing.T) {
 		{`[\x7f\x80]{2}`, true}, // succeeds: exactly two of either 127 or 128
 		{`\C{2}`, true},         // succeeds: two bytes
 	} {
-		got, _ := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte(test.filter)}}, row.copy())
+		got, _ := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte(test.filter)}}, row.copy())
 		if got != test.want {
 			t.Errorf("%v: got %t, want %t", test.filter, got, test.want)
 		}
@@ -2007,7 +2415,7 @@ func TestFilterRowWithUnicodeColumnQualifier(t *testing.T) {
 		{`a\C{2}b`, true},    // succeeds: § is two bytes
 		{`\C{4}`, true},      // succeeds: four bytes
 	} {
-		got, _ := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{[]byte(test.filter)}}, row.copy())
+		got, _ := filterRow(&btpb.RowFilter{Filter: &btpb.RowFilter_ColumnQualifierRegexFilter{ColumnQualifierRegexFilter: []byte(test.filter)}}, row.copy())
 		if got != test.want {
 			t.Errorf("%v: got %t, want %t", test.filter, got, test.want)
 		}
@@ -2269,6 +2677,48 @@ func TestMutateRowsEmptyMutationErrors(t *testing.T) {
 	}
 }
 
+func TestMutateRowEmptyRowKeyErrors(t *testing.T) {
+	srv := &server{tables: make(map[string]*table)}
+	ctx := context.Background()
+
+	const tableID = "mytable"
+	tblReq := &btapb.CreateTableRequest{
+		Parent:  "cluster",
+		TableId: tableID,
+		Table: &btapb.Table{
+			ColumnFamilies: map[string]*btapb.ColumnFamily{"cf": {}},
+		},
+	}
+	if _, err := srv.CreateTable(ctx, tblReq); err != nil {
+		t.Fatalf("Failed to create the table: %v", err)
+	}
+
+	const name = "cluster/tables/" + tableID
+	req := &btpb.MutateRowRequest{
+		TableName: name,
+		RowKey:    []byte(""),
+		Mutations: []*btpb.Mutation{
+			{
+				Mutation: &btpb.Mutation_SetCell_{
+					SetCell: &btpb.Mutation_SetCell{
+						FamilyName:      "cf",
+						ColumnQualifier: []byte("col"),
+						TimestampMicros: 1000,
+						Value:           []byte("hello, world!"),
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := srv.MutateRow(ctx, req)
+	if resp != nil || err == nil || err.Error() !=
+		"rpc error: code = InvalidArgument"+
+			" desc = Row keys must be non-empty" {
+		t.Fatalf("Failed to produce the expected error: %s", err)
+	}
+}
+
 func TestFilterRowCellsPerRowLimitFilterTruthiness(t *testing.T) {
 	row := &row{
 		key: "row",
@@ -2291,10 +2741,10 @@ func TestFilterRowCellsPerRowLimitFilterTruthiness(t *testing.T) {
 		want   bool
 	}{
 		// The regexp-based filters perform whole-string, case-sensitive matches.
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{1}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{2}}, true},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{3}}, false},
-		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{4}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{CellsPerRowOffsetFilter: 1}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{CellsPerRowOffsetFilter: 2}}, true},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{CellsPerRowOffsetFilter: 3}}, false},
+		{&btpb.RowFilter{Filter: &btpb.RowFilter_CellsPerRowOffsetFilter{CellsPerRowOffsetFilter: 4}}, false},
 	} {
 		got, err := filterRow(test.filter, row.copy())
 		if err != nil {
@@ -2303,5 +2753,356 @@ func TestFilterRowCellsPerRowLimitFilterTruthiness(t *testing.T) {
 		if got != test.want {
 			t.Errorf("%s: got %t, want %t", prototext.Format(test.filter), got, test.want)
 		}
+	}
+}
+
+func TestAuthorizedViewApis(t *testing.T) {
+	s := &server{
+		tables: make(map[string]*table),
+	}
+	ctx := context.Background()
+	_, err := populateTable(ctx, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.CreateAuthorizedView(ctx, &btapb.CreateAuthorizedViewRequest{})
+	if fmt.Sprint(err) !=
+		"rpc error: code = Unimplemented desc = the emulator does not currently support authorized views" {
+		t.Fatalf("Failed to error %s", err)
+	}
+
+	_, err = s.GetAuthorizedView(ctx, &btapb.GetAuthorizedViewRequest{})
+	if fmt.Sprint(err) !=
+		"rpc error: code = Unimplemented desc = the emulator does not currently support authorized views" {
+		t.Fatalf("Failed to error %s", err)
+	}
+
+	_, err = s.ListAuthorizedViews(ctx, &btapb.ListAuthorizedViewsRequest{})
+	if fmt.Sprint(err) !=
+		"rpc error: code = Unimplemented desc = the emulator does not currently support authorized views" {
+		t.Fatalf("Failed to error %s", err)
+	}
+
+	_, err = s.UpdateAuthorizedView(ctx, &btapb.UpdateAuthorizedViewRequest{})
+	if fmt.Sprint(err) !=
+		"rpc error: code = Unimplemented desc = the emulator does not currently support authorized views" {
+		t.Fatalf("Failed to error %s", err)
+	}
+
+	_, err = s.DeleteAuthorizedView(ctx, &btapb.DeleteAuthorizedViewRequest{Name: "av_name"})
+	if fmt.Sprint(err) !=
+		"rpc error: code = Unimplemented desc = the emulator does not currently support authorized views" {
+		t.Fatalf("Failed to error %s", err)
+	}
+}
+
+func TestUpdateGCPolicyOnAggregateColumnFamily(t *testing.T) {
+	ctx := context.Background()
+
+	s := &server{
+		tables: make(map[string]*table),
+	}
+
+	tblInfo, err := s.CreateTable(ctx, &btapb.CreateTableRequest{
+		Parent:  "cluster",
+		TableId: "t",
+		Table: &btapb.Table{
+			ColumnFamilies: map[string]*btapb.ColumnFamily{
+				"sum": {
+					ValueType: &btapb.Type{
+						Kind: &btapb.Type_AggregateType{
+							AggregateType: &btapb.Type_Aggregate{
+								InputType: &btapb.Type{
+									Kind: &btapb.Type_Int64Type{},
+								},
+								Aggregator: &btapb.Type_Aggregate_Sum_{
+									Sum: &btapb.Type_Aggregate_Sum{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetValueType().
+		GetAggregateType().
+		GetSum() == nil {
+		t.Fatal("Unexpected aggregate column family type at start of test")
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetGcRule().
+		GetMaxNumVersions() == 1 {
+		t.Fatal("Unexpected GC policy state at start of test")
+	}
+
+	tblInfo, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{
+			{
+				Id: "sum",
+				// UpdateMask intentionally left empty, which the server will
+				// implicitly interpret as a gc_rule update.
+				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Update{
+					Update: &btapb.ColumnFamily{
+						GcRule: &btapb.GcRule{
+							Rule: &btapb.GcRule_MaxNumVersions{
+								MaxNumVersions: 1,
+							},
+						},
+						// HACK: Intentionally include an invalid type
+						// update, which should be ignored since it isn't
+						// present in the UpdateMask.
+						ValueType: &btapb.Type{
+							Kind: &btapb.Type_AggregateType{
+								AggregateType: &btapb.Type_Aggregate{
+									InputType: &btapb.Type{
+										Kind: &btapb.Type_Int64Type{},
+									},
+									Aggregator: &btapb.Type_Aggregate_Max_{
+										Max: &btapb.Type_Aggregate_Max{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetValueType().
+		GetAggregateType().
+		GetSum() == nil {
+		t.Fatal("Aggregate type was updated when it should not have been")
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetGcRule().
+		GetMaxNumVersions() != 1 {
+		t.Fatal("GC policy was not updated when it should have been")
+	}
+
+	tblInfo, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{
+			{
+				Id: "sum",
+				// Including UpdateMask in the request this time.
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"gc_rule"},
+				},
+				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Update{
+					Update: &btapb.ColumnFamily{
+						GcRule: &btapb.GcRule{
+							Rule: &btapb.GcRule_MaxNumVersions{
+								MaxNumVersions: 2,
+							},
+						},
+						// HACK: Intentionally including an invalid type
+						// update, which should be ignored since it isn't
+						// present in the UpdateMask.
+						ValueType: &btapb.Type{
+							Kind: &btapb.Type_AggregateType{
+								AggregateType: &btapb.Type_Aggregate{
+									InputType: &btapb.Type{
+										Kind: &btapb.Type_Int64Type{},
+									},
+									Aggregator: &btapb.Type_Aggregate_Max_{
+										Max: &btapb.Type_Aggregate_Max{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetValueType().
+		GetAggregateType().
+		GetSum() == nil {
+		t.Fatal("Aggregate type was updated when it should not have been")
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetGcRule().
+		GetMaxNumVersions() != 2 {
+		t.Fatal("GC policy was not updated when it should have been")
+	}
+}
+
+func TestCannotUpdateTypeOfAggregateColumnFamily(t *testing.T) {
+	ctx := context.Background()
+
+	s := &server{
+		tables: make(map[string]*table),
+	}
+
+	tblInfo, err := s.CreateTable(ctx, &btapb.CreateTableRequest{
+		Parent:  "cluster",
+		TableId: "t",
+		Table: &btapb.Table{
+			ColumnFamilies: map[string]*btapb.ColumnFamily{
+				"sum": {
+					ValueType: &btapb.Type{
+						Kind: &btapb.Type_AggregateType{
+							AggregateType: &btapb.Type_Aggregate{
+								InputType: &btapb.Type{
+									Kind: &btapb.Type_Int64Type{},
+								},
+								Aggregator: &btapb.Type_Aggregate_Sum_{
+									Sum: &btapb.Type_Aggregate_Sum{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetValueType().
+		GetAggregateType().
+		GetSum() == nil {
+		t.Fatal("Unexpected aggregate column family type at start of test")
+	}
+
+	_, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{
+			{
+				Id: "sum",
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"value_type"},
+				},
+				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Update{
+					Update: &btapb.ColumnFamily{
+						ValueType: &btapb.Type{
+							Kind: &btapb.Type_AggregateType{
+								AggregateType: &btapb.Type_Aggregate{
+									InputType: &btapb.Type{
+										Kind: &btapb.Type_Int64Type{},
+									},
+									Aggregator: &btapb.Type_Aggregate_Max_{
+										Max: &btapb.Type_Aggregate_Max{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("ModifyColumnFamilies was supposed to return an error, but it did not")
+	}
+
+	tblInfo, err = s.GetTable(ctx, &btapb.GetTableRequest{Name: tblInfo.Name})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetValueType().
+		GetAggregateType().
+		GetSum() == nil {
+		t.Fatal("Aggregate type was updated when it should not have been")
+	}
+}
+
+func TestInvalidUpdateMaskInColumnFamilyUpdate(t *testing.T) {
+	ctx := context.Background()
+
+	s := &server{
+		tables: make(map[string]*table),
+	}
+
+	tblInfo, err := s.CreateTable(ctx, &btapb.CreateTableRequest{
+		Parent:  "cluster",
+		TableId: "t",
+		Table: &btapb.Table{
+			ColumnFamilies: map[string]*btapb.ColumnFamily{
+				"sum": {
+					ValueType: &btapb.Type{
+						Kind: &btapb.Type_AggregateType{
+							AggregateType: &btapb.Type_Aggregate{
+								InputType: &btapb.Type{
+									Kind: &btapb.Type_Int64Type{},
+								},
+								Aggregator: &btapb.Type_Aggregate_Sum_{
+									Sum: &btapb.Type_Aggregate_Sum{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetGcRule().
+		GetMaxNumVersions() == 1 {
+		t.Fatal("Unexpected GC policy state at start of test")
+	}
+
+	_, err = s.ModifyColumnFamilies(ctx, &btapb.ModifyColumnFamiliesRequest{
+		Name: tblInfo.Name,
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{
+			{
+				Id: "sum",
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"bad", "gc_rule"},
+				},
+				Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Update{
+					Update: &btapb.ColumnFamily{
+						GcRule: &btapb.GcRule{
+							Rule: &btapb.GcRule_MaxNumVersions{
+								MaxNumVersions: 1,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("ModifyColumnFamilies was supposed to return an error, but it did not")
+	}
+
+	tblInfo, err = s.GetTable(ctx, &btapb.GetTableRequest{Name: tblInfo.Name})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tblInfo.ColumnFamilies["sum"].
+		GetGcRule().
+		GetMaxNumVersions() == 1 {
+		t.Fatal("GC policy was updated when it should not have been")
 	}
 }

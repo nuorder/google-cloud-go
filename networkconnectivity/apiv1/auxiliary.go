@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -89,6 +89,128 @@ func (op *AcceptHubSpokeOperation) Name() string {
 	return op.lro.Name()
 }
 
+// AcceptSpokeUpdateOperation manages a long-running operation from AcceptSpokeUpdate.
+type AcceptSpokeUpdateOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *AcceptSpokeUpdateOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.AcceptSpokeUpdateResponse, error) {
+	var resp networkconnectivitypb.AcceptSpokeUpdateResponse
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *AcceptSpokeUpdateOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.AcceptSpokeUpdateResponse, error) {
+	var resp networkconnectivitypb.AcceptSpokeUpdateResponse
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *AcceptSpokeUpdateOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *AcceptSpokeUpdateOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *AcceptSpokeUpdateOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateDestinationOperation manages a long-running operation from CreateDestination.
+type CreateDestinationOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateDestinationOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Destination, error) {
+	var resp networkconnectivitypb.Destination
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateDestinationOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Destination, error) {
+	var resp networkconnectivitypb.Destination
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateDestinationOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateDestinationOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateDestinationOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateHubOperation manages a long-running operation from CreateHub.
 type CreateHubOperation struct {
 	lro *longrunning.Operation
@@ -147,6 +269,128 @@ func (op *CreateHubOperation) Done() bool {
 // Name returns the name of the long-running operation.
 // The name is assigned by the server and is unique within the service from which the operation is created.
 func (op *CreateHubOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateInternalRangeOperation manages a long-running operation from CreateInternalRange.
+type CreateInternalRangeOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateInternalRangeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.InternalRange, error) {
+	var resp networkconnectivitypb.InternalRange
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateInternalRangeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.InternalRange, error) {
+	var resp networkconnectivitypb.InternalRange
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateInternalRangeOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateInternalRangeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateInternalRangeOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateMulticloudDataTransferConfigOperation manages a long-running operation from CreateMulticloudDataTransferConfig.
+type CreateMulticloudDataTransferConfigOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateMulticloudDataTransferConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.MulticloudDataTransferConfig, error) {
+	var resp networkconnectivitypb.MulticloudDataTransferConfig
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateMulticloudDataTransferConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.MulticloudDataTransferConfig, error) {
+	var resp networkconnectivitypb.MulticloudDataTransferConfig
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateMulticloudDataTransferConfigOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateMulticloudDataTransferConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateMulticloudDataTransferConfigOperation) Name() string {
 	return op.lro.Name()
 }
 
@@ -211,6 +455,189 @@ func (op *CreatePolicyBasedRouteOperation) Name() string {
 	return op.lro.Name()
 }
 
+// CreateServiceConnectionMapOperation manages a long-running operation from CreateServiceConnectionMap.
+type CreateServiceConnectionMapOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateServiceConnectionMapOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionMap, error) {
+	var resp networkconnectivitypb.ServiceConnectionMap
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateServiceConnectionMapOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionMap, error) {
+	var resp networkconnectivitypb.ServiceConnectionMap
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateServiceConnectionMapOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateServiceConnectionMapOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateServiceConnectionMapOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateServiceConnectionPolicyOperation manages a long-running operation from CreateServiceConnectionPolicy.
+type CreateServiceConnectionPolicyOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateServiceConnectionPolicyOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionPolicy, error) {
+	var resp networkconnectivitypb.ServiceConnectionPolicy
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateServiceConnectionPolicyOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionPolicy, error) {
+	var resp networkconnectivitypb.ServiceConnectionPolicy
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateServiceConnectionPolicyOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateServiceConnectionPolicyOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateServiceConnectionPolicyOperation) Name() string {
+	return op.lro.Name()
+}
+
+// CreateServiceConnectionTokenOperation manages a long-running operation from CreateServiceConnectionToken.
+type CreateServiceConnectionTokenOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *CreateServiceConnectionTokenOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionToken, error) {
+	var resp networkconnectivitypb.ServiceConnectionToken
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *CreateServiceConnectionTokenOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionToken, error) {
+	var resp networkconnectivitypb.ServiceConnectionToken
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *CreateServiceConnectionTokenOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *CreateServiceConnectionTokenOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *CreateServiceConnectionTokenOperation) Name() string {
+	return op.lro.Name()
+}
+
 // CreateSpokeOperation manages a long-running operation from CreateSpoke.
 type CreateSpokeOperation struct {
 	lro *longrunning.Operation
@@ -272,6 +699,56 @@ func (op *CreateSpokeOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DeleteDestinationOperation manages a long-running operation from DeleteDestination.
+type DeleteDestinationOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteDestinationOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteDestinationOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteDestinationOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteDestinationOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteDestinationOperation) Name() string {
+	return op.lro.Name()
+}
+
 // DeleteHubOperation manages a long-running operation from DeleteHub.
 type DeleteHubOperation struct {
 	lro *longrunning.Operation
@@ -322,6 +799,106 @@ func (op *DeleteHubOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DeleteInternalRangeOperation manages a long-running operation from DeleteInternalRange.
+type DeleteInternalRangeOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteInternalRangeOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteInternalRangeOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteInternalRangeOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteInternalRangeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteInternalRangeOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteMulticloudDataTransferConfigOperation manages a long-running operation from DeleteMulticloudDataTransferConfig.
+type DeleteMulticloudDataTransferConfigOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteMulticloudDataTransferConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteMulticloudDataTransferConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteMulticloudDataTransferConfigOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteMulticloudDataTransferConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteMulticloudDataTransferConfigOperation) Name() string {
+	return op.lro.Name()
+}
+
 // DeletePolicyBasedRouteOperation manages a long-running operation from DeletePolicyBasedRoute.
 type DeletePolicyBasedRouteOperation struct {
 	lro *longrunning.Operation
@@ -369,6 +946,206 @@ func (op *DeletePolicyBasedRouteOperation) Done() bool {
 // Name returns the name of the long-running operation.
 // The name is assigned by the server and is unique within the service from which the operation is created.
 func (op *DeletePolicyBasedRouteOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteServiceClassOperation manages a long-running operation from DeleteServiceClass.
+type DeleteServiceClassOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteServiceClassOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteServiceClassOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteServiceClassOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteServiceClassOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteServiceClassOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteServiceConnectionMapOperation manages a long-running operation from DeleteServiceConnectionMap.
+type DeleteServiceConnectionMapOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteServiceConnectionMapOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteServiceConnectionMapOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteServiceConnectionMapOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteServiceConnectionMapOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteServiceConnectionMapOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteServiceConnectionPolicyOperation manages a long-running operation from DeleteServiceConnectionPolicy.
+type DeleteServiceConnectionPolicyOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteServiceConnectionPolicyOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteServiceConnectionPolicyOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteServiceConnectionPolicyOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteServiceConnectionPolicyOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteServiceConnectionPolicyOperation) Name() string {
+	return op.lro.Name()
+}
+
+// DeleteServiceConnectionTokenOperation manages a long-running operation from DeleteServiceConnectionToken.
+type DeleteServiceConnectionTokenOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *DeleteServiceConnectionTokenOperation) Wait(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.WaitWithInterval(ctx, nil, time.Minute, opts...)
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *DeleteServiceConnectionTokenOperation) Poll(ctx context.Context, opts ...gax.CallOption) error {
+	return op.lro.Poll(ctx, nil, opts...)
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *DeleteServiceConnectionTokenOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *DeleteServiceConnectionTokenOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *DeleteServiceConnectionTokenOperation) Name() string {
 	return op.lro.Name()
 }
 
@@ -483,6 +1260,189 @@ func (op *RejectHubSpokeOperation) Name() string {
 	return op.lro.Name()
 }
 
+// RejectSpokeUpdateOperation manages a long-running operation from RejectSpokeUpdate.
+type RejectSpokeUpdateOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *RejectSpokeUpdateOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.RejectSpokeUpdateResponse, error) {
+	var resp networkconnectivitypb.RejectSpokeUpdateResponse
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *RejectSpokeUpdateOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.RejectSpokeUpdateResponse, error) {
+	var resp networkconnectivitypb.RejectSpokeUpdateResponse
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *RejectSpokeUpdateOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *RejectSpokeUpdateOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *RejectSpokeUpdateOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateDestinationOperation manages a long-running operation from UpdateDestination.
+type UpdateDestinationOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateDestinationOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Destination, error) {
+	var resp networkconnectivitypb.Destination
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateDestinationOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Destination, error) {
+	var resp networkconnectivitypb.Destination
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateDestinationOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateDestinationOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateDestinationOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateGroupOperation manages a long-running operation from UpdateGroup.
+type UpdateGroupOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateGroupOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Group, error) {
+	var resp networkconnectivitypb.Group
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateGroupOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.Group, error) {
+	var resp networkconnectivitypb.Group
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateGroupOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateGroupOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateGroupOperation) Name() string {
+	return op.lro.Name()
+}
+
 // UpdateHubOperation manages a long-running operation from UpdateHub.
 type UpdateHubOperation struct {
 	lro *longrunning.Operation
@@ -541,6 +1501,311 @@ func (op *UpdateHubOperation) Done() bool {
 // Name returns the name of the long-running operation.
 // The name is assigned by the server and is unique within the service from which the operation is created.
 func (op *UpdateHubOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateInternalRangeOperation manages a long-running operation from UpdateInternalRange.
+type UpdateInternalRangeOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateInternalRangeOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.InternalRange, error) {
+	var resp networkconnectivitypb.InternalRange
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateInternalRangeOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.InternalRange, error) {
+	var resp networkconnectivitypb.InternalRange
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateInternalRangeOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateInternalRangeOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateInternalRangeOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateMulticloudDataTransferConfigOperation manages a long-running operation from UpdateMulticloudDataTransferConfig.
+type UpdateMulticloudDataTransferConfigOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateMulticloudDataTransferConfigOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.MulticloudDataTransferConfig, error) {
+	var resp networkconnectivitypb.MulticloudDataTransferConfig
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateMulticloudDataTransferConfigOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.MulticloudDataTransferConfig, error) {
+	var resp networkconnectivitypb.MulticloudDataTransferConfig
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateMulticloudDataTransferConfigOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateMulticloudDataTransferConfigOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateMulticloudDataTransferConfigOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateServiceClassOperation manages a long-running operation from UpdateServiceClass.
+type UpdateServiceClassOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateServiceClassOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceClass, error) {
+	var resp networkconnectivitypb.ServiceClass
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateServiceClassOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceClass, error) {
+	var resp networkconnectivitypb.ServiceClass
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateServiceClassOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateServiceClassOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateServiceClassOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateServiceConnectionMapOperation manages a long-running operation from UpdateServiceConnectionMap.
+type UpdateServiceConnectionMapOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateServiceConnectionMapOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionMap, error) {
+	var resp networkconnectivitypb.ServiceConnectionMap
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateServiceConnectionMapOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionMap, error) {
+	var resp networkconnectivitypb.ServiceConnectionMap
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateServiceConnectionMapOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateServiceConnectionMapOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateServiceConnectionMapOperation) Name() string {
+	return op.lro.Name()
+}
+
+// UpdateServiceConnectionPolicyOperation manages a long-running operation from UpdateServiceConnectionPolicy.
+type UpdateServiceConnectionPolicyOperation struct {
+	lro *longrunning.Operation
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *UpdateServiceConnectionPolicyOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionPolicy, error) {
+	var resp networkconnectivitypb.ServiceConnectionPolicy
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *UpdateServiceConnectionPolicyOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*networkconnectivitypb.ServiceConnectionPolicy, error) {
+	var resp networkconnectivitypb.ServiceConnectionPolicy
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *UpdateServiceConnectionPolicyOperation) Metadata() (*networkconnectivitypb.OperationMetadata, error) {
+	var meta networkconnectivitypb.OperationMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *UpdateServiceConnectionPolicyOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *UpdateServiceConnectionPolicyOperation) Name() string {
 	return op.lro.Name()
 }
 
@@ -605,6 +1870,53 @@ func (op *UpdateSpokeOperation) Name() string {
 	return op.lro.Name()
 }
 
+// DestinationIterator manages a stream of *networkconnectivitypb.Destination.
+type DestinationIterator struct {
+	items    []*networkconnectivitypb.Destination
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.Destination, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *DestinationIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *DestinationIterator) Next() (*networkconnectivitypb.Destination, error) {
+	var item *networkconnectivitypb.Destination
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *DestinationIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *DestinationIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // GroupIterator manages a stream of *networkconnectivitypb.Group.
 type GroupIterator struct {
 	items    []*networkconnectivitypb.Group
@@ -625,7 +1937,7 @@ type GroupIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.Group, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *GroupIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -672,7 +1984,7 @@ type HubIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.Hub, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *HubIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -699,6 +2011,100 @@ func (it *HubIterator) takeBuf() interface{} {
 	return b
 }
 
+// HubStatusEntryIterator manages a stream of *networkconnectivitypb.HubStatusEntry.
+type HubStatusEntryIterator struct {
+	items    []*networkconnectivitypb.HubStatusEntry
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.HubStatusEntry, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *HubStatusEntryIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *HubStatusEntryIterator) Next() (*networkconnectivitypb.HubStatusEntry, error) {
+	var item *networkconnectivitypb.HubStatusEntry
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *HubStatusEntryIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *HubStatusEntryIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// InternalRangeIterator manages a stream of *networkconnectivitypb.InternalRange.
+type InternalRangeIterator struct {
+	items    []*networkconnectivitypb.InternalRange
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.InternalRange, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *InternalRangeIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *InternalRangeIterator) Next() (*networkconnectivitypb.InternalRange, error) {
+	var item *networkconnectivitypb.InternalRange
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *InternalRangeIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *InternalRangeIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // LocationIterator manages a stream of *locationpb.Location.
 type LocationIterator struct {
 	items    []*locationpb.Location
@@ -719,7 +2125,7 @@ type LocationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*locationpb.Location, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *LocationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -746,6 +2152,100 @@ func (it *LocationIterator) takeBuf() interface{} {
 	return b
 }
 
+// MulticloudDataTransferConfigIterator manages a stream of *networkconnectivitypb.MulticloudDataTransferConfig.
+type MulticloudDataTransferConfigIterator struct {
+	items    []*networkconnectivitypb.MulticloudDataTransferConfig
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.MulticloudDataTransferConfig, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *MulticloudDataTransferConfigIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *MulticloudDataTransferConfigIterator) Next() (*networkconnectivitypb.MulticloudDataTransferConfig, error) {
+	var item *networkconnectivitypb.MulticloudDataTransferConfig
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *MulticloudDataTransferConfigIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *MulticloudDataTransferConfigIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// MulticloudDataTransferSupportedServiceIterator manages a stream of *networkconnectivitypb.MulticloudDataTransferSupportedService.
+type MulticloudDataTransferSupportedServiceIterator struct {
+	items    []*networkconnectivitypb.MulticloudDataTransferSupportedService
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.MulticloudDataTransferSupportedService, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *MulticloudDataTransferSupportedServiceIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *MulticloudDataTransferSupportedServiceIterator) Next() (*networkconnectivitypb.MulticloudDataTransferSupportedService, error) {
+	var item *networkconnectivitypb.MulticloudDataTransferSupportedService
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *MulticloudDataTransferSupportedServiceIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *MulticloudDataTransferSupportedServiceIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // OperationIterator manages a stream of *longrunningpb.Operation.
 type OperationIterator struct {
 	items    []*longrunningpb.Operation
@@ -766,7 +2266,7 @@ type OperationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*longrunningpb.Operation, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *OperationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -813,7 +2313,7 @@ type PolicyBasedRouteIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.PolicyBasedRoute, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *PolicyBasedRouteIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -860,7 +2360,7 @@ type RouteIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.Route, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *RouteIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -907,7 +2407,7 @@ type RouteTableIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.RouteTable, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *RouteTableIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -934,6 +2434,194 @@ func (it *RouteTableIterator) takeBuf() interface{} {
 	return b
 }
 
+// ServiceClassIterator manages a stream of *networkconnectivitypb.ServiceClass.
+type ServiceClassIterator struct {
+	items    []*networkconnectivitypb.ServiceClass
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.ServiceClass, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ServiceClassIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ServiceClassIterator) Next() (*networkconnectivitypb.ServiceClass, error) {
+	var item *networkconnectivitypb.ServiceClass
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ServiceClassIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ServiceClassIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// ServiceConnectionMapIterator manages a stream of *networkconnectivitypb.ServiceConnectionMap.
+type ServiceConnectionMapIterator struct {
+	items    []*networkconnectivitypb.ServiceConnectionMap
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.ServiceConnectionMap, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ServiceConnectionMapIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ServiceConnectionMapIterator) Next() (*networkconnectivitypb.ServiceConnectionMap, error) {
+	var item *networkconnectivitypb.ServiceConnectionMap
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ServiceConnectionMapIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ServiceConnectionMapIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// ServiceConnectionPolicyIterator manages a stream of *networkconnectivitypb.ServiceConnectionPolicy.
+type ServiceConnectionPolicyIterator struct {
+	items    []*networkconnectivitypb.ServiceConnectionPolicy
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.ServiceConnectionPolicy, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ServiceConnectionPolicyIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ServiceConnectionPolicyIterator) Next() (*networkconnectivitypb.ServiceConnectionPolicy, error) {
+	var item *networkconnectivitypb.ServiceConnectionPolicy
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ServiceConnectionPolicyIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ServiceConnectionPolicyIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// ServiceConnectionTokenIterator manages a stream of *networkconnectivitypb.ServiceConnectionToken.
+type ServiceConnectionTokenIterator struct {
+	items    []*networkconnectivitypb.ServiceConnectionToken
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.ServiceConnectionToken, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ServiceConnectionTokenIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ServiceConnectionTokenIterator) Next() (*networkconnectivitypb.ServiceConnectionToken, error) {
+	var item *networkconnectivitypb.ServiceConnectionToken
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ServiceConnectionTokenIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ServiceConnectionTokenIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // SpokeIterator manages a stream of *networkconnectivitypb.Spoke.
 type SpokeIterator struct {
 	items    []*networkconnectivitypb.Spoke
@@ -954,7 +2642,7 @@ type SpokeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*networkconnectivitypb.Spoke, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *SpokeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }

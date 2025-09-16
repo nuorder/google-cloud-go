@@ -27,14 +27,14 @@ import (
 	vkit "cloud.google.com/go/firestore/apiv1"
 	pb "cloud.google.com/go/firestore/apiv1/firestorepb"
 	"cloud.google.com/go/firestore/internal"
+	"cloud.google.com/go/internal/detect"
 	"cloud.google.com/go/internal/trace"
-	"github.com/golang/protobuf/ptypes"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -63,7 +63,7 @@ func reqParamsHeaderVal(dbPath string) string {
 // if no credentials were provided. When providing credentials, not all
 // options will allow NewClient to extract the project ID. Specifically a JWT
 // does not have the project ID encoded.
-const DetectProjectID = "*detect-project-id*"
+const DetectProjectID = detect.ProjectIDSentinel
 
 // DefaultDatabaseID is name of the default database
 const DefaultDatabaseID = "(default)"
@@ -74,39 +74,42 @@ type Client struct {
 	projectID    string
 	databaseID   string        // A client is tied to a single database.
 	readSettings *readSettings // readSettings allows setting a snapshot time to read the database
+	UsesEmulator bool          // a boolean that indicates if the client is using the emulator
 }
 
-// NewClient creates a new Firestore client that uses the given project.
-func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
+// newClient creates a new Firestore client, using the given createClient function to create the underlying client.
+func newClient(ctx context.Context, projectID string, createClient func(ctx context.Context, opts ...option.ClientOption) (*vkit.Client, error), supportsEmulator bool, opts ...option.ClientOption) (*Client, error) {
 	if projectID == "" {
 		return nil, errors.New("firestore: projectID was empty")
 	}
 	var o []option.ClientOption
+	var usesEmulator bool
 	// If this environment variable is defined, configure the client to talk to the emulator.
 	if addr := os.Getenv("FIRESTORE_EMULATOR_HOST"); addr != "" {
-		conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithPerRPCCredentials(emulatorCreds{}))
+		if !supportsEmulator {
+			return nil, fmt.Errorf("firestore: emulator is not supported for this client type")
+		}
+
+		conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithPerRPCCredentials(emulatorCreds{}))
 		if err != nil {
 			return nil, fmt.Errorf("firestore: dialing address from env var FIRESTORE_EMULATOR_HOST: %s", err)
 		}
+		usesEmulator = true
 		o = []option.ClientOption{option.WithGRPCConn(conn)}
-		if projectID == DetectProjectID {
-			projectID, _ = detectProjectID(ctx, opts...)
-			if projectID == "" {
-				projectID = "dummy-emulator-firestore-project"
-			}
+		projectID, _ = detect.ProjectID(ctx, projectID, "", opts...)
+		if projectID == "" {
+			projectID = "dummy-emulator-firestore-project"
 		}
 	}
 	o = append(o, opts...)
 
-	if projectID == DetectProjectID {
-		detected, err := detectProjectID(ctx, o...)
-		if err != nil {
-			return nil, err
-		}
-		projectID = detected
+	// Detect project ID.
+	projectID, err := detect.ProjectID(ctx, projectID, "", o...)
+	if err != nil {
+		return nil, err
 	}
 
-	vc, err := vkit.NewClient(ctx, o...)
+	vc, err := createClient(ctx, o...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +119,19 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 		projectID:    projectID,
 		databaseID:   DefaultDatabaseID,
 		readSettings: &readSettings{},
+		UsesEmulator: usesEmulator,
 	}
 	return c, nil
+}
+
+// NewClient creates a new Firestore client that uses the given project.
+func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
+	return newClient(ctx, projectID, vkit.NewClient, true, opts...)
+}
+
+// NewRESTClient creates a new Firestore client that uses the REST API.
+func NewRESTClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
+	return newClient(ctx, projectID, vkit.NewRESTClient, false, opts...)
 }
 
 // NewClientWithDatabase creates a new Firestore client that accesses the
@@ -134,17 +148,6 @@ func NewClientWithDatabase(ctx context.Context, projectID string, databaseID str
 
 	client.databaseID = databaseID
 	return client, nil
-}
-
-func detectProjectID(ctx context.Context, opts ...option.ClientOption) (string, error) {
-	creds, err := transport.Creds(ctx, opts...)
-	if err != nil {
-		return "", fmt.Errorf("fetching creds: %w", err)
-	}
-	if creds.ProjectID == "" {
-		return "", errors.New("firestore: see the docs on DetectProjectID")
-	}
-	return creds.ProjectID, nil
 }
 
 // Close closes any resources held by the client.
@@ -194,6 +197,40 @@ func (c *Client) Collection(path string) *CollectionRef {
 func (c *Client) Doc(path string) *DocumentRef {
 	_, doc := c.idsToRef(strings.Split(path, "/"), c.path())
 	return doc
+}
+
+// DocFromFullPath creates a reference to a document from its full, absolute path,
+// also known as its Google Cloud resource name.
+// The path must be in the format:
+// "projects/{projectID}/databases/{databaseID}/documents/{collectionID}/{documentID}/..."
+// This method returns nil if:
+//   - The fullPath is empty.
+//   - The fullPath does not match the expected resource name format (e.g., missing "projects/" or "/documents/").
+//   - The projectID or databaseID in the fullPath do not match the client's configuration.
+//   - The fullPath refers to a collection instead of a document (i.e., has an odd number of segments after "/documents/").
+//   - The fullPath contains any empty path segments.
+func (c *Client) DocFromFullPath(fullPath string) *DocumentRef {
+	if fullPath == "" {
+		return nil
+	}
+
+	const documentsPrefix = "/documents/"
+	if !strings.HasPrefix(fullPath, "projects/") || !strings.Contains(fullPath, documentsPrefix) {
+		return nil
+	}
+	parts := strings.SplitN(fullPath, documentsPrefix, 2)
+	if len(parts) != 2 {
+		return nil
+	}
+
+	actualDBPathFromFullPath := parts[0]
+	expectedDBPath := c.path()
+	if actualDBPathFromFullPath != expectedDBPath {
+		return nil
+	}
+
+	_, docRef := c.idsToRef(strings.Split(parts[1], "/"), actualDBPathFromFullPath)
+	return docRef
 }
 
 // CollectionGroup creates a reference to a group of collections that include
@@ -257,8 +294,8 @@ func (c *Client) getAll(ctx context.Context, docRefs []*DocumentRef, tid []byte,
 	var docNames []string
 	docIndices := map[string][]int{} // doc name to positions in docRefs
 	for i, dr := range docRefs {
-		if dr == nil {
-			return nil, errNilDocRef
+		if err := dr.isValid(); err != nil {
+			return nil, err
 		}
 		docNames = append(docNames, dr.Path)
 		docIndices[dr.Path] = append(docIndices[dr.Path], i)
@@ -418,10 +455,10 @@ type WriteResult struct {
 }
 
 func writeResultFromProto(wr *pb.WriteResult) (*WriteResult, error) {
-	t, err := ptypes.Timestamp(wr.UpdateTime)
-	if err != nil {
-		t = time.Time{}
-		// TODO(jba): Follow up if Delete is supposed to return a nil timestamp.
+	// TODO(jba): Follow up if Delete is supposed to return a nil timestamp.
+	var t time.Time
+	if err := wr.GetUpdateTime().CheckValid(); err == nil {
+		t = wr.GetUpdateTime().AsTime()
 	}
 	return &WriteResult{UpdateTime: t}, nil
 }

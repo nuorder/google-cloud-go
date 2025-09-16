@@ -127,9 +127,11 @@ var keywords = map[string]bool{
 
 // funcs is the set of reserved keywords that are functions.
 // https://cloud.google.com/spanner/docs/functions-and-operators
-var funcs = make(map[string]bool)
-var funcArgParsers = make(map[string]func(*parser) (Expr, *parseError))
-var aggregateFuncs = make(map[string]bool)
+var (
+	funcs          = make(map[string]bool)
+	funcArgParsers = make(map[string]func(*parser) (Expr, *parseError))
+	aggregateFuncs = make(map[string]bool)
+)
 
 func init() {
 	for _, f := range funcNames {
@@ -153,6 +155,11 @@ func init() {
 	// Special case of SEQUENCE arg for GET_NEXT_SEQUENCE_VALUE, GET_INTERNAL_SEQUENCE_STATE
 	funcArgParsers["GET_NEXT_SEQUENCE_VALUE"] = sequenceArgParser
 	funcArgParsers["GET_INTERNAL_SEQUENCE_STATE"] = sequenceArgParser
+	// Special case for tokenization, which uses `[, key => value]` definitions
+	funcArgParsers["TOKENIZE_FULLTEXT"] = tokenDefinitionArgParser
+	funcArgParsers["TOKENIZE_NGRAMS"] = tokenDefinitionArgParser
+	funcArgParsers["TOKENIZE_NUMBER"] = tokenDefinitionArgParser
+	funcArgParsers["TOKENIZE_SUBSTRING"] = tokenDefinitionArgParser
 }
 
 var funcNames = []string{
@@ -234,10 +241,22 @@ var funcNames = []string{
 	"TRIM",
 	"UPPER",
 
+	// Token functions.
+	"TOKEN",
+	"TOKENIZE_BOOL",
+	"TOKENIZE_FULLTEXT",
+	"TOKENIZE_JSON",
+	"TOKENIZE_NGRAMS",
+	"TOKENIZE_NUMBER",
+	"TOKENIZE_SUBSTRING",
+	"TOKENLIST_CONCAT",
+
 	// Array functions.
 	"ARRAY",
 	"ARRAY_CONCAT",
+	"ARRAY_FIRST", "ARRAY_INCLUDES", "ARRAY_INCLUDES_ALL", "ARRAY_INCLUDES_ANY", "ARRAY_LAST",
 	"ARRAY_LENGTH",
+	"ARRAY_MAX", "ARRAY_MIN", "ARRAY_REVERSE", "ARRAY_SLICE", "ARRAY_TRANSFORM",
 	"ARRAY_TO_STRING",
 	"GENERATE_ARRAY", "GENERATE_DATE_ARRAY",
 	"OFFSET", "ORDINAL",
@@ -277,7 +296,10 @@ var funcNames = []string{
 	"PENDING_COMMIT_TIMESTAMP",
 
 	// JSON functions.
+	"JSON_QUERY",
 	"JSON_VALUE",
+	"JSON_QUERY_ARRAY",
+	"JSON_VALUE_ARRAY",
 
 	// Bit functions.
 	"BIT_COUNT",

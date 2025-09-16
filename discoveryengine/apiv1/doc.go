@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,13 +35,14 @@
 //
 // To get started with this package, create a client.
 //
+//	// go get cloud.google.com/go/discoveryengine/apiv1@latest
 //	ctx := context.Background()
 //	// This snippet has been automatically generated and should be regarded as a code template only.
 //	// It will require modifications to work:
 //	// - It may require correct/in-range values for request initialization.
 //	// - It may require specifying regional endpoints when creating the service client as shown in:
 //	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := discoveryengine.NewCompletionClient(ctx)
+//	c, err := discoveryengine.NewSearchClient(ctx)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
@@ -53,34 +54,34 @@
 //
 // # Using the Client
 //
-// The following is an example of making an API call with the newly created client.
+// The following is an example of making an API call with the newly created client, mentioned above.
 //
-//	ctx := context.Background()
-//	// This snippet has been automatically generated and should be regarded as a code template only.
-//	// It will require modifications to work:
-//	// - It may require correct/in-range values for request initialization.
-//	// - It may require specifying regional endpoints when creating the service client as shown in:
-//	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := discoveryengine.NewCompletionClient(ctx)
-//	if err != nil {
-//		// TODO: Handle error.
-//	}
-//	defer c.Close()
-//
-//	req := &discoveryenginepb.CompleteQueryRequest{
+//	req := &discoveryenginepb.SearchRequest{
 //		// TODO: Fill request struct fields.
-//		// See https://pkg.go.dev/cloud.google.com/go/discoveryengine/apiv1/discoveryenginepb#CompleteQueryRequest.
+//		// See https://pkg.go.dev/cloud.google.com/go/discoveryengine/apiv1/discoveryenginepb#SearchRequest.
 //	}
-//	resp, err := c.CompleteQuery(ctx, req)
-//	if err != nil {
-//		// TODO: Handle error.
+//	it := c.Search(ctx, req)
+//	for {
+//		resp, err := it.Next()
+//		if err == iterator.Done {
+//			break
+//		}
+//		if err != nil {
+//			// TODO: Handle error.
+//		}
+//		// TODO: Use resp.
+//		_ = resp
+//
+//		// If you need to access the underlying RPC response,
+//		// you can do so by casting the `Response` as below.
+//		// Otherwise, remove this line. Only populated after
+//		// first call to Next(). Not safe for concurrent access.
+//		_ = it.Response.(*discoveryenginepb.SearchResponse)
 //	}
-//	// TODO: Use resp.
-//	_ = resp
 //
 // # Use of Context
 //
-// The ctx passed to NewCompletionClient is used for authentication requests and
+// The ctx passed to NewSearchClient is used for authentication requests and
 // for creating the underlying connection, but is not used for subsequent calls.
 // Individual methods on the client use the ctx given to them.
 //
@@ -92,30 +93,3 @@
 // [Debugging Client Libraries]: https://pkg.go.dev/cloud.google.com/go#hdr-Debugging
 // [Inspecting errors]: https://pkg.go.dev/cloud.google.com/go#hdr-Inspecting_errors
 package discoveryengine // import "cloud.google.com/go/discoveryengine/apiv1"
-
-import (
-	"context"
-
-	"google.golang.org/api/option"
-)
-
-// For more information on implementing a client constructor hook, see
-// https://github.com/googleapis/google-cloud-go/wiki/Customizing-constructors.
-type clientHookParams struct{}
-type clientHook func(context.Context, clientHookParams) ([]option.ClientOption, error)
-
-var versionClient string
-
-func getVersionClient() string {
-	if versionClient == "" {
-		return "UNKNOWN"
-	}
-	return versionClient
-}
-
-// DefaultAuthScopes reports the default set of authentication scopes to use with this package.
-func DefaultAuthScopes() []string {
-	return []string{
-		"https://www.googleapis.com/auth/cloud-platform",
-	}
-}

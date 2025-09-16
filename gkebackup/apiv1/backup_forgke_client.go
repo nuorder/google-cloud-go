@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -32,7 +32,6 @@ import (
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -49,39 +48,54 @@ var newBackupForGKEClientHook clientHook
 
 // BackupForGKECallOptions contains the retry settings for each method of BackupForGKEClient.
 type BackupForGKECallOptions struct {
-	CreateBackupPlan   []gax.CallOption
-	ListBackupPlans    []gax.CallOption
-	GetBackupPlan      []gax.CallOption
-	UpdateBackupPlan   []gax.CallOption
-	DeleteBackupPlan   []gax.CallOption
-	CreateBackup       []gax.CallOption
-	ListBackups        []gax.CallOption
-	GetBackup          []gax.CallOption
-	UpdateBackup       []gax.CallOption
-	DeleteBackup       []gax.CallOption
-	ListVolumeBackups  []gax.CallOption
-	GetVolumeBackup    []gax.CallOption
-	CreateRestorePlan  []gax.CallOption
-	ListRestorePlans   []gax.CallOption
-	GetRestorePlan     []gax.CallOption
-	UpdateRestorePlan  []gax.CallOption
-	DeleteRestorePlan  []gax.CallOption
-	CreateRestore      []gax.CallOption
-	ListRestores       []gax.CallOption
-	GetRestore         []gax.CallOption
-	UpdateRestore      []gax.CallOption
-	DeleteRestore      []gax.CallOption
-	ListVolumeRestores []gax.CallOption
-	GetVolumeRestore   []gax.CallOption
-	GetLocation        []gax.CallOption
-	ListLocations      []gax.CallOption
-	GetIamPolicy       []gax.CallOption
-	SetIamPolicy       []gax.CallOption
-	TestIamPermissions []gax.CallOption
-	CancelOperation    []gax.CallOption
-	DeleteOperation    []gax.CallOption
-	GetOperation       []gax.CallOption
-	ListOperations     []gax.CallOption
+	CreateBackupPlan          []gax.CallOption
+	ListBackupPlans           []gax.CallOption
+	GetBackupPlan             []gax.CallOption
+	UpdateBackupPlan          []gax.CallOption
+	DeleteBackupPlan          []gax.CallOption
+	CreateBackupChannel       []gax.CallOption
+	ListBackupChannels        []gax.CallOption
+	GetBackupChannel          []gax.CallOption
+	UpdateBackupChannel       []gax.CallOption
+	DeleteBackupChannel       []gax.CallOption
+	ListBackupPlanBindings    []gax.CallOption
+	GetBackupPlanBinding      []gax.CallOption
+	CreateBackup              []gax.CallOption
+	ListBackups               []gax.CallOption
+	GetBackup                 []gax.CallOption
+	UpdateBackup              []gax.CallOption
+	DeleteBackup              []gax.CallOption
+	ListVolumeBackups         []gax.CallOption
+	GetVolumeBackup           []gax.CallOption
+	CreateRestorePlan         []gax.CallOption
+	ListRestorePlans          []gax.CallOption
+	GetRestorePlan            []gax.CallOption
+	UpdateRestorePlan         []gax.CallOption
+	DeleteRestorePlan         []gax.CallOption
+	CreateRestoreChannel      []gax.CallOption
+	ListRestoreChannels       []gax.CallOption
+	GetRestoreChannel         []gax.CallOption
+	UpdateRestoreChannel      []gax.CallOption
+	DeleteRestoreChannel      []gax.CallOption
+	ListRestorePlanBindings   []gax.CallOption
+	GetRestorePlanBinding     []gax.CallOption
+	CreateRestore             []gax.CallOption
+	ListRestores              []gax.CallOption
+	GetRestore                []gax.CallOption
+	UpdateRestore             []gax.CallOption
+	DeleteRestore             []gax.CallOption
+	ListVolumeRestores        []gax.CallOption
+	GetVolumeRestore          []gax.CallOption
+	GetBackupIndexDownloadUrl []gax.CallOption
+	GetLocation               []gax.CallOption
+	ListLocations             []gax.CallOption
+	GetIamPolicy              []gax.CallOption
+	SetIamPolicy              []gax.CallOption
+	TestIamPermissions        []gax.CallOption
+	CancelOperation           []gax.CallOption
+	DeleteOperation           []gax.CallOption
+	GetOperation              []gax.CallOption
+	ListOperations            []gax.CallOption
 }
 
 func defaultBackupForGKEGRPCClientOptions() []option.ClientOption {
@@ -93,6 +107,7 @@ func defaultBackupForGKEGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://gkebackup.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -132,6 +147,63 @@ func defaultBackupForGKECallOptions() *BackupForGKECallOptions {
 		},
 		DeleteBackupPlan: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		CreateBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListBackupChannels: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		UpdateBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		DeleteBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListBackupPlanBindings: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetBackupPlanBinding: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
 		},
 		CreateBackup: []gax.CallOption{
 			gax.WithTimeout(120000 * time.Millisecond),
@@ -223,6 +295,63 @@ func defaultBackupForGKECallOptions() *BackupForGKECallOptions {
 		DeleteRestorePlan: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 		},
+		CreateRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListRestoreChannels: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		UpdateRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		DeleteRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListRestorePlanBindings: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetRestorePlanBinding: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
 		CreateRestore: []gax.CallOption{
 			gax.WithTimeout(120000 * time.Millisecond),
 		},
@@ -269,6 +398,18 @@ func defaultBackupForGKECallOptions() *BackupForGKECallOptions {
 			}),
 		},
 		GetVolumeRestore: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		GetBackupIndexDownloadUrl: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
 				return gax.OnCodes([]codes.Code{
@@ -325,6 +466,59 @@ func defaultBackupForGKERESTCallOptions() *BackupForGKECallOptions {
 		DeleteBackupPlan: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 		},
+		CreateBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListBackupChannels: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		GetBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		UpdateBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		DeleteBackupChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListBackupPlanBindings: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		GetBackupPlanBinding: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
 		CreateBackup: []gax.CallOption{
 			gax.WithTimeout(120000 * time.Millisecond),
 		},
@@ -409,6 +603,59 @@ func defaultBackupForGKERESTCallOptions() *BackupForGKECallOptions {
 		DeleteRestorePlan: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 		},
+		CreateRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListRestoreChannels: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		GetRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		UpdateRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		DeleteRestoreChannel: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+		},
+		ListRestorePlanBindings: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		GetRestorePlanBinding: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
 		CreateRestore: []gax.CallOption{
 			gax.WithTimeout(120000 * time.Millisecond),
 		},
@@ -462,6 +709,17 @@ func defaultBackupForGKERESTCallOptions() *BackupForGKECallOptions {
 					http.StatusServiceUnavailable)
 			}),
 		},
+		GetBackupIndexDownloadUrl: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
 		GetLocation:        []gax.CallOption{},
 		ListLocations:      []gax.CallOption{},
 		GetIamPolicy:       []gax.CallOption{},
@@ -487,6 +745,16 @@ type internalBackupForGKEClient interface {
 	UpdateBackupPlanOperation(name string) *UpdateBackupPlanOperation
 	DeleteBackupPlan(context.Context, *gkebackuppb.DeleteBackupPlanRequest, ...gax.CallOption) (*DeleteBackupPlanOperation, error)
 	DeleteBackupPlanOperation(name string) *DeleteBackupPlanOperation
+	CreateBackupChannel(context.Context, *gkebackuppb.CreateBackupChannelRequest, ...gax.CallOption) (*CreateBackupChannelOperation, error)
+	CreateBackupChannelOperation(name string) *CreateBackupChannelOperation
+	ListBackupChannels(context.Context, *gkebackuppb.ListBackupChannelsRequest, ...gax.CallOption) *BackupChannelIterator
+	GetBackupChannel(context.Context, *gkebackuppb.GetBackupChannelRequest, ...gax.CallOption) (*gkebackuppb.BackupChannel, error)
+	UpdateBackupChannel(context.Context, *gkebackuppb.UpdateBackupChannelRequest, ...gax.CallOption) (*UpdateBackupChannelOperation, error)
+	UpdateBackupChannelOperation(name string) *UpdateBackupChannelOperation
+	DeleteBackupChannel(context.Context, *gkebackuppb.DeleteBackupChannelRequest, ...gax.CallOption) (*DeleteBackupChannelOperation, error)
+	DeleteBackupChannelOperation(name string) *DeleteBackupChannelOperation
+	ListBackupPlanBindings(context.Context, *gkebackuppb.ListBackupPlanBindingsRequest, ...gax.CallOption) *BackupPlanBindingIterator
+	GetBackupPlanBinding(context.Context, *gkebackuppb.GetBackupPlanBindingRequest, ...gax.CallOption) (*gkebackuppb.BackupPlanBinding, error)
 	CreateBackup(context.Context, *gkebackuppb.CreateBackupRequest, ...gax.CallOption) (*CreateBackupOperation, error)
 	CreateBackupOperation(name string) *CreateBackupOperation
 	ListBackups(context.Context, *gkebackuppb.ListBackupsRequest, ...gax.CallOption) *BackupIterator
@@ -505,6 +773,16 @@ type internalBackupForGKEClient interface {
 	UpdateRestorePlanOperation(name string) *UpdateRestorePlanOperation
 	DeleteRestorePlan(context.Context, *gkebackuppb.DeleteRestorePlanRequest, ...gax.CallOption) (*DeleteRestorePlanOperation, error)
 	DeleteRestorePlanOperation(name string) *DeleteRestorePlanOperation
+	CreateRestoreChannel(context.Context, *gkebackuppb.CreateRestoreChannelRequest, ...gax.CallOption) (*CreateRestoreChannelOperation, error)
+	CreateRestoreChannelOperation(name string) *CreateRestoreChannelOperation
+	ListRestoreChannels(context.Context, *gkebackuppb.ListRestoreChannelsRequest, ...gax.CallOption) *RestoreChannelIterator
+	GetRestoreChannel(context.Context, *gkebackuppb.GetRestoreChannelRequest, ...gax.CallOption) (*gkebackuppb.RestoreChannel, error)
+	UpdateRestoreChannel(context.Context, *gkebackuppb.UpdateRestoreChannelRequest, ...gax.CallOption) (*UpdateRestoreChannelOperation, error)
+	UpdateRestoreChannelOperation(name string) *UpdateRestoreChannelOperation
+	DeleteRestoreChannel(context.Context, *gkebackuppb.DeleteRestoreChannelRequest, ...gax.CallOption) (*DeleteRestoreChannelOperation, error)
+	DeleteRestoreChannelOperation(name string) *DeleteRestoreChannelOperation
+	ListRestorePlanBindings(context.Context, *gkebackuppb.ListRestorePlanBindingsRequest, ...gax.CallOption) *RestorePlanBindingIterator
+	GetRestorePlanBinding(context.Context, *gkebackuppb.GetRestorePlanBindingRequest, ...gax.CallOption) (*gkebackuppb.RestorePlanBinding, error)
 	CreateRestore(context.Context, *gkebackuppb.CreateRestoreRequest, ...gax.CallOption) (*CreateRestoreOperation, error)
 	CreateRestoreOperation(name string) *CreateRestoreOperation
 	ListRestores(context.Context, *gkebackuppb.ListRestoresRequest, ...gax.CallOption) *RestoreIterator
@@ -515,6 +793,7 @@ type internalBackupForGKEClient interface {
 	DeleteRestoreOperation(name string) *DeleteRestoreOperation
 	ListVolumeRestores(context.Context, *gkebackuppb.ListVolumeRestoresRequest, ...gax.CallOption) *VolumeRestoreIterator
 	GetVolumeRestore(context.Context, *gkebackuppb.GetVolumeRestoreRequest, ...gax.CallOption) (*gkebackuppb.VolumeRestore, error)
+	GetBackupIndexDownloadUrl(context.Context, *gkebackuppb.GetBackupIndexDownloadUrlRequest, ...gax.CallOption) (*gkebackuppb.GetBackupIndexDownloadUrlResponse, error)
 	GetLocation(context.Context, *locationpb.GetLocationRequest, ...gax.CallOption) (*locationpb.Location, error)
 	ListLocations(context.Context, *locationpb.ListLocationsRequest, ...gax.CallOption) *LocationIterator
 	GetIamPolicy(context.Context, *iampb.GetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
@@ -608,6 +887,59 @@ func (c *BackupForGKEClient) DeleteBackupPlan(ctx context.Context, req *gkebacku
 // The name must be that of a previously created DeleteBackupPlanOperation, possibly from a different process.
 func (c *BackupForGKEClient) DeleteBackupPlanOperation(name string) *DeleteBackupPlanOperation {
 	return c.internalClient.DeleteBackupPlanOperation(name)
+}
+
+// CreateBackupChannel creates a new BackupChannel in a given location.
+func (c *BackupForGKEClient) CreateBackupChannel(ctx context.Context, req *gkebackuppb.CreateBackupChannelRequest, opts ...gax.CallOption) (*CreateBackupChannelOperation, error) {
+	return c.internalClient.CreateBackupChannel(ctx, req, opts...)
+}
+
+// CreateBackupChannelOperation returns a new CreateBackupChannelOperation from a given name.
+// The name must be that of a previously created CreateBackupChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) CreateBackupChannelOperation(name string) *CreateBackupChannelOperation {
+	return c.internalClient.CreateBackupChannelOperation(name)
+}
+
+// ListBackupChannels lists BackupChannels in a given location.
+func (c *BackupForGKEClient) ListBackupChannels(ctx context.Context, req *gkebackuppb.ListBackupChannelsRequest, opts ...gax.CallOption) *BackupChannelIterator {
+	return c.internalClient.ListBackupChannels(ctx, req, opts...)
+}
+
+// GetBackupChannel retrieve the details of a single BackupChannel.
+func (c *BackupForGKEClient) GetBackupChannel(ctx context.Context, req *gkebackuppb.GetBackupChannelRequest, opts ...gax.CallOption) (*gkebackuppb.BackupChannel, error) {
+	return c.internalClient.GetBackupChannel(ctx, req, opts...)
+}
+
+// UpdateBackupChannel update a BackupChannel.
+func (c *BackupForGKEClient) UpdateBackupChannel(ctx context.Context, req *gkebackuppb.UpdateBackupChannelRequest, opts ...gax.CallOption) (*UpdateBackupChannelOperation, error) {
+	return c.internalClient.UpdateBackupChannel(ctx, req, opts...)
+}
+
+// UpdateBackupChannelOperation returns a new UpdateBackupChannelOperation from a given name.
+// The name must be that of a previously created UpdateBackupChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) UpdateBackupChannelOperation(name string) *UpdateBackupChannelOperation {
+	return c.internalClient.UpdateBackupChannelOperation(name)
+}
+
+// DeleteBackupChannel deletes an existing BackupChannel.
+func (c *BackupForGKEClient) DeleteBackupChannel(ctx context.Context, req *gkebackuppb.DeleteBackupChannelRequest, opts ...gax.CallOption) (*DeleteBackupChannelOperation, error) {
+	return c.internalClient.DeleteBackupChannel(ctx, req, opts...)
+}
+
+// DeleteBackupChannelOperation returns a new DeleteBackupChannelOperation from a given name.
+// The name must be that of a previously created DeleteBackupChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) DeleteBackupChannelOperation(name string) *DeleteBackupChannelOperation {
+	return c.internalClient.DeleteBackupChannelOperation(name)
+}
+
+// ListBackupPlanBindings lists BackupPlanBindings in a given location.
+func (c *BackupForGKEClient) ListBackupPlanBindings(ctx context.Context, req *gkebackuppb.ListBackupPlanBindingsRequest, opts ...gax.CallOption) *BackupPlanBindingIterator {
+	return c.internalClient.ListBackupPlanBindings(ctx, req, opts...)
+}
+
+// GetBackupPlanBinding retrieve the details of a single BackupPlanBinding.
+func (c *BackupForGKEClient) GetBackupPlanBinding(ctx context.Context, req *gkebackuppb.GetBackupPlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.BackupPlanBinding, error) {
+	return c.internalClient.GetBackupPlanBinding(ctx, req, opts...)
 }
 
 // CreateBackup creates a Backup for the given BackupPlan.
@@ -706,6 +1038,59 @@ func (c *BackupForGKEClient) DeleteRestorePlanOperation(name string) *DeleteRest
 	return c.internalClient.DeleteRestorePlanOperation(name)
 }
 
+// CreateRestoreChannel creates a new RestoreChannel in a given location.
+func (c *BackupForGKEClient) CreateRestoreChannel(ctx context.Context, req *gkebackuppb.CreateRestoreChannelRequest, opts ...gax.CallOption) (*CreateRestoreChannelOperation, error) {
+	return c.internalClient.CreateRestoreChannel(ctx, req, opts...)
+}
+
+// CreateRestoreChannelOperation returns a new CreateRestoreChannelOperation from a given name.
+// The name must be that of a previously created CreateRestoreChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) CreateRestoreChannelOperation(name string) *CreateRestoreChannelOperation {
+	return c.internalClient.CreateRestoreChannelOperation(name)
+}
+
+// ListRestoreChannels lists RestoreChannels in a given location.
+func (c *BackupForGKEClient) ListRestoreChannels(ctx context.Context, req *gkebackuppb.ListRestoreChannelsRequest, opts ...gax.CallOption) *RestoreChannelIterator {
+	return c.internalClient.ListRestoreChannels(ctx, req, opts...)
+}
+
+// GetRestoreChannel retrieve the details of a single RestoreChannel.
+func (c *BackupForGKEClient) GetRestoreChannel(ctx context.Context, req *gkebackuppb.GetRestoreChannelRequest, opts ...gax.CallOption) (*gkebackuppb.RestoreChannel, error) {
+	return c.internalClient.GetRestoreChannel(ctx, req, opts...)
+}
+
+// UpdateRestoreChannel update a RestoreChannel.
+func (c *BackupForGKEClient) UpdateRestoreChannel(ctx context.Context, req *gkebackuppb.UpdateRestoreChannelRequest, opts ...gax.CallOption) (*UpdateRestoreChannelOperation, error) {
+	return c.internalClient.UpdateRestoreChannel(ctx, req, opts...)
+}
+
+// UpdateRestoreChannelOperation returns a new UpdateRestoreChannelOperation from a given name.
+// The name must be that of a previously created UpdateRestoreChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) UpdateRestoreChannelOperation(name string) *UpdateRestoreChannelOperation {
+	return c.internalClient.UpdateRestoreChannelOperation(name)
+}
+
+// DeleteRestoreChannel deletes an existing RestoreChannel.
+func (c *BackupForGKEClient) DeleteRestoreChannel(ctx context.Context, req *gkebackuppb.DeleteRestoreChannelRequest, opts ...gax.CallOption) (*DeleteRestoreChannelOperation, error) {
+	return c.internalClient.DeleteRestoreChannel(ctx, req, opts...)
+}
+
+// DeleteRestoreChannelOperation returns a new DeleteRestoreChannelOperation from a given name.
+// The name must be that of a previously created DeleteRestoreChannelOperation, possibly from a different process.
+func (c *BackupForGKEClient) DeleteRestoreChannelOperation(name string) *DeleteRestoreChannelOperation {
+	return c.internalClient.DeleteRestoreChannelOperation(name)
+}
+
+// ListRestorePlanBindings lists RestorePlanBindings in a given location.
+func (c *BackupForGKEClient) ListRestorePlanBindings(ctx context.Context, req *gkebackuppb.ListRestorePlanBindingsRequest, opts ...gax.CallOption) *RestorePlanBindingIterator {
+	return c.internalClient.ListRestorePlanBindings(ctx, req, opts...)
+}
+
+// GetRestorePlanBinding retrieve the details of a single RestorePlanBinding.
+func (c *BackupForGKEClient) GetRestorePlanBinding(ctx context.Context, req *gkebackuppb.GetRestorePlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.RestorePlanBinding, error) {
+	return c.internalClient.GetRestorePlanBinding(ctx, req, opts...)
+}
+
 // CreateRestore creates a new Restore for the given RestorePlan.
 func (c *BackupForGKEClient) CreateRestore(ctx context.Context, req *gkebackuppb.CreateRestoreRequest, opts ...gax.CallOption) (*CreateRestoreOperation, error) {
 	return c.internalClient.CreateRestore(ctx, req, opts...)
@@ -757,6 +1142,11 @@ func (c *BackupForGKEClient) ListVolumeRestores(ctx context.Context, req *gkebac
 // GetVolumeRestore retrieve the details of a single VolumeRestore.
 func (c *BackupForGKEClient) GetVolumeRestore(ctx context.Context, req *gkebackuppb.GetVolumeRestoreRequest, opts ...gax.CallOption) (*gkebackuppb.VolumeRestore, error) {
 	return c.internalClient.GetVolumeRestore(ctx, req, opts...)
+}
+
+// GetBackupIndexDownloadUrl retrieve the link to the backupIndex.
+func (c *BackupForGKEClient) GetBackupIndexDownloadUrl(ctx context.Context, req *gkebackuppb.GetBackupIndexDownloadUrlRequest, opts ...gax.CallOption) (*gkebackuppb.GetBackupIndexDownloadUrlResponse, error) {
+	return c.internalClient.GetBackupIndexDownloadUrl(ctx, req, opts...)
 }
 
 // GetLocation gets information about a location.
@@ -841,6 +1231,8 @@ type backupForGKEGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewBackupForGKEClient creates a new backup forgke client based on gRPC.
@@ -868,6 +1260,7 @@ func NewBackupForGKEClient(ctx context.Context, opts ...option.ClientOption) (*B
 		connPool:           connPool,
 		backupForGKEClient: gkebackuppb.NewBackupForGKEClient(connPool),
 		CallOptions:        &client.CallOptions,
+		logger:             internaloption.GetLogger(opts),
 		operationsClient:   longrunningpb.NewOperationsClient(connPool),
 		iamPolicyClient:    iampb.NewIAMPolicyClient(connPool),
 		locationsClient:    locationpb.NewLocationsClient(connPool),
@@ -903,8 +1296,10 @@ func (c *backupForGKEGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *backupForGKEGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -931,6 +1326,8 @@ type backupForGKERESTClient struct {
 
 	// Points back to the CallOptions field of the containing BackupForGKEClient
 	CallOptions **BackupForGKECallOptions
+
+	logger *slog.Logger
 }
 
 // NewBackupForGKERESTClient creates a new backup forgke rest client.
@@ -949,6 +1346,7 @@ func NewBackupForGKERESTClient(ctx context.Context, opts ...option.ClientOption)
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -973,6 +1371,7 @@ func defaultBackupForGKERESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://gkebackup.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -981,8 +1380,10 @@ func defaultBackupForGKERESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *backupForGKERESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -1008,7 +1409,7 @@ func (c *backupForGKEGRPCClient) CreateBackupPlan(ctx context.Context, req *gkeb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.CreateBackupPlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateBackupPlan, req, settings.GRPC, c.logger, "CreateBackupPlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1039,7 +1440,7 @@ func (c *backupForGKEGRPCClient) ListBackupPlans(ctx context.Context, req *gkeba
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListBackupPlans(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListBackupPlans, req, settings.GRPC, c.logger, "ListBackupPlans")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1074,7 +1475,7 @@ func (c *backupForGKEGRPCClient) GetBackupPlan(ctx context.Context, req *gkeback
 	var resp *gkebackuppb.BackupPlan
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetBackupPlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetBackupPlan, req, settings.GRPC, c.logger, "GetBackupPlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1092,7 +1493,7 @@ func (c *backupForGKEGRPCClient) UpdateBackupPlan(ctx context.Context, req *gkeb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.UpdateBackupPlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateBackupPlan, req, settings.GRPC, c.logger, "UpdateBackupPlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1112,7 +1513,7 @@ func (c *backupForGKEGRPCClient) DeleteBackupPlan(ctx context.Context, req *gkeb
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.DeleteBackupPlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteBackupPlan, req, settings.GRPC, c.logger, "DeleteBackupPlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1121,6 +1522,194 @@ func (c *backupForGKEGRPCClient) DeleteBackupPlan(ctx context.Context, req *gkeb
 	return &DeleteBackupPlanOperation{
 		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
+}
+
+func (c *backupForGKEGRPCClient) CreateBackupChannel(ctx context.Context, req *gkebackuppb.CreateBackupChannelRequest, opts ...gax.CallOption) (*CreateBackupChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateBackupChannel[0:len((*c.CallOptions).CreateBackupChannel):len((*c.CallOptions).CreateBackupChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateBackupChannel, req, settings.GRPC, c.logger, "CreateBackupChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &CreateBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) ListBackupChannels(ctx context.Context, req *gkebackuppb.ListBackupChannelsRequest, opts ...gax.CallOption) *BackupChannelIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackupChannels[0:len((*c.CallOptions).ListBackupChannels):len((*c.CallOptions).ListBackupChannels)], opts...)
+	it := &BackupChannelIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListBackupChannelsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.BackupChannel, string, error) {
+		resp := &gkebackuppb.ListBackupChannelsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListBackupChannels, req, settings.GRPC, c.logger, "ListBackupChannels")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetBackupChannels(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *backupForGKEGRPCClient) GetBackupChannel(ctx context.Context, req *gkebackuppb.GetBackupChannelRequest, opts ...gax.CallOption) (*gkebackuppb.BackupChannel, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupChannel[0:len((*c.CallOptions).GetBackupChannel):len((*c.CallOptions).GetBackupChannel)], opts...)
+	var resp *gkebackuppb.BackupChannel
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetBackupChannel, req, settings.GRPC, c.logger, "GetBackupChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *backupForGKEGRPCClient) UpdateBackupChannel(ctx context.Context, req *gkebackuppb.UpdateBackupChannelRequest, opts ...gax.CallOption) (*UpdateBackupChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup_channel.name", url.QueryEscape(req.GetBackupChannel().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateBackupChannel[0:len((*c.CallOptions).UpdateBackupChannel):len((*c.CallOptions).UpdateBackupChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateBackupChannel, req, settings.GRPC, c.logger, "UpdateBackupChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) DeleteBackupChannel(ctx context.Context, req *gkebackuppb.DeleteBackupChannelRequest, opts ...gax.CallOption) (*DeleteBackupChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteBackupChannel[0:len((*c.CallOptions).DeleteBackupChannel):len((*c.CallOptions).DeleteBackupChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteBackupChannel, req, settings.GRPC, c.logger, "DeleteBackupChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &DeleteBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) ListBackupPlanBindings(ctx context.Context, req *gkebackuppb.ListBackupPlanBindingsRequest, opts ...gax.CallOption) *BackupPlanBindingIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListBackupPlanBindings[0:len((*c.CallOptions).ListBackupPlanBindings):len((*c.CallOptions).ListBackupPlanBindings)], opts...)
+	it := &BackupPlanBindingIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListBackupPlanBindingsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.BackupPlanBinding, string, error) {
+		resp := &gkebackuppb.ListBackupPlanBindingsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListBackupPlanBindings, req, settings.GRPC, c.logger, "ListBackupPlanBindings")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetBackupPlanBindings(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *backupForGKEGRPCClient) GetBackupPlanBinding(ctx context.Context, req *gkebackuppb.GetBackupPlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.BackupPlanBinding, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupPlanBinding[0:len((*c.CallOptions).GetBackupPlanBinding):len((*c.CallOptions).GetBackupPlanBinding)], opts...)
+	var resp *gkebackuppb.BackupPlanBinding
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetBackupPlanBinding, req, settings.GRPC, c.logger, "GetBackupPlanBinding")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (c *backupForGKEGRPCClient) CreateBackup(ctx context.Context, req *gkebackuppb.CreateBackupRequest, opts ...gax.CallOption) (*CreateBackupOperation, error) {
@@ -1132,7 +1721,7 @@ func (c *backupForGKEGRPCClient) CreateBackup(ctx context.Context, req *gkebacku
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.CreateBackup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateBackup, req, settings.GRPC, c.logger, "CreateBackup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1163,7 +1752,7 @@ func (c *backupForGKEGRPCClient) ListBackups(ctx context.Context, req *gkebackup
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListBackups(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListBackups, req, settings.GRPC, c.logger, "ListBackups")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1198,7 +1787,7 @@ func (c *backupForGKEGRPCClient) GetBackup(ctx context.Context, req *gkebackuppb
 	var resp *gkebackuppb.Backup
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetBackup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetBackup, req, settings.GRPC, c.logger, "GetBackup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1216,7 +1805,7 @@ func (c *backupForGKEGRPCClient) UpdateBackup(ctx context.Context, req *gkebacku
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.UpdateBackup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateBackup, req, settings.GRPC, c.logger, "UpdateBackup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1236,7 +1825,7 @@ func (c *backupForGKEGRPCClient) DeleteBackup(ctx context.Context, req *gkebacku
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.DeleteBackup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteBackup, req, settings.GRPC, c.logger, "DeleteBackup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1267,7 +1856,7 @@ func (c *backupForGKEGRPCClient) ListVolumeBackups(ctx context.Context, req *gke
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListVolumeBackups(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListVolumeBackups, req, settings.GRPC, c.logger, "ListVolumeBackups")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1302,7 +1891,7 @@ func (c *backupForGKEGRPCClient) GetVolumeBackup(ctx context.Context, req *gkeba
 	var resp *gkebackuppb.VolumeBackup
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetVolumeBackup(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetVolumeBackup, req, settings.GRPC, c.logger, "GetVolumeBackup")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1320,7 +1909,7 @@ func (c *backupForGKEGRPCClient) CreateRestorePlan(ctx context.Context, req *gke
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.CreateRestorePlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateRestorePlan, req, settings.GRPC, c.logger, "CreateRestorePlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1351,7 +1940,7 @@ func (c *backupForGKEGRPCClient) ListRestorePlans(ctx context.Context, req *gkeb
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListRestorePlans(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListRestorePlans, req, settings.GRPC, c.logger, "ListRestorePlans")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1386,7 +1975,7 @@ func (c *backupForGKEGRPCClient) GetRestorePlan(ctx context.Context, req *gkebac
 	var resp *gkebackuppb.RestorePlan
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetRestorePlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetRestorePlan, req, settings.GRPC, c.logger, "GetRestorePlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1404,7 +1993,7 @@ func (c *backupForGKEGRPCClient) UpdateRestorePlan(ctx context.Context, req *gke
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.UpdateRestorePlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateRestorePlan, req, settings.GRPC, c.logger, "UpdateRestorePlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1424,7 +2013,7 @@ func (c *backupForGKEGRPCClient) DeleteRestorePlan(ctx context.Context, req *gke
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.DeleteRestorePlan(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteRestorePlan, req, settings.GRPC, c.logger, "DeleteRestorePlan")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1433,6 +2022,194 @@ func (c *backupForGKEGRPCClient) DeleteRestorePlan(ctx context.Context, req *gke
 	return &DeleteRestorePlanOperation{
 		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
+}
+
+func (c *backupForGKEGRPCClient) CreateRestoreChannel(ctx context.Context, req *gkebackuppb.CreateRestoreChannelRequest, opts ...gax.CallOption) (*CreateRestoreChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateRestoreChannel[0:len((*c.CallOptions).CreateRestoreChannel):len((*c.CallOptions).CreateRestoreChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateRestoreChannel, req, settings.GRPC, c.logger, "CreateRestoreChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &CreateRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) ListRestoreChannels(ctx context.Context, req *gkebackuppb.ListRestoreChannelsRequest, opts ...gax.CallOption) *RestoreChannelIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListRestoreChannels[0:len((*c.CallOptions).ListRestoreChannels):len((*c.CallOptions).ListRestoreChannels)], opts...)
+	it := &RestoreChannelIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListRestoreChannelsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.RestoreChannel, string, error) {
+		resp := &gkebackuppb.ListRestoreChannelsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListRestoreChannels, req, settings.GRPC, c.logger, "ListRestoreChannels")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetRestoreChannels(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *backupForGKEGRPCClient) GetRestoreChannel(ctx context.Context, req *gkebackuppb.GetRestoreChannelRequest, opts ...gax.CallOption) (*gkebackuppb.RestoreChannel, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetRestoreChannel[0:len((*c.CallOptions).GetRestoreChannel):len((*c.CallOptions).GetRestoreChannel)], opts...)
+	var resp *gkebackuppb.RestoreChannel
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetRestoreChannel, req, settings.GRPC, c.logger, "GetRestoreChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *backupForGKEGRPCClient) UpdateRestoreChannel(ctx context.Context, req *gkebackuppb.UpdateRestoreChannelRequest, opts ...gax.CallOption) (*UpdateRestoreChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "restore_channel.name", url.QueryEscape(req.GetRestoreChannel().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateRestoreChannel[0:len((*c.CallOptions).UpdateRestoreChannel):len((*c.CallOptions).UpdateRestoreChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateRestoreChannel, req, settings.GRPC, c.logger, "UpdateRestoreChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) DeleteRestoreChannel(ctx context.Context, req *gkebackuppb.DeleteRestoreChannelRequest, opts ...gax.CallOption) (*DeleteRestoreChannelOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteRestoreChannel[0:len((*c.CallOptions).DeleteRestoreChannel):len((*c.CallOptions).DeleteRestoreChannel)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteRestoreChannel, req, settings.GRPC, c.logger, "DeleteRestoreChannel")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &DeleteRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *backupForGKEGRPCClient) ListRestorePlanBindings(ctx context.Context, req *gkebackuppb.ListRestorePlanBindingsRequest, opts ...gax.CallOption) *RestorePlanBindingIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListRestorePlanBindings[0:len((*c.CallOptions).ListRestorePlanBindings):len((*c.CallOptions).ListRestorePlanBindings)], opts...)
+	it := &RestorePlanBindingIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListRestorePlanBindingsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.RestorePlanBinding, string, error) {
+		resp := &gkebackuppb.ListRestorePlanBindingsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListRestorePlanBindings, req, settings.GRPC, c.logger, "ListRestorePlanBindings")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetRestorePlanBindings(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *backupForGKEGRPCClient) GetRestorePlanBinding(ctx context.Context, req *gkebackuppb.GetRestorePlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.RestorePlanBinding, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetRestorePlanBinding[0:len((*c.CallOptions).GetRestorePlanBinding):len((*c.CallOptions).GetRestorePlanBinding)], opts...)
+	var resp *gkebackuppb.RestorePlanBinding
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetRestorePlanBinding, req, settings.GRPC, c.logger, "GetRestorePlanBinding")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (c *backupForGKEGRPCClient) CreateRestore(ctx context.Context, req *gkebackuppb.CreateRestoreRequest, opts ...gax.CallOption) (*CreateRestoreOperation, error) {
@@ -1444,7 +2221,7 @@ func (c *backupForGKEGRPCClient) CreateRestore(ctx context.Context, req *gkeback
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.CreateRestore(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.CreateRestore, req, settings.GRPC, c.logger, "CreateRestore")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1475,7 +2252,7 @@ func (c *backupForGKEGRPCClient) ListRestores(ctx context.Context, req *gkebacku
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListRestores(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListRestores, req, settings.GRPC, c.logger, "ListRestores")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1510,7 +2287,7 @@ func (c *backupForGKEGRPCClient) GetRestore(ctx context.Context, req *gkebackupp
 	var resp *gkebackuppb.Restore
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetRestore(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetRestore, req, settings.GRPC, c.logger, "GetRestore")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1528,7 +2305,7 @@ func (c *backupForGKEGRPCClient) UpdateRestore(ctx context.Context, req *gkeback
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.UpdateRestore(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.UpdateRestore, req, settings.GRPC, c.logger, "UpdateRestore")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1548,7 +2325,7 @@ func (c *backupForGKEGRPCClient) DeleteRestore(ctx context.Context, req *gkeback
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.DeleteRestore(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.DeleteRestore, req, settings.GRPC, c.logger, "DeleteRestore")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1579,7 +2356,7 @@ func (c *backupForGKEGRPCClient) ListVolumeRestores(ctx context.Context, req *gk
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.backupForGKEClient.ListVolumeRestores(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.backupForGKEClient.ListVolumeRestores, req, settings.GRPC, c.logger, "ListVolumeRestores")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1614,7 +2391,25 @@ func (c *backupForGKEGRPCClient) GetVolumeRestore(ctx context.Context, req *gkeb
 	var resp *gkebackuppb.VolumeRestore
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.backupForGKEClient.GetVolumeRestore(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetVolumeRestore, req, settings.GRPC, c.logger, "GetVolumeRestore")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *backupForGKEGRPCClient) GetBackupIndexDownloadUrl(ctx context.Context, req *gkebackuppb.GetBackupIndexDownloadUrlRequest, opts ...gax.CallOption) (*gkebackuppb.GetBackupIndexDownloadUrlResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup", url.QueryEscape(req.GetBackup()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupIndexDownloadUrl[0:len((*c.CallOptions).GetBackupIndexDownloadUrl):len((*c.CallOptions).GetBackupIndexDownloadUrl)], opts...)
+	var resp *gkebackuppb.GetBackupIndexDownloadUrlResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.backupForGKEClient.GetBackupIndexDownloadUrl, req, settings.GRPC, c.logger, "GetBackupIndexDownloadUrl")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1632,7 +2427,7 @@ func (c *backupForGKEGRPCClient) GetLocation(ctx context.Context, req *locationp
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1661,7 +2456,7 @@ func (c *backupForGKEGRPCClient) ListLocations(ctx context.Context, req *locatio
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1696,7 +2491,7 @@ func (c *backupForGKEGRPCClient) GetIamPolicy(ctx context.Context, req *iampb.Ge
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1714,7 +2509,7 @@ func (c *backupForGKEGRPCClient) SetIamPolicy(ctx context.Context, req *iampb.Se
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1732,7 +2527,7 @@ func (c *backupForGKEGRPCClient) TestIamPermissions(ctx context.Context, req *ia
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1749,7 +2544,7 @@ func (c *backupForGKEGRPCClient) CancelOperation(ctx context.Context, req *longr
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -1763,7 +2558,7 @@ func (c *backupForGKEGRPCClient) DeleteOperation(ctx context.Context, req *longr
 	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.DeleteOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
 		return err
 	}, opts...)
 	return err
@@ -1778,7 +2573,7 @@ func (c *backupForGKEGRPCClient) GetOperation(ctx context.Context, req *longrunn
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1807,7 +2602,7 @@ func (c *backupForGKEGRPCClient) ListOperations(ctx context.Context, req *longru
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1873,21 +2668,10 @@ func (c *backupForGKERESTClient) CreateBackupPlan(ctx context.Context, req *gkeb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateBackupPlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1956,21 +2740,10 @@ func (c *backupForGKERESTClient) ListBackupPlans(ctx context.Context, req *gkeba
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackupPlans")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2033,17 +2806,7 @@ func (c *backupForGKERESTClient) GetBackupPlan(ctx context.Context, req *gkeback
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackupPlan")
 		if err != nil {
 			return err
 		}
@@ -2078,11 +2841,11 @@ func (c *backupForGKERESTClient) UpdateBackupPlan(ctx context.Context, req *gkeb
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2106,21 +2869,10 @@ func (c *backupForGKERESTClient) UpdateBackupPlan(ctx context.Context, req *gkeb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateBackupPlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2173,21 +2925,10 @@ func (c *backupForGKERESTClient) DeleteBackupPlan(ctx context.Context, req *gkeb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteBackupPlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2203,6 +2944,463 @@ func (c *backupForGKERESTClient) DeleteBackupPlan(ctx context.Context, req *gkeb
 		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
 		pollPath: override,
 	}, nil
+}
+
+// CreateBackupChannel creates a new BackupChannel in a given location.
+func (c *backupForGKERESTClient) CreateBackupChannel(ctx context.Context, req *gkebackuppb.CreateBackupChannelRequest, opts ...gax.CallOption) (*CreateBackupChannelOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetBackupChannel()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/backupChannels", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetBackupChannelId() != "" {
+		params.Add("backupChannelId", fmt.Sprintf("%v", req.GetBackupChannelId()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateBackupChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &CreateBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// ListBackupChannels lists BackupChannels in a given location.
+func (c *backupForGKERESTClient) ListBackupChannels(ctx context.Context, req *gkebackuppb.ListBackupChannelsRequest, opts ...gax.CallOption) *BackupChannelIterator {
+	it := &BackupChannelIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListBackupChannelsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.BackupChannel, string, error) {
+		resp := &gkebackuppb.ListBackupChannelsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/backupChannels", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetOrderBy() != "" {
+			params.Add("orderBy", fmt.Sprintf("%v", req.GetOrderBy()))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackupChannels")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetBackupChannels(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// GetBackupChannel retrieve the details of a single BackupChannel.
+func (c *backupForGKERESTClient) GetBackupChannel(ctx context.Context, req *gkebackuppb.GetBackupChannelRequest, opts ...gax.CallOption) (*gkebackuppb.BackupChannel, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupChannel[0:len((*c.CallOptions).GetBackupChannel):len((*c.CallOptions).GetBackupChannel)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &gkebackuppb.BackupChannel{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackupChannel")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// UpdateBackupChannel update a BackupChannel.
+func (c *backupForGKERESTClient) UpdateBackupChannel(ctx context.Context, req *gkebackuppb.UpdateBackupChannelRequest, opts ...gax.CallOption) (*UpdateBackupChannelOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetBackupChannel()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetBackupChannel().GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetUpdateMask() != nil {
+		field, err := protojson.Marshal(req.GetUpdateMask())
+		if err != nil {
+			return nil, err
+		}
+		params.Add("updateMask", string(field[1:len(field)-1]))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup_channel.name", url.QueryEscape(req.GetBackupChannel().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("PATCH", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateBackupChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &UpdateBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// DeleteBackupChannel deletes an existing BackupChannel.
+func (c *backupForGKERESTClient) DeleteBackupChannel(ctx context.Context, req *gkebackuppb.DeleteBackupChannelRequest, opts ...gax.CallOption) (*DeleteBackupChannelOperation, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetEtag() != "" {
+		params.Add("etag", fmt.Sprintf("%v", req.GetEtag()))
+	}
+	if req.GetForce() {
+		params.Add("force", fmt.Sprintf("%v", req.GetForce()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteBackupChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &DeleteBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// ListBackupPlanBindings lists BackupPlanBindings in a given location.
+func (c *backupForGKERESTClient) ListBackupPlanBindings(ctx context.Context, req *gkebackuppb.ListBackupPlanBindingsRequest, opts ...gax.CallOption) *BackupPlanBindingIterator {
+	it := &BackupPlanBindingIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListBackupPlanBindingsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.BackupPlanBinding, string, error) {
+		resp := &gkebackuppb.ListBackupPlanBindingsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/backupPlanBindings", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetOrderBy() != "" {
+			params.Add("orderBy", fmt.Sprintf("%v", req.GetOrderBy()))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackupPlanBindings")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetBackupPlanBindings(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// GetBackupPlanBinding retrieve the details of a single BackupPlanBinding.
+func (c *backupForGKERESTClient) GetBackupPlanBinding(ctx context.Context, req *gkebackuppb.GetBackupPlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.BackupPlanBinding, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupPlanBinding[0:len((*c.CallOptions).GetBackupPlanBinding):len((*c.CallOptions).GetBackupPlanBinding)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &gkebackuppb.BackupPlanBinding{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackupPlanBinding")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
 }
 
 // CreateBackup creates a Backup for the given BackupPlan.
@@ -2247,21 +3445,10 @@ func (c *backupForGKERESTClient) CreateBackup(ctx context.Context, req *gkebacku
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateBackup")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2314,6 +3501,9 @@ func (c *backupForGKERESTClient) ListBackups(ctx context.Context, req *gkebackup
 		if req.GetPageToken() != "" {
 			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
 		}
+		if req.GetReturnPartialSuccess() {
+			params.Add("returnPartialSuccess", fmt.Sprintf("%v", req.GetReturnPartialSuccess()))
+		}
 
 		baseUrl.RawQuery = params.Encode()
 
@@ -2330,21 +3520,10 @@ func (c *backupForGKERESTClient) ListBackups(ctx context.Context, req *gkebackup
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListBackups")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2407,17 +3586,7 @@ func (c *backupForGKERESTClient) GetBackup(ctx context.Context, req *gkebackuppb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackup")
 		if err != nil {
 			return err
 		}
@@ -2452,11 +3621,11 @@ func (c *backupForGKERESTClient) UpdateBackup(ctx context.Context, req *gkebacku
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2480,21 +3649,10 @@ func (c *backupForGKERESTClient) UpdateBackup(ctx context.Context, req *gkebacku
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateBackup")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2550,21 +3708,10 @@ func (c *backupForGKERESTClient) DeleteBackup(ctx context.Context, req *gkebacku
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteBackup")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2633,21 +3780,10 @@ func (c *backupForGKERESTClient) ListVolumeBackups(ctx context.Context, req *gke
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListVolumeBackups")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2710,17 +3846,7 @@ func (c *backupForGKERESTClient) GetVolumeBackup(ctx context.Context, req *gkeba
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetVolumeBackup")
 		if err != nil {
 			return err
 		}
@@ -2777,21 +3903,10 @@ func (c *backupForGKERESTClient) CreateRestorePlan(ctx context.Context, req *gke
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateRestorePlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2860,21 +3975,10 @@ func (c *backupForGKERESTClient) ListRestorePlans(ctx context.Context, req *gkeb
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListRestorePlans")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2937,17 +4041,7 @@ func (c *backupForGKERESTClient) GetRestorePlan(ctx context.Context, req *gkebac
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetRestorePlan")
 		if err != nil {
 			return err
 		}
@@ -2982,11 +4076,11 @@ func (c *backupForGKERESTClient) UpdateRestorePlan(ctx context.Context, req *gke
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -3010,21 +4104,10 @@ func (c *backupForGKERESTClient) UpdateRestorePlan(ctx context.Context, req *gke
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateRestorePlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3080,21 +4163,10 @@ func (c *backupForGKERESTClient) DeleteRestorePlan(ctx context.Context, req *gke
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteRestorePlan")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3110,6 +4182,460 @@ func (c *backupForGKERESTClient) DeleteRestorePlan(ctx context.Context, req *gke
 		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
 		pollPath: override,
 	}, nil
+}
+
+// CreateRestoreChannel creates a new RestoreChannel in a given location.
+func (c *backupForGKERESTClient) CreateRestoreChannel(ctx context.Context, req *gkebackuppb.CreateRestoreChannelRequest, opts ...gax.CallOption) (*CreateRestoreChannelOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetRestoreChannel()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/restoreChannels", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetRestoreChannelId() != "" {
+		params.Add("restoreChannelId", fmt.Sprintf("%v", req.GetRestoreChannelId()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateRestoreChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &CreateRestoreChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// ListRestoreChannels lists RestoreChannels in a given location.
+func (c *backupForGKERESTClient) ListRestoreChannels(ctx context.Context, req *gkebackuppb.ListRestoreChannelsRequest, opts ...gax.CallOption) *RestoreChannelIterator {
+	it := &RestoreChannelIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListRestoreChannelsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.RestoreChannel, string, error) {
+		resp := &gkebackuppb.ListRestoreChannelsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/restoreChannels", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetOrderBy() != "" {
+			params.Add("orderBy", fmt.Sprintf("%v", req.GetOrderBy()))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListRestoreChannels")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetRestoreChannels(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// GetRestoreChannel retrieve the details of a single RestoreChannel.
+func (c *backupForGKERESTClient) GetRestoreChannel(ctx context.Context, req *gkebackuppb.GetRestoreChannelRequest, opts ...gax.CallOption) (*gkebackuppb.RestoreChannel, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetRestoreChannel[0:len((*c.CallOptions).GetRestoreChannel):len((*c.CallOptions).GetRestoreChannel)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &gkebackuppb.RestoreChannel{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetRestoreChannel")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// UpdateRestoreChannel update a RestoreChannel.
+func (c *backupForGKERESTClient) UpdateRestoreChannel(ctx context.Context, req *gkebackuppb.UpdateRestoreChannelRequest, opts ...gax.CallOption) (*UpdateRestoreChannelOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	body := req.GetRestoreChannel()
+	jsonReq, err := m.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetRestoreChannel().GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetUpdateMask() != nil {
+		field, err := protojson.Marshal(req.GetUpdateMask())
+		if err != nil {
+			return nil, err
+		}
+		params.Add("updateMask", string(field[1:len(field)-1]))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "restore_channel.name", url.QueryEscape(req.GetRestoreChannel().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("PATCH", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateRestoreChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &UpdateRestoreChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// DeleteRestoreChannel deletes an existing RestoreChannel.
+func (c *backupForGKERESTClient) DeleteRestoreChannel(ctx context.Context, req *gkebackuppb.DeleteRestoreChannelRequest, opts ...gax.CallOption) (*DeleteRestoreChannelOperation, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetEtag() != "" {
+		params.Add("etag", fmt.Sprintf("%v", req.GetEtag()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteRestoreChannel")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &DeleteRestoreChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// ListRestorePlanBindings lists RestorePlanBindings in a given location.
+func (c *backupForGKERESTClient) ListRestorePlanBindings(ctx context.Context, req *gkebackuppb.ListRestorePlanBindingsRequest, opts ...gax.CallOption) *RestorePlanBindingIterator {
+	it := &RestorePlanBindingIterator{}
+	req = proto.Clone(req).(*gkebackuppb.ListRestorePlanBindingsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*gkebackuppb.RestorePlanBinding, string, error) {
+		resp := &gkebackuppb.ListRestorePlanBindingsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/restorePlanBindings", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetOrderBy() != "" {
+			params.Add("orderBy", fmt.Sprintf("%v", req.GetOrderBy()))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListRestorePlanBindings")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetRestorePlanBindings(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// GetRestorePlanBinding retrieve the details of a single RestorePlanBinding.
+func (c *backupForGKERESTClient) GetRestorePlanBinding(ctx context.Context, req *gkebackuppb.GetRestorePlanBindingRequest, opts ...gax.CallOption) (*gkebackuppb.RestorePlanBinding, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetRestorePlanBinding[0:len((*c.CallOptions).GetRestorePlanBinding):len((*c.CallOptions).GetRestorePlanBinding)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &gkebackuppb.RestorePlanBinding{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetRestorePlanBinding")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
 }
 
 // CreateRestore creates a new Restore for the given RestorePlan.
@@ -3152,21 +4678,10 @@ func (c *backupForGKERESTClient) CreateRestore(ctx context.Context, req *gkeback
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateRestore")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3235,21 +4750,10 @@ func (c *backupForGKERESTClient) ListRestores(ctx context.Context, req *gkebacku
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListRestores")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3312,17 +4816,7 @@ func (c *backupForGKERESTClient) GetRestore(ctx context.Context, req *gkebackupp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetRestore")
 		if err != nil {
 			return err
 		}
@@ -3357,11 +4851,11 @@ func (c *backupForGKERESTClient) UpdateRestore(ctx context.Context, req *gkeback
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetUpdateMask() != nil {
-		updateMask, err := protojson.Marshal(req.GetUpdateMask())
+		field, err := protojson.Marshal(req.GetUpdateMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("updateMask", string(updateMask[1:len(updateMask)-1]))
+		params.Add("updateMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -3385,21 +4879,10 @@ func (c *backupForGKERESTClient) UpdateRestore(ctx context.Context, req *gkeback
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateRestore")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3455,21 +4938,10 @@ func (c *backupForGKERESTClient) DeleteRestore(ctx context.Context, req *gkeback
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteRestore")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -3538,21 +5010,10 @@ func (c *backupForGKERESTClient) ListVolumeRestores(ctx context.Context, req *gk
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListVolumeRestores")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3615,17 +5076,57 @@ func (c *backupForGKERESTClient) GetVolumeRestore(ctx context.Context, req *gkeb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetVolumeRestore")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
 
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
+		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
 
-		buf, err := io.ReadAll(httpRsp.Body)
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// GetBackupIndexDownloadUrl retrieve the link to the backupIndex.
+func (c *backupForGKERESTClient) GetBackupIndexDownloadUrl(ctx context.Context, req *gkebackuppb.GetBackupIndexDownloadUrlRequest, opts ...gax.CallOption) (*gkebackuppb.GetBackupIndexDownloadUrlResponse, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:getBackupIndexDownloadUrl", req.GetBackup())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "backup", url.QueryEscape(req.GetBackup()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetBackupIndexDownloadUrl[0:len((*c.CallOptions).GetBackupIndexDownloadUrl):len((*c.CallOptions).GetBackupIndexDownloadUrl)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &gkebackuppb.GetBackupIndexDownloadUrlResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetBackupIndexDownloadUrl")
 		if err != nil {
 			return err
 		}
@@ -3675,17 +5176,7 @@ func (c *backupForGKERESTClient) GetLocation(ctx context.Context, req *locationp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetLocation")
 		if err != nil {
 			return err
 		}
@@ -3750,21 +5241,10 @@ func (c *backupForGKERESTClient) ListLocations(ctx context.Context, req *locatio
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListLocations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -3831,17 +5311,7 @@ func (c *backupForGKERESTClient) GetIamPolicy(ctx context.Context, req *iampb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -3901,17 +5371,7 @@ func (c *backupForGKERESTClient) SetIamPolicy(ctx context.Context, req *iampb.Se
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -3973,17 +5433,7 @@ func (c *backupForGKERESTClient) TestIamPermissions(ctx context.Context, req *ia
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "TestIamPermissions")
 		if err != nil {
 			return err
 		}
@@ -4036,15 +5486,8 @@ func (c *backupForGKERESTClient) CancelOperation(ctx context.Context, req *longr
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CancelOperation")
+		return err
 	}, opts...)
 }
 
@@ -4054,7 +5497,7 @@ func (c *backupForGKERESTClient) DeleteOperation(ctx context.Context, req *longr
 	if err != nil {
 		return err
 	}
-	baseUrl.Path += fmt.Sprintf("/v1/%v/operations", req.GetName())
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
 
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
@@ -4078,15 +5521,8 @@ func (c *backupForGKERESTClient) DeleteOperation(ctx context.Context, req *longr
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteOperation")
+		return err
 	}, opts...)
 }
 
@@ -4123,17 +5559,7 @@ func (c *backupForGKERESTClient) GetOperation(ctx context.Context, req *longrunn
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
 		if err != nil {
 			return err
 		}
@@ -4198,21 +5624,10 @@ func (c *backupForGKERESTClient) ListOperations(ctx context.Context, req *longru
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -4260,6 +5675,24 @@ func (c *backupForGKERESTClient) CreateBackupOperation(name string) *CreateBacku
 	}
 }
 
+// CreateBackupChannelOperation returns a new CreateBackupChannelOperation from a given name.
+// The name must be that of a previously created CreateBackupChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) CreateBackupChannelOperation(name string) *CreateBackupChannelOperation {
+	return &CreateBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// CreateBackupChannelOperation returns a new CreateBackupChannelOperation from a given name.
+// The name must be that of a previously created CreateBackupChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) CreateBackupChannelOperation(name string) *CreateBackupChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &CreateBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
 // CreateBackupPlanOperation returns a new CreateBackupPlanOperation from a given name.
 // The name must be that of a previously created CreateBackupPlanOperation, possibly from a different process.
 func (c *backupForGKEGRPCClient) CreateBackupPlanOperation(name string) *CreateBackupPlanOperation {
@@ -4291,6 +5724,24 @@ func (c *backupForGKEGRPCClient) CreateRestoreOperation(name string) *CreateRest
 func (c *backupForGKERESTClient) CreateRestoreOperation(name string) *CreateRestoreOperation {
 	override := fmt.Sprintf("/v1/%s", name)
 	return &CreateRestoreOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// CreateRestoreChannelOperation returns a new CreateRestoreChannelOperation from a given name.
+// The name must be that of a previously created CreateRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) CreateRestoreChannelOperation(name string) *CreateRestoreChannelOperation {
+	return &CreateRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// CreateRestoreChannelOperation returns a new CreateRestoreChannelOperation from a given name.
+// The name must be that of a previously created CreateRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) CreateRestoreChannelOperation(name string) *CreateRestoreChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &CreateRestoreChannelOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 		pollPath: override,
 	}
@@ -4332,6 +5783,24 @@ func (c *backupForGKERESTClient) DeleteBackupOperation(name string) *DeleteBacku
 	}
 }
 
+// DeleteBackupChannelOperation returns a new DeleteBackupChannelOperation from a given name.
+// The name must be that of a previously created DeleteBackupChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) DeleteBackupChannelOperation(name string) *DeleteBackupChannelOperation {
+	return &DeleteBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// DeleteBackupChannelOperation returns a new DeleteBackupChannelOperation from a given name.
+// The name must be that of a previously created DeleteBackupChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) DeleteBackupChannelOperation(name string) *DeleteBackupChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &DeleteBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
 // DeleteBackupPlanOperation returns a new DeleteBackupPlanOperation from a given name.
 // The name must be that of a previously created DeleteBackupPlanOperation, possibly from a different process.
 func (c *backupForGKEGRPCClient) DeleteBackupPlanOperation(name string) *DeleteBackupPlanOperation {
@@ -4363,6 +5832,24 @@ func (c *backupForGKEGRPCClient) DeleteRestoreOperation(name string) *DeleteRest
 func (c *backupForGKERESTClient) DeleteRestoreOperation(name string) *DeleteRestoreOperation {
 	override := fmt.Sprintf("/v1/%s", name)
 	return &DeleteRestoreOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// DeleteRestoreChannelOperation returns a new DeleteRestoreChannelOperation from a given name.
+// The name must be that of a previously created DeleteRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) DeleteRestoreChannelOperation(name string) *DeleteRestoreChannelOperation {
+	return &DeleteRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// DeleteRestoreChannelOperation returns a new DeleteRestoreChannelOperation from a given name.
+// The name must be that of a previously created DeleteRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) DeleteRestoreChannelOperation(name string) *DeleteRestoreChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &DeleteRestoreChannelOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 		pollPath: override,
 	}
@@ -4404,6 +5891,24 @@ func (c *backupForGKERESTClient) UpdateBackupOperation(name string) *UpdateBacku
 	}
 }
 
+// UpdateBackupChannelOperation returns a new UpdateBackupChannelOperation from a given name.
+// The name must be that of a previously created UpdateBackupChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) UpdateBackupChannelOperation(name string) *UpdateBackupChannelOperation {
+	return &UpdateBackupChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// UpdateBackupChannelOperation returns a new UpdateBackupChannelOperation from a given name.
+// The name must be that of a previously created UpdateBackupChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) UpdateBackupChannelOperation(name string) *UpdateBackupChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &UpdateBackupChannelOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
 // UpdateBackupPlanOperation returns a new UpdateBackupPlanOperation from a given name.
 // The name must be that of a previously created UpdateBackupPlanOperation, possibly from a different process.
 func (c *backupForGKEGRPCClient) UpdateBackupPlanOperation(name string) *UpdateBackupPlanOperation {
@@ -4435,6 +5940,24 @@ func (c *backupForGKEGRPCClient) UpdateRestoreOperation(name string) *UpdateRest
 func (c *backupForGKERESTClient) UpdateRestoreOperation(name string) *UpdateRestoreOperation {
 	override := fmt.Sprintf("/v1/%s", name)
 	return &UpdateRestoreOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// UpdateRestoreChannelOperation returns a new UpdateRestoreChannelOperation from a given name.
+// The name must be that of a previously created UpdateRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKEGRPCClient) UpdateRestoreChannelOperation(name string) *UpdateRestoreChannelOperation {
+	return &UpdateRestoreChannelOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// UpdateRestoreChannelOperation returns a new UpdateRestoreChannelOperation from a given name.
+// The name must be that of a previously created UpdateRestoreChannelOperation, possibly from a different process.
+func (c *backupForGKERESTClient) UpdateRestoreChannelOperation(name string) *UpdateRestoreChannelOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &UpdateRestoreChannelOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 		pollPath: override,
 	}

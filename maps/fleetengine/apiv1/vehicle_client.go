@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package fleetengine
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/url"
 	"regexp"
@@ -42,12 +43,11 @@ var newVehicleClientHook clientHook
 type VehicleCallOptions struct {
 	CreateVehicle           []gax.CallOption
 	GetVehicle              []gax.CallOption
+	DeleteVehicle           []gax.CallOption
 	UpdateVehicle           []gax.CallOption
-	UpdateVehicleLocation   []gax.CallOption
 	UpdateVehicleAttributes []gax.CallOption
 	ListVehicles            []gax.CallOption
 	SearchVehicles          []gax.CallOption
-	SearchFuzzedVehicles    []gax.CallOption
 }
 
 func defaultVehicleGRPCClientOptions() []option.ClientOption {
@@ -59,6 +59,7 @@ func defaultVehicleGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://fleetengine.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -90,6 +91,7 @@ func defaultVehicleCallOptions() *VehicleCallOptions {
 				})
 			}),
 		},
+		DeleteVehicle: []gax.CallOption{},
 		UpdateVehicle: []gax.CallOption{
 			gax.WithTimeout(15000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
@@ -102,7 +104,6 @@ func defaultVehicleCallOptions() *VehicleCallOptions {
 				})
 			}),
 		},
-		UpdateVehicleLocation: []gax.CallOption{},
 		UpdateVehicleAttributes: []gax.CallOption{
 			gax.WithTimeout(15000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
@@ -128,7 +129,6 @@ func defaultVehicleCallOptions() *VehicleCallOptions {
 				})
 			}),
 		},
-		SearchFuzzedVehicles: []gax.CallOption{},
 	}
 }
 
@@ -139,12 +139,11 @@ type internalVehicleClient interface {
 	Connection() *grpc.ClientConn
 	CreateVehicle(context.Context, *fleetenginepb.CreateVehicleRequest, ...gax.CallOption) (*fleetenginepb.Vehicle, error)
 	GetVehicle(context.Context, *fleetenginepb.GetVehicleRequest, ...gax.CallOption) (*fleetenginepb.Vehicle, error)
+	DeleteVehicle(context.Context, *fleetenginepb.DeleteVehicleRequest, ...gax.CallOption) error
 	UpdateVehicle(context.Context, *fleetenginepb.UpdateVehicleRequest, ...gax.CallOption) (*fleetenginepb.Vehicle, error)
-	UpdateVehicleLocation(context.Context, *fleetenginepb.UpdateVehicleLocationRequest, ...gax.CallOption) (*fleetenginepb.VehicleLocation, error)
 	UpdateVehicleAttributes(context.Context, *fleetenginepb.UpdateVehicleAttributesRequest, ...gax.CallOption) (*fleetenginepb.UpdateVehicleAttributesResponse, error)
 	ListVehicles(context.Context, *fleetenginepb.ListVehiclesRequest, ...gax.CallOption) *VehicleIterator
 	SearchVehicles(context.Context, *fleetenginepb.SearchVehiclesRequest, ...gax.CallOption) (*fleetenginepb.SearchVehiclesResponse, error)
-	SearchFuzzedVehicles(context.Context, *fleetenginepb.SearchVehiclesRequest, ...gax.CallOption) (*fleetenginepb.SearchVehiclesResponse, error)
 }
 
 // VehicleClient is a client for interacting with Local Rides and Deliveries API.
@@ -235,6 +234,14 @@ func (c *VehicleClient) GetVehicle(ctx context.Context, req *fleetenginepb.GetVe
 	return c.internalClient.GetVehicle(ctx, req, opts...)
 }
 
+// DeleteVehicle deletes a Vehicle from the Fleet Engine.
+//
+// Returns FAILED_PRECONDITION if the Vehicle has active Trips.
+// assigned to it.
+func (c *VehicleClient) DeleteVehicle(ctx context.Context, req *fleetenginepb.DeleteVehicleRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteVehicle(ctx, req, opts...)
+}
+
 // UpdateVehicle writes updated vehicle data to the Fleet Engine.
 //
 // When updating a Vehicle, the following fields cannot be updated since
@@ -259,14 +266,6 @@ func (c *VehicleClient) UpdateVehicle(ctx context.Context, req *fleetenginepb.Up
 	return c.internalClient.UpdateVehicle(ctx, req, opts...)
 }
 
-// UpdateVehicleLocation deprecated: Use the UpdateVehicle method instead.
-// UpdateVehicleLocation updates the location of the vehicle.
-//
-// Deprecated: UpdateVehicleLocation may be removed in a future version.
-func (c *VehicleClient) UpdateVehicleLocation(ctx context.Context, req *fleetenginepb.UpdateVehicleLocationRequest, opts ...gax.CallOption) (*fleetenginepb.VehicleLocation, error) {
-	return c.internalClient.UpdateVehicleLocation(ctx, req, opts...)
-}
-
 // UpdateVehicleAttributes partially updates a vehicle’s attributes.
 // Only the attributes mentioned in the request will be updated, other
 // attributes will NOT be altered. Note: this is different in UpdateVehicle,
@@ -287,13 +286,6 @@ func (c *VehicleClient) SearchVehicles(ctx context.Context, req *fleetenginepb.S
 	return c.internalClient.SearchVehicles(ctx, req, opts...)
 }
 
-// SearchFuzzedVehicles deprecated: Use SearchVehicles instead.
-//
-// Deprecated: SearchFuzzedVehicles may be removed in a future version.
-func (c *VehicleClient) SearchFuzzedVehicles(ctx context.Context, req *fleetenginepb.SearchVehiclesRequest, opts ...gax.CallOption) (*fleetenginepb.SearchVehiclesResponse, error) {
-	return c.internalClient.SearchFuzzedVehicles(ctx, req, opts...)
-}
-
 // vehicleGRPCClient is a client for interacting with Local Rides and Deliveries API over gRPC transport.
 //
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
@@ -309,6 +301,8 @@ type vehicleGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewVehicleClient creates a new vehicle service client based on gRPC.
@@ -335,6 +329,7 @@ func NewVehicleClient(ctx context.Context, opts ...option.ClientOption) (*Vehicl
 		connPool:      connPool,
 		vehicleClient: fleetenginepb.NewVehicleServiceClient(connPool),
 		CallOptions:   &client.CallOptions,
+		logger:        internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -356,8 +351,10 @@ func (c *vehicleGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *vehicleGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -384,7 +381,7 @@ func (c *vehicleGRPCClient) CreateVehicle(ctx context.Context, req *fleetenginep
 	var resp *fleetenginepb.Vehicle
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.vehicleClient.CreateVehicle(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.vehicleClient.CreateVehicle, req, settings.GRPC, c.logger, "CreateVehicle")
 		return err
 	}, opts...)
 	if err != nil {
@@ -411,13 +408,36 @@ func (c *vehicleGRPCClient) GetVehicle(ctx context.Context, req *fleetenginepb.G
 	var resp *fleetenginepb.Vehicle
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.vehicleClient.GetVehicle(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.vehicleClient.GetVehicle, req, settings.GRPC, c.logger, "GetVehicle")
 		return err
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (c *vehicleGRPCClient) DeleteVehicle(ctx context.Context, req *fleetenginepb.DeleteVehicleRequest, opts ...gax.CallOption) error {
+	routingHeaders := ""
+	routingHeadersMap := make(map[string]string)
+	if reg := regexp.MustCompile("(?P<provider_id>providers/[^/]+)"); reg.MatchString(req.GetName()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetName())[1])) > 0 {
+		routingHeadersMap["provider_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetName())[1])
+	}
+	for headerName, headerValue := range routingHeadersMap {
+		routingHeaders = fmt.Sprintf("%s%s=%s&", routingHeaders, headerName, headerValue)
+	}
+	routingHeaders = strings.TrimSuffix(routingHeaders, "&")
+	hds := []string{"x-goog-request-params", routingHeaders}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteVehicle[0:len((*c.CallOptions).DeleteVehicle):len((*c.CallOptions).DeleteVehicle)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.vehicleClient.DeleteVehicle, req, settings.GRPC, c.logger, "DeleteVehicle")
+		return err
+	}, opts...)
+	return err
 }
 
 func (c *vehicleGRPCClient) UpdateVehicle(ctx context.Context, req *fleetenginepb.UpdateVehicleRequest, opts ...gax.CallOption) (*fleetenginepb.Vehicle, error) {
@@ -438,34 +458,7 @@ func (c *vehicleGRPCClient) UpdateVehicle(ctx context.Context, req *fleetenginep
 	var resp *fleetenginepb.Vehicle
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.vehicleClient.UpdateVehicle(ctx, req, settings.GRPC...)
-		return err
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (c *vehicleGRPCClient) UpdateVehicleLocation(ctx context.Context, req *fleetenginepb.UpdateVehicleLocationRequest, opts ...gax.CallOption) (*fleetenginepb.VehicleLocation, error) {
-	routingHeaders := ""
-	routingHeadersMap := make(map[string]string)
-	if reg := regexp.MustCompile("(?P<provider_id>providers/[^/]+)"); reg.MatchString(req.GetName()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetName())[1])) > 0 {
-		routingHeadersMap["provider_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetName())[1])
-	}
-	for headerName, headerValue := range routingHeadersMap {
-		routingHeaders = fmt.Sprintf("%s%s=%s&", routingHeaders, headerName, headerValue)
-	}
-	routingHeaders = strings.TrimSuffix(routingHeaders, "&")
-	hds := []string{"x-goog-request-params", routingHeaders}
-
-	hds = append(c.xGoogHeaders, hds...)
-	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
-	opts = append((*c.CallOptions).UpdateVehicleLocation[0:len((*c.CallOptions).UpdateVehicleLocation):len((*c.CallOptions).UpdateVehicleLocation)], opts...)
-	var resp *fleetenginepb.VehicleLocation
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
-		var err error
-		resp, err = c.vehicleClient.UpdateVehicleLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.vehicleClient.UpdateVehicle, req, settings.GRPC, c.logger, "UpdateVehicle")
 		return err
 	}, opts...)
 	if err != nil {
@@ -492,7 +485,7 @@ func (c *vehicleGRPCClient) UpdateVehicleAttributes(ctx context.Context, req *fl
 	var resp *fleetenginepb.UpdateVehicleAttributesResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.vehicleClient.UpdateVehicleAttributes(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.vehicleClient.UpdateVehicleAttributes, req, settings.GRPC, c.logger, "UpdateVehicleAttributes")
 		return err
 	}, opts...)
 	if err != nil {
@@ -530,7 +523,7 @@ func (c *vehicleGRPCClient) ListVehicles(ctx context.Context, req *fleetenginepb
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.vehicleClient.ListVehicles(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.vehicleClient.ListVehicles, req, settings.GRPC, c.logger, "ListVehicles")
 			return err
 		}, opts...)
 		if err != nil {
@@ -574,34 +567,7 @@ func (c *vehicleGRPCClient) SearchVehicles(ctx context.Context, req *fleetengine
 	var resp *fleetenginepb.SearchVehiclesResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.vehicleClient.SearchVehicles(ctx, req, settings.GRPC...)
-		return err
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (c *vehicleGRPCClient) SearchFuzzedVehicles(ctx context.Context, req *fleetenginepb.SearchVehiclesRequest, opts ...gax.CallOption) (*fleetenginepb.SearchVehiclesResponse, error) {
-	routingHeaders := ""
-	routingHeadersMap := make(map[string]string)
-	if reg := regexp.MustCompile("(?P<provider_id>providers/[^/]+)"); reg.MatchString(req.GetParent()) && len(url.QueryEscape(reg.FindStringSubmatch(req.GetParent())[1])) > 0 {
-		routingHeadersMap["provider_id"] = url.QueryEscape(reg.FindStringSubmatch(req.GetParent())[1])
-	}
-	for headerName, headerValue := range routingHeadersMap {
-		routingHeaders = fmt.Sprintf("%s%s=%s&", routingHeaders, headerName, headerValue)
-	}
-	routingHeaders = strings.TrimSuffix(routingHeaders, "&")
-	hds := []string{"x-goog-request-params", routingHeaders}
-
-	hds = append(c.xGoogHeaders, hds...)
-	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
-	opts = append((*c.CallOptions).SearchFuzzedVehicles[0:len((*c.CallOptions).SearchFuzzedVehicles):len((*c.CallOptions).SearchFuzzedVehicles)], opts...)
-	var resp *fleetenginepb.SearchVehiclesResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
-		var err error
-		resp, err = c.vehicleClient.SearchFuzzedVehicles(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.vehicleClient.SearchVehicles, req, settings.GRPC, c.logger, "SearchVehicles")
 		return err
 	}, opts...)
 	if err != nil {

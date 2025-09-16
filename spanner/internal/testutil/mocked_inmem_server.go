@@ -22,9 +22,10 @@ import (
 
 	"cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	"cloud.google.com/go/spanner/apiv1/spannerpb"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
 // SelectFooFromBar is a SELECT statement that is added to the mocked test
@@ -62,21 +63,22 @@ type MockedSpannerInMemTestServer struct {
 	TestSpanner       InMemSpannerServer
 	TestInstanceAdmin InMemInstanceAdminServer
 	server            *grpc.Server
+	ServerAddress     string
 }
 
 // NewMockedSpannerInMemTestServer creates a MockedSpannerInMemTestServer at
 // localhost with a random port and returns client options that can be used
 // to connect to it.
-func NewMockedSpannerInMemTestServer(t *testing.T) (mockedServer *MockedSpannerInMemTestServer, opts []option.ClientOption, teardown func()) {
-	return NewMockedSpannerInMemTestServerWithAddr(t, "localhost:0")
+func NewMockedSpannerInMemTestServer(t *testing.T, sopt ...grpc.ServerOption) (mockedServer *MockedSpannerInMemTestServer, opts []option.ClientOption, teardown func()) {
+	return NewMockedSpannerInMemTestServerWithAddr(t, "localhost:0", sopt...)
 }
 
 // NewMockedSpannerInMemTestServerWithAddr creates a MockedSpannerInMemTestServer
 // at a given listening address and returns client options that can be used
 // to connect to it.
-func NewMockedSpannerInMemTestServerWithAddr(t *testing.T, addr string) (mockedServer *MockedSpannerInMemTestServer, opts []option.ClientOption, teardown func()) {
+func NewMockedSpannerInMemTestServerWithAddr(t *testing.T, addr string, sopt ...grpc.ServerOption) (mockedServer *MockedSpannerInMemTestServer, opts []option.ClientOption, teardown func()) {
 	mockedServer = &MockedSpannerInMemTestServer{}
-	opts = mockedServer.setupMockedServerWithAddr(t, addr)
+	opts = mockedServer.setupMockedServerWithAddr(t, addr, sopt...)
 	return mockedServer, opts, func() {
 		mockedServer.TestSpanner.Stop()
 		mockedServer.TestInstanceAdmin.Stop()
@@ -84,12 +86,12 @@ func NewMockedSpannerInMemTestServerWithAddr(t *testing.T, addr string) (mockedS
 	}
 }
 
-func (s *MockedSpannerInMemTestServer) setupMockedServerWithAddr(t *testing.T, addr string) []option.ClientOption {
+func (s *MockedSpannerInMemTestServer) setupMockedServerWithAddr(t *testing.T, addr string, sopt ...grpc.ServerOption) []option.ClientOption {
 	s.TestSpanner = NewInMemSpannerServer()
 	s.TestInstanceAdmin = NewInMemInstanceAdminServer()
 	s.setupFooResults()
 	s.setupSingersResults()
-	s.server = grpc.NewServer()
+	s.server = grpc.NewServer(sopt...)
 	spannerpb.RegisterSpannerServer(s.server, s.TestSpanner)
 	instancepb.RegisterInstanceAdminServer(s.server, s.TestInstanceAdmin)
 
@@ -99,10 +101,10 @@ func (s *MockedSpannerInMemTestServer) setupMockedServerWithAddr(t *testing.T, a
 	}
 	go s.server.Serve(lis)
 
-	serverAddress := lis.Addr().String()
+	s.ServerAddress = lis.Addr().String()
 	opts := []option.ClientOption{
-		option.WithEndpoint(serverAddress),
-		option.WithGRPCDialOption(grpc.WithInsecure()),
+		option.WithEndpoint(s.ServerAddress),
+		option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 		option.WithoutAuthentication(),
 	}
 	return opts
@@ -153,8 +155,25 @@ func (s *MockedSpannerInMemTestServer) setupSingersResults() {
 		Metadata: metadata,
 		Rows:     rows,
 	}
-	result := &StatementResult{Type: StatementResultResultSet, ResultSet: resultSet}
-	s.TestSpanner.PutStatementResult(SelectSingerIDAlbumIDAlbumTitleFromAlbums, result)
+	result := &StatementResult{Type: StatementResultResultSet, ResultSet: resultSet, SetLastFlag: true}
+	_ = s.TestSpanner.PutStatementResult(SelectSingerIDAlbumIDAlbumTitleFromAlbums, result)
+}
+
+// CreateSingersResults creates a result set containing rowCount size of rows
+// and also setLastFlag param helps in setting Last flag in PartialResultSet
+// in the last PartialResult for StreamingRead and ExecuteStreamingSql gRPC methods
+func (s *MockedSpannerInMemTestServer) CreateSingersResults(rowCount int64, setLastFlag bool) *StatementResult {
+	metadata := createSingersMetadata()
+	rows := make([]*structpb.ListValue, rowCount)
+	var idx int64
+	for idx = 0; idx < rowCount; idx++ {
+		rows[idx] = createSingersRow(idx)
+	}
+	resultSet := &spannerpb.ResultSet{
+		Metadata: metadata,
+		Rows:     rows,
+	}
+	return &StatementResult{Type: StatementResultResultSet, ResultSet: resultSet, SetLastFlag: setLastFlag}
 }
 
 // CreateSingleRowSingersResult creates a result set containing a single row of

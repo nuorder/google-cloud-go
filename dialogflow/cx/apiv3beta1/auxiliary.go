@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -349,6 +349,70 @@ func (op *ExportAgentOperation) Name() string {
 	return op.lro.Name()
 }
 
+// ExportEntityTypesOperation manages a long-running operation from ExportEntityTypes.
+type ExportEntityTypesOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *ExportEntityTypesOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*cxpb.ExportEntityTypesResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ExportEntityTypesResponse
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *ExportEntityTypesOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*cxpb.ExportEntityTypesResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ExportEntityTypesResponse
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *ExportEntityTypesOperation) Metadata() (*cxpb.ExportEntityTypesMetadata, error) {
+	var meta cxpb.ExportEntityTypesMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *ExportEntityTypesOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *ExportEntityTypesOperation) Name() string {
+	return op.lro.Name()
+}
+
 // ExportFlowOperation manages a long-running operation from ExportFlow.
 type ExportFlowOperation struct {
 	lro      *longrunning.Operation
@@ -538,6 +602,134 @@ func (op *ExportTestCasesOperation) Done() bool {
 // Name returns the name of the long-running operation.
 // The name is assigned by the server and is unique within the service from which the operation is created.
 func (op *ExportTestCasesOperation) Name() string {
+	return op.lro.Name()
+}
+
+// ExportToolsOperation manages a long-running operation from ExportTools.
+type ExportToolsOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *ExportToolsOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*cxpb.ExportToolsResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ExportToolsResponse
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *ExportToolsOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*cxpb.ExportToolsResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ExportToolsResponse
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *ExportToolsOperation) Metadata() (*cxpb.ExportToolsMetadata, error) {
+	var meta cxpb.ExportToolsMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *ExportToolsOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *ExportToolsOperation) Name() string {
+	return op.lro.Name()
+}
+
+// ImportEntityTypesOperation manages a long-running operation from ImportEntityTypes.
+type ImportEntityTypesOperation struct {
+	lro      *longrunning.Operation
+	pollPath string
+}
+
+// Wait blocks until the long-running operation is completed, returning the response and any errors encountered.
+//
+// See documentation of Poll for error-handling information.
+func (op *ImportEntityTypesOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*cxpb.ImportEntityTypesResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ImportEntityTypesResponse
+	if err := op.lro.WaitWithInterval(ctx, &resp, time.Minute, opts...); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Poll fetches the latest state of the long-running operation.
+//
+// Poll also fetches the latest metadata, which can be retrieved by Metadata.
+//
+// If Poll fails, the error is returned and op is unmodified. If Poll succeeds and
+// the operation has completed with failure, the error is returned and op.Done will return true.
+// If Poll succeeds and the operation has completed successfully,
+// op.Done will return true, and the response of the operation is returned.
+// If Poll succeeds and the operation has not completed, the returned response and error are both nil.
+func (op *ImportEntityTypesOperation) Poll(ctx context.Context, opts ...gax.CallOption) (*cxpb.ImportEntityTypesResponse, error) {
+	opts = append([]gax.CallOption{gax.WithPath(op.pollPath)}, opts...)
+	var resp cxpb.ImportEntityTypesResponse
+	if err := op.lro.Poll(ctx, &resp, opts...); err != nil {
+		return nil, err
+	}
+	if !op.Done() {
+		return nil, nil
+	}
+	return &resp, nil
+}
+
+// Metadata returns metadata associated with the long-running operation.
+// Metadata itself does not contact the server, but Poll does.
+// To get the latest metadata, call this method after a successful call to Poll.
+// If the metadata is not available, the returned metadata and error are both nil.
+func (op *ImportEntityTypesOperation) Metadata() (*cxpb.ImportEntityTypesMetadata, error) {
+	var meta cxpb.ImportEntityTypesMetadata
+	if err := op.lro.Metadata(&meta); err == longrunning.ErrNoMetadata {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &meta, nil
+}
+
+// Done reports whether the long-running operation has completed.
+func (op *ImportEntityTypesOperation) Done() bool {
+	return op.lro.Done()
+}
+
+// Name returns the name of the long-running operation.
+// The name is assigned by the server and is unique within the service from which the operation is created.
+func (op *ImportEntityTypesOperation) Name() string {
 	return op.lro.Name()
 }
 
@@ -1104,7 +1296,7 @@ type AgentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Agent, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *AgentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1151,7 +1343,7 @@ type ChangelogIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Changelog, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ChangelogIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1198,7 +1390,7 @@ type ContinuousTestResultIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.ContinuousTestResult, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ContinuousTestResultIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1225,6 +1417,53 @@ func (it *ContinuousTestResultIterator) takeBuf() interface{} {
 	return b
 }
 
+// ConversationIterator manages a stream of *cxpb.Conversation.
+type ConversationIterator struct {
+	items    []*cxpb.Conversation
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Conversation, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ConversationIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ConversationIterator) Next() (*cxpb.Conversation, error) {
+	var item *cxpb.Conversation
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ConversationIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ConversationIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // DeploymentIterator manages a stream of *cxpb.Deployment.
 type DeploymentIterator struct {
 	items    []*cxpb.Deployment
@@ -1245,7 +1484,7 @@ type DeploymentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Deployment, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *DeploymentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1292,7 +1531,7 @@ type EntityTypeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.EntityType, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *EntityTypeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1339,7 +1578,7 @@ type EnvironmentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Environment, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *EnvironmentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1366,6 +1605,53 @@ func (it *EnvironmentIterator) takeBuf() interface{} {
 	return b
 }
 
+// ExampleIterator manages a stream of *cxpb.Example.
+type ExampleIterator struct {
+	items    []*cxpb.Example
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Example, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ExampleIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ExampleIterator) Next() (*cxpb.Example, error) {
+	var item *cxpb.Example
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ExampleIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ExampleIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // ExperimentIterator manages a stream of *cxpb.Experiment.
 type ExperimentIterator struct {
 	items    []*cxpb.Experiment
@@ -1386,7 +1672,7 @@ type ExperimentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Experiment, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *ExperimentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1433,7 +1719,7 @@ type FlowIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Flow, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *FlowIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1480,7 +1766,7 @@ type GeneratorIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Generator, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *GeneratorIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1527,7 +1813,7 @@ type IntentIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Intent, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *IntentIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1574,7 +1860,7 @@ type LocationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*locationpb.Location, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *LocationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1621,7 +1907,7 @@ type OperationIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*longrunningpb.Operation, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *OperationIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1668,7 +1954,7 @@ type PageIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Page, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *PageIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1695,6 +1981,100 @@ func (it *PageIterator) takeBuf() interface{} {
 	return b
 }
 
+// PlaybookIterator manages a stream of *cxpb.Playbook.
+type PlaybookIterator struct {
+	items    []*cxpb.Playbook
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Playbook, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *PlaybookIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *PlaybookIterator) Next() (*cxpb.Playbook, error) {
+	var item *cxpb.Playbook
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *PlaybookIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *PlaybookIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// PlaybookVersionIterator manages a stream of *cxpb.PlaybookVersion.
+type PlaybookVersionIterator struct {
+	items    []*cxpb.PlaybookVersion
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.PlaybookVersion, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *PlaybookVersionIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *PlaybookVersionIterator) Next() (*cxpb.PlaybookVersion, error) {
+	var item *cxpb.PlaybookVersion
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *PlaybookVersionIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *PlaybookVersionIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // SecuritySettingsIterator manages a stream of *cxpb.SecuritySettings.
 type SecuritySettingsIterator struct {
 	items    []*cxpb.SecuritySettings
@@ -1715,7 +2095,7 @@ type SecuritySettingsIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.SecuritySettings, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *SecuritySettingsIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1762,7 +2142,7 @@ type SessionEntityTypeIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.SessionEntityType, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *SessionEntityTypeIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1809,7 +2189,7 @@ type TestCaseIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.TestCase, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *TestCaseIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1856,7 +2236,7 @@ type TestCaseResultIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.TestCaseResult, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *TestCaseResultIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1883,6 +2263,100 @@ func (it *TestCaseResultIterator) takeBuf() interface{} {
 	return b
 }
 
+// ToolIterator manages a stream of *cxpb.Tool.
+type ToolIterator struct {
+	items    []*cxpb.Tool
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Tool, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ToolIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ToolIterator) Next() (*cxpb.Tool, error) {
+	var item *cxpb.Tool
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ToolIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ToolIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// ToolVersionIterator manages a stream of *cxpb.ToolVersion.
+type ToolVersionIterator struct {
+	items    []*cxpb.ToolVersion
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// Response is the raw response for the current page.
+	// It must be cast to the RPC response type.
+	// Calling Next() or InternalFetch() updates this value.
+	Response interface{}
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.ToolVersion, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
+func (it *ToolVersionIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *ToolVersionIterator) Next() (*cxpb.ToolVersion, error) {
+	var item *cxpb.ToolVersion
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *ToolVersionIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *ToolVersionIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // TransitionRouteGroupIterator manages a stream of *cxpb.TransitionRouteGroup.
 type TransitionRouteGroupIterator struct {
 	items    []*cxpb.TransitionRouteGroup
@@ -1903,7 +2377,7 @@ type TransitionRouteGroupIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.TransitionRouteGroup, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *TransitionRouteGroupIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1950,7 +2424,7 @@ type VersionIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Version, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *VersionIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }
@@ -1997,7 +2471,7 @@ type WebhookIterator struct {
 	InternalFetch func(pageSize int, pageToken string) (results []*cxpb.Webhook, nextPageToken string, err error)
 }
 
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+// PageInfo supports pagination. See the [google.golang.org/api/iterator] package for details.
 func (it *WebhookIterator) PageInfo() *iterator.PageInfo {
 	return it.pageInfo
 }

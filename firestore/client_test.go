@@ -16,19 +16,25 @@ package firestore
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
 	pb "cloud.google.com/go/firestore/apiv1/firestorepb"
-	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	tspb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var testClient = &Client{
 	projectID:    "projectID",
 	databaseID:   "(default)",
+	readSettings: &readSettings{},
+}
+
+var testClientNamedDB = &Client{
+	projectID:    "projectID",
+	databaseID:   "my-database",
 	readSettings: &readSettings{},
 }
 
@@ -150,6 +156,168 @@ func TestClientCollDocErrors(t *testing.T) {
 	}
 }
 
+func TestClientDocFromResourceName(t *testing.T) {
+	defaultDBPath := "projects/projectID/databases/(default)"
+	namedDBPath := "projects/projectID/databases/my-database"
+
+	myCollectionRef := &CollectionRef{
+		c:          testClient,
+		parentPath: defaultDBPath + "/documents",
+		selfPath:   "myCollection",
+		ID:         "myCollection",
+		Path:       defaultDBPath + "/documents/myCollection",
+		Query: Query{
+			c:            testClient,
+			collectionID: "myCollection",
+			path:         defaultDBPath + "/documents/myCollection",
+			parentPath:   defaultDBPath + "/documents",
+		},
+		readSettings: &readSettings{},
+	}
+	myDocRef := &DocumentRef{
+		Parent:       myCollectionRef,
+		ID:           "myDoc",
+		Path:         defaultDBPath + "/documents/myCollection/myDoc",
+		shortPath:    "myCollection/myDoc",
+		readSettings: &readSettings{},
+	}
+	subCollectionRef := &CollectionRef{
+		c:          testClient,
+		parentPath: defaultDBPath + "/documents/myCollection/myDoc",
+		selfPath:   "myCollection/myDoc/subCollection",
+		Parent:     myDocRef,
+		ID:         "subCollection",
+		Path:       defaultDBPath + "/documents/myCollection/myDoc/subCollection",
+		Query: Query{
+			c:            testClient,
+			collectionID: "subCollection",
+			path:         defaultDBPath + "/documents/myCollection/myDoc/subCollection",
+			parentPath:   defaultDBPath + "/documents/myCollection/myDoc",
+		},
+		readSettings: &readSettings{},
+	}
+
+	tests := []struct {
+		name         string
+		client       *Client
+		resourceName string
+		want         *DocumentRef
+	}{
+		{
+			name:         "Valid resource name for default database",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents/myCollection/myDoc",
+			want: &DocumentRef{
+				Parent:       myCollectionRef, // Use the pre-constructed parent
+				ID:           "myDoc",
+				Path:         defaultDBPath + "/documents/myCollection/myDoc",
+				shortPath:    "myCollection/myDoc",
+				readSettings: &readSettings{},
+			},
+		},
+		{
+			name:         "Valid resource name for named database",
+			client:       testClientNamedDB,
+			resourceName: namedDBPath + "/documents/users/user1",
+			want: &DocumentRef{
+				Parent: &CollectionRef{
+					c:          testClientNamedDB,
+					parentPath: namedDBPath + "/documents",
+					selfPath:   "users",
+					ID:         "users",
+					Path:       namedDBPath + "/documents/users",
+					Query: Query{
+						c:            testClientNamedDB,
+						collectionID: "users",
+						path:         namedDBPath + "/documents/users",
+						parentPath:   namedDBPath + "/documents",
+					},
+					readSettings: &readSettings{},
+				},
+				ID:           "user1",
+				Path:         namedDBPath + "/documents/users/user1",
+				shortPath:    "users/user1",
+				readSettings: &readSettings{},
+			},
+		},
+		{
+			name:         "Valid resource name with subcollection",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents/myCollection/myDoc/subCollection/subDoc",
+			want: &DocumentRef{
+				Parent:       subCollectionRef, // Use the pre-constructed parent
+				ID:           "subDoc",
+				Path:         defaultDBPath + "/documents/myCollection/myDoc/subCollection/subDoc",
+				shortPath:    "myCollection/myDoc/subCollection/subDoc",
+				readSettings: &readSettings{},
+			},
+		},
+		{
+			name:         "Empty resource name",
+			client:       testClient,
+			resourceName: "",
+			want:         nil,
+		},
+		{
+			name:         "Resource name missing 'projects/' prefix",
+			client:       testClient,
+			resourceName: "myCollection/myDoc", // Not a full resource name
+			want:         nil,
+		},
+		{
+			name:         "Resource name missing '/documents/' segment",
+			client:       testClient,
+			resourceName: defaultDBPath + "/myCollection/myDoc",
+			want:         nil,
+		},
+		{
+			name:         "Resource name with malformed '/documents/' split",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents", // ends with /documents
+			want:         nil,
+		},
+		{
+			name:         "Resource name refers to a collection (odd segments after /documents/)",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents/myCollection",
+			want:         nil,
+		},
+		{
+			name:         "Resource name with mismatched project ID",
+			client:       testClient,
+			resourceName: "projects/otherProject/databases/(default)/documents/myCollection/myDoc",
+			want:         nil,
+		},
+		{
+			name:         "Resource name with mismatched database ID",
+			client:       testClient,
+			resourceName: "projects/projectID/databases/otherDB/documents/myCollection/myDoc",
+			want:         nil,
+		},
+		{
+			name:         "Resource name with empty segment after /documents/",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents/myCollection//myDoc",
+			want:         nil,
+		},
+		{
+			name:         "Resource name with empty segment in collection part",
+			client:       testClient,
+			resourceName: defaultDBPath + "/documents//myDoc",
+			want:         nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.client.DocFromFullPath(tt.resourceName)
+			if !testEqual(got, tt.want) {
+				t.Errorf("DocFromResourceName(%q) got %+v, want %+v", tt.resourceName, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestGetAll(t *testing.T) {
 	c, srv, cleanup := newMock(t)
 	defer cleanup()
@@ -189,15 +357,15 @@ func testGetAll(t *testing.T, c *Client, srv *mockServer, dbPath string, getAll 
 		[]interface{}{
 			// deliberately put these out of order
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Found{wantPBDocs[2]},
+				Result:   &pb.BatchGetDocumentsResponse_Found{Found: wantPBDocs[2]},
 				ReadTime: aTimestamp3,
 			},
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Found{wantPBDocs[0]},
+				Result:   &pb.BatchGetDocumentsResponse_Found{Found: wantPBDocs[0]},
 				ReadTime: aTimestamp,
 			},
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Missing{dbPath + "/documents/C/b"},
+				Result:   &pb.BatchGetDocumentsResponse_Missing{Missing: dbPath + "/documents/C/b"},
 				ReadTime: aTimestamp2,
 			},
 		},
@@ -267,15 +435,15 @@ func testGetAllWithEqualRefs(t *testing.T, c *Client, srv *mockServer, dbPath st
 		[]interface{}{
 			// deliberately put these out of order
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Found{wantPBDocs[1]},
+				Result:   &pb.BatchGetDocumentsResponse_Found{Found: wantPBDocs[1]},
 				ReadTime: aTimestamp3,
 			},
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Found{wantPBDocs[0]},
+				Result:   &pb.BatchGetDocumentsResponse_Found{Found: wantPBDocs[0]},
 				ReadTime: aTimestamp,
 			},
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Missing{dbPath + "/documents/C/b"},
+				Result:   &pb.BatchGetDocumentsResponse_Missing{Missing: dbPath + "/documents/C/b"},
 				ReadTime: aTimestamp2,
 			},
 		},
@@ -340,17 +508,23 @@ func TestGetAllErrors(t *testing.T) {
 		},
 		[]interface{}{
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Found{&pb.Document{Name: docPath}},
+				Result:   &pb.BatchGetDocumentsResponse_Found{Found: &pb.Document{Name: docPath}},
 				ReadTime: aTimestamp,
 			},
 			&pb.BatchGetDocumentsResponse{
-				Result:   &pb.BatchGetDocumentsResponse_Missing{docPath},
+				Result:   &pb.BatchGetDocumentsResponse_Missing{Missing: docPath},
 				ReadTime: aTimestamp,
 			},
 		},
 	)
 	if _, err := c.GetAll(ctx, []*DocumentRef{c.Doc("C/a")}); err == nil {
 		t.Error("got nil, want error")
+	}
+
+	// Invalid UTF-8 characters
+	srv.reset()
+	if _, gotErr := c.GetAll(ctx, []*DocumentRef{c.Doc("C/Mayag\xcfez")}); !errorsMatch(gotErr, errInvalidUtf8DocRef) {
+		t.Errorf("got: %v, want: %v", gotErr, errInvalidUtf8DocRef)
 	}
 }
 
@@ -375,11 +549,11 @@ func TestClient_WithReadOptions(t *testing.T) {
 		Database:  dbPath,
 		Documents: []string{docPath},
 		ConsistencySelector: &pb.BatchGetDocumentsRequest_ReadTime{
-			ReadTime: &timestamppb.Timestamp{Seconds: tm.Unix()},
+			ReadTime: &tspb.Timestamp{Seconds: tm.Unix()},
 		},
 	}, []interface{}{
 		&pb.BatchGetDocumentsResponse{
-			ReadTime: &timestamppb.Timestamp{Seconds: tm.Unix()},
+			ReadTime: &tspb.Timestamp{Seconds: tm.Unix()},
 			Result: &pb.BatchGetDocumentsResponse_Found{
 				Found: &pb.Document{},
 			},
@@ -392,5 +566,21 @@ func TestClient_WithReadOptions(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestClient_UsesEmulator(t *testing.T) {
+	c, _, cleanup := newMock(t)
+	defer cleanup()
+	if c.UsesEmulator {
+		t.Error("got true, want false")
+	}
+
+	os.Setenv("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+	defer os.Unsetenv("FIRESTORE_EMULATOR_HOST")
+	c, _, cleanup = newMock(t)
+	defer cleanup()
+	if !c.UsesEmulator {
+		t.Error("got false, want true")
 	}
 }

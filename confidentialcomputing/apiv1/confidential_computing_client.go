@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,7 +28,6 @@ import (
 
 	confidentialcomputingpb "cloud.google.com/go/confidentialcomputing/apiv1/confidentialcomputingpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -45,10 +44,12 @@ var newClientHook clientHook
 
 // CallOptions contains the retry settings for each method of Client.
 type CallOptions struct {
-	CreateChallenge   []gax.CallOption
-	VerifyAttestation []gax.CallOption
-	GetLocation       []gax.CallOption
-	ListLocations     []gax.CallOption
+	CreateChallenge         []gax.CallOption
+	VerifyAttestation       []gax.CallOption
+	VerifyConfidentialSpace []gax.CallOption
+	VerifyConfidentialGke   []gax.CallOption
+	GetLocation             []gax.CallOption
+	ListLocations           []gax.CallOption
 }
 
 func defaultGRPCClientOptions() []option.ClientOption {
@@ -60,6 +61,7 @@ func defaultGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://confidentialcomputing.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -80,6 +82,30 @@ func defaultCallOptions() *CallOptions {
 			}),
 		},
 		VerifyAttestation: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		VerifyConfidentialSpace: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
+		},
+		VerifyConfidentialGke: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
 				return gax.OnCodes([]codes.Code{
@@ -120,6 +146,28 @@ func defaultRESTCallOptions() *CallOptions {
 					http.StatusServiceUnavailable)
 			}),
 		},
+		VerifyConfidentialSpace: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
+		VerifyConfidentialGke: []gax.CallOption{
+			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
+		},
 		GetLocation:   []gax.CallOption{},
 		ListLocations: []gax.CallOption{},
 	}
@@ -132,6 +180,8 @@ type internalClient interface {
 	Connection() *grpc.ClientConn
 	CreateChallenge(context.Context, *confidentialcomputingpb.CreateChallengeRequest, ...gax.CallOption) (*confidentialcomputingpb.Challenge, error)
 	VerifyAttestation(context.Context, *confidentialcomputingpb.VerifyAttestationRequest, ...gax.CallOption) (*confidentialcomputingpb.VerifyAttestationResponse, error)
+	VerifyConfidentialSpace(context.Context, *confidentialcomputingpb.VerifyConfidentialSpaceRequest, ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialSpaceResponse, error)
+	VerifyConfidentialGke(context.Context, *confidentialcomputingpb.VerifyConfidentialGkeRequest, ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialGkeResponse, error)
 	GetLocation(context.Context, *locationpb.GetLocationRequest, ...gax.CallOption) (*locationpb.Location, error)
 	ListLocations(context.Context, *locationpb.ListLocationsRequest, ...gax.CallOption) *LocationIterator
 }
@@ -176,9 +226,22 @@ func (c *Client) CreateChallenge(ctx context.Context, req *confidentialcomputing
 	return c.internalClient.CreateChallenge(ctx, req, opts...)
 }
 
-// VerifyAttestation verifies the provided attestation info, returning a signed OIDC token.
+// VerifyAttestation verifies the provided attestation info, returning a signed attestation
+// token.
 func (c *Client) VerifyAttestation(ctx context.Context, req *confidentialcomputingpb.VerifyAttestationRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyAttestationResponse, error) {
 	return c.internalClient.VerifyAttestation(ctx, req, opts...)
+}
+
+// VerifyConfidentialSpace verifies whether the provided attestation info is valid, returning a signed
+// attestation token if so.
+func (c *Client) VerifyConfidentialSpace(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialSpaceRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialSpaceResponse, error) {
+	return c.internalClient.VerifyConfidentialSpace(ctx, req, opts...)
+}
+
+// VerifyConfidentialGke verifies the provided Confidential GKE attestation info, returning a signed
+// OIDC token.
+func (c *Client) VerifyConfidentialGke(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialGkeRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialGkeResponse, error) {
+	return c.internalClient.VerifyConfidentialGke(ctx, req, opts...)
 }
 
 // GetLocation gets information about a location.
@@ -208,6 +271,8 @@ type gRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewClient creates a new confidential computing client based on gRPC.
@@ -234,6 +299,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 		connPool:        connPool,
 		client:          confidentialcomputingpb.NewConfidentialComputingClient(connPool),
 		CallOptions:     &client.CallOptions,
+		logger:          internaloption.GetLogger(opts),
 		locationsClient: locationpb.NewLocationsClient(connPool),
 	}
 	c.setGoogleClientInfo()
@@ -256,8 +322,10 @@ func (c *gRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *gRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -279,6 +347,8 @@ type restClient struct {
 
 	// Points back to the CallOptions field of the containing Client
 	CallOptions **CallOptions
+
+	logger *slog.Logger
 }
 
 // NewRESTClient creates a new confidential computing rest client.
@@ -296,6 +366,7 @@ func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, e
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -310,6 +381,7 @@ func defaultRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://confidentialcomputing.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -318,8 +390,10 @@ func defaultRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *restClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -345,7 +419,7 @@ func (c *gRPCClient) CreateChallenge(ctx context.Context, req *confidentialcompu
 	var resp *confidentialcomputingpb.Challenge
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateChallenge(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateChallenge, req, settings.GRPC, c.logger, "CreateChallenge")
 		return err
 	}, opts...)
 	if err != nil {
@@ -363,7 +437,43 @@ func (c *gRPCClient) VerifyAttestation(ctx context.Context, req *confidentialcom
 	var resp *confidentialcomputingpb.VerifyAttestationResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.VerifyAttestation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.VerifyAttestation, req, settings.GRPC, c.logger, "VerifyAttestation")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) VerifyConfidentialSpace(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialSpaceRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialSpaceResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "challenge", url.QueryEscape(req.GetChallenge()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).VerifyConfidentialSpace[0:len((*c.CallOptions).VerifyConfidentialSpace):len((*c.CallOptions).VerifyConfidentialSpace)], opts...)
+	var resp *confidentialcomputingpb.VerifyConfidentialSpaceResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.VerifyConfidentialSpace, req, settings.GRPC, c.logger, "VerifyConfidentialSpace")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *gRPCClient) VerifyConfidentialGke(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialGkeRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialGkeResponse, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "challenge", url.QueryEscape(req.GetChallenge()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).VerifyConfidentialGke[0:len((*c.CallOptions).VerifyConfidentialGke):len((*c.CallOptions).VerifyConfidentialGke)], opts...)
+	var resp *confidentialcomputingpb.VerifyConfidentialGkeResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.client.VerifyConfidentialGke, req, settings.GRPC, c.logger, "VerifyConfidentialGke")
 		return err
 	}, opts...)
 	if err != nil {
@@ -381,7 +491,7 @@ func (c *gRPCClient) GetLocation(ctx context.Context, req *locationpb.GetLocatio
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -410,7 +520,7 @@ func (c *gRPCClient) ListLocations(ctx context.Context, req *locationpb.ListLoca
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -476,17 +586,7 @@ func (c *restClient) CreateChallenge(ctx context.Context, req *confidentialcompu
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateChallenge")
 		if err != nil {
 			return err
 		}
@@ -503,7 +603,8 @@ func (c *restClient) CreateChallenge(ctx context.Context, req *confidentialcompu
 	return resp, nil
 }
 
-// VerifyAttestation verifies the provided attestation info, returning a signed OIDC token.
+// VerifyAttestation verifies the provided attestation info, returning a signed attestation
+// token.
 func (c *restClient) VerifyAttestation(ctx context.Context, req *confidentialcomputingpb.VerifyAttestationRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyAttestationResponse, error) {
 	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
 	jsonReq, err := m.Marshal(req)
@@ -542,17 +643,121 @@ func (c *restClient) VerifyAttestation(ctx context.Context, req *confidentialcom
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "VerifyAttestation")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
 
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
+		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
 
-		buf, err := io.ReadAll(httpRsp.Body)
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// VerifyConfidentialSpace verifies whether the provided attestation info is valid, returning a signed
+// attestation token if so.
+func (c *restClient) VerifyConfidentialSpace(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialSpaceRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialSpaceResponse, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:verifyConfidentialSpace", req.GetChallenge())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "challenge", url.QueryEscape(req.GetChallenge()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).VerifyConfidentialSpace[0:len((*c.CallOptions).VerifyConfidentialSpace):len((*c.CallOptions).VerifyConfidentialSpace)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &confidentialcomputingpb.VerifyConfidentialSpaceResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "VerifyConfidentialSpace")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// VerifyConfidentialGke verifies the provided Confidential GKE attestation info, returning a signed
+// OIDC token.
+func (c *restClient) VerifyConfidentialGke(ctx context.Context, req *confidentialcomputingpb.VerifyConfidentialGkeRequest, opts ...gax.CallOption) (*confidentialcomputingpb.VerifyConfidentialGkeResponse, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:verifyConfidentialGke", req.GetChallenge())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "challenge", url.QueryEscape(req.GetChallenge()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).VerifyConfidentialGke[0:len((*c.CallOptions).VerifyConfidentialGke):len((*c.CallOptions).VerifyConfidentialGke)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &confidentialcomputingpb.VerifyConfidentialGkeResponse{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "VerifyConfidentialGke")
 		if err != nil {
 			return err
 		}
@@ -602,17 +807,7 @@ func (c *restClient) GetLocation(ctx context.Context, req *locationpb.GetLocatio
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetLocation")
 		if err != nil {
 			return err
 		}
@@ -677,21 +872,10 @@ func (c *restClient) ListLocations(ctx context.Context, req *locationpb.ListLoca
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListLocations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}

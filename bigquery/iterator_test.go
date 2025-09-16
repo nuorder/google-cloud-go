@@ -80,8 +80,9 @@ func TestRowIteratorCacheBehavior(t *testing.T) {
 		{
 			// primary success case: schema in cache
 			inSource: &rowSource{
-				cachedSchema: testSchema,
-				cachedRows:   testRows,
+				cachedSchema:    testSchema,
+				cachedRows:      testRows,
+				cachedTotalRows: uint64(len(convertedRows)),
 			},
 			wantResult: &fetchPageResult{
 				totalRows: uint64(len(convertedRows)),
@@ -94,6 +95,7 @@ func TestRowIteratorCacheBehavior(t *testing.T) {
 			inSource: &rowSource{
 				cachedRows:      testRows,
 				cachedNextToken: "foo",
+				cachedTotalRows: uint64(len(convertedRows)),
 			},
 			inSchema: convertedSchema,
 			wantResult: &fetchPageResult{
@@ -141,7 +143,7 @@ func TestRowIteratorCacheBehavior(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		gotResp, gotErr := fetchCachedPage(context.Background(), tc.inSource, tc.inSchema, tc.inStartIndex, tc.inPageSize, tc.inPageToken)
+		gotResp, gotErr := fetchCachedPage(tc.inSource, tc.inSchema, tc.inStartIndex, tc.inPageSize, tc.inPageToken)
 		if gotErr != tc.wantErr {
 			t.Errorf("err mismatch.  got %v, want %v", gotErr, tc.wantErr)
 		} else {

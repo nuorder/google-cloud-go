@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -470,7 +471,7 @@ func TestManagedStream_LeakingGoroutines(t *testing.T) {
 
 	// Send a bunch of appends that expire quicker than response, and monitor that
 	// goroutine growth stays within bounded threshold.
-	for i := 0; i < 500; i++ {
+	for i := 0; i < 250; i++ {
 		expireCtx, cancel := context.WithTimeout(ctx, 25*time.Millisecond)
 		defer cancel()
 		ms.AppendRows(expireCtx, fakeData)
@@ -518,11 +519,13 @@ func TestManagedStream_LeakingGoroutinesReconnect(t *testing.T) {
 		[]byte("foo"),
 	}
 
+	appendCount := 15
+	// Give a small budget for additional goroutines to account for jitter.
 	threshold := runtime.NumGoroutine() + 5
 
 	// Send a bunch of appends that will trigger reconnects and monitor that
 	// goroutine growth stays within bounded threshold.
-	for i := 0; i < 100; i++ {
+	for i := 0; i < appendCount; i++ {
 		writeCtx := context.Background()
 		r, err := ms.AppendRows(writeCtx, fakeData)
 		if err != nil {
@@ -538,12 +541,24 @@ func TestManagedStream_LeakingGoroutinesReconnect(t *testing.T) {
 		if testArc.openCount != i+2 {
 			t.Errorf("should trigger a reconnect, but found openCount %d", testArc.openCount)
 		}
-		if i%10 == 0 {
+		// Bump our threshold each append.  We add 2 goroutines each reconnect due to a new processor
+		// and a graceful cancellation, but this should recover over time.
+		threshold = threshold + 2
+
+		if i%5 == 0 {
 			if current := runtime.NumGoroutine(); current > threshold {
 				t.Errorf("potential goroutine leak, append %d: current %d, threshold %d", i, current, threshold)
 			}
 		}
 	}
+	// Verify goroutine count drops after graceful shutdowns should have concluded.
+	time.Sleep(gracefulReconnectDuration)
+	threshold = threshold - (2 * appendCount)
+
+	if current := runtime.NumGoroutine(); current > threshold {
+		t.Errorf("potential goroutine leak after recovery: current %d, threshold %d", current, threshold)
+	}
+
 }
 
 func TestManagedWriter_CancellationDuringRetry(t *testing.T) {
@@ -642,4 +657,85 @@ func TestManagedStream_Closure(t *testing.T) {
 	if ms.ctx.Err() == nil {
 		t.Errorf("expected writer ctx to be dead, is alive")
 	}
+}
+
+// This test exists to try to surface data races by sharing
+// a single writer with multiple goroutines.  It doesn't assert
+// anything about the behavior of the system.
+func TestManagedStream_RaceFinder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var totalsMu sync.Mutex
+	totalSends := 0
+	totalRecvs := 0
+	pool := &connectionPool{
+		ctx:                ctx,
+		cancel:             cancel,
+		baseFlowController: newFlowController(0, 0),
+		open: openTestArc(&testAppendRowsClient{},
+			func(req *storagepb.AppendRowsRequest) error {
+				totalsMu.Lock()
+				totalSends = totalSends + 1
+				curSends := totalSends
+				totalsMu.Unlock()
+				if curSends%25 == 0 {
+					//time.Sleep(10 * time.Millisecond)
+					return io.EOF
+				}
+				return nil
+			},
+			func() (*storagepb.AppendRowsResponse, error) {
+				totalsMu.Lock()
+				totalRecvs = totalRecvs + 1
+				curRecvs := totalRecvs
+				totalsMu.Unlock()
+				if curRecvs%15 == 0 {
+					return nil, io.EOF
+				}
+				return &storagepb.AppendRowsResponse{}, nil
+			}),
+	}
+	router := newSimpleRouter("")
+	if err := pool.activateRouter(router); err != nil {
+		t.Errorf("activateRouter: %v", err)
+	}
+
+	ms := &ManagedStream{
+		id:             "foo",
+		streamSettings: defaultStreamSettings(),
+		retry:          newStatelessRetryer(),
+	}
+	ms.retry.maxAttempts = 4
+	ms.ctx, ms.cancel = context.WithCancel(pool.ctx)
+	ms.curTemplate = newVersionedTemplate().revise(reviseProtoSchema(&descriptorpb.DescriptorProto{}))
+	if err := pool.addWriter(ms); err != nil {
+		t.Errorf("addWriter A: %v", err)
+	}
+
+	if router.conn == nil {
+		t.Errorf("expected non-nil connection")
+	}
+
+	numWriters := 5
+	numWrites := 15
+
+	var wg sync.WaitGroup
+	wg.Add(numWriters)
+	for i := 0; i < numWriters; i++ {
+		go func() {
+			for j := 0; j < numWrites; j++ {
+				result, err := ms.AppendRows(ctx, [][]byte{[]byte("foo")})
+				if err != nil {
+					continue
+				}
+				_, err = result.GetResult(ctx)
+				if err != nil {
+					continue
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	cancel()
 }

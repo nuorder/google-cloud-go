@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -31,7 +31,6 @@ import (
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	visionpb "cloud.google.com/go/vision/v2/apiv1/visionpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
@@ -49,6 +48,7 @@ type ImageAnnotatorCallOptions struct {
 	BatchAnnotateFiles       []gax.CallOption
 	AsyncBatchAnnotateImages []gax.CallOption
 	AsyncBatchAnnotateFiles  []gax.CallOption
+	GetOperation             []gax.CallOption
 }
 
 func defaultImageAnnotatorGRPCClientOptions() []option.ClientOption {
@@ -60,6 +60,7 @@ func defaultImageAnnotatorGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://vision.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -119,6 +120,7 @@ func defaultImageAnnotatorCallOptions() *ImageAnnotatorCallOptions {
 				})
 			}),
 		},
+		GetOperation: []gax.CallOption{},
 	}
 }
 
@@ -172,6 +174,7 @@ func defaultImageAnnotatorRESTCallOptions() *ImageAnnotatorCallOptions {
 					http.StatusServiceUnavailable)
 			}),
 		},
+		GetOperation: []gax.CallOption{},
 	}
 }
 
@@ -186,6 +189,7 @@ type internalImageAnnotatorClient interface {
 	AsyncBatchAnnotateImagesOperation(name string) *AsyncBatchAnnotateImagesOperation
 	AsyncBatchAnnotateFiles(context.Context, *visionpb.AsyncBatchAnnotateFilesRequest, ...gax.CallOption) (*AsyncBatchAnnotateFilesOperation, error)
 	AsyncBatchAnnotateFilesOperation(name string) *AsyncBatchAnnotateFilesOperation
+	GetOperation(context.Context, *longrunningpb.GetOperationRequest, ...gax.CallOption) (*longrunningpb.Operation, error)
 }
 
 // ImageAnnotatorClient is a client for interacting with Cloud Vision API.
@@ -281,6 +285,11 @@ func (c *ImageAnnotatorClient) AsyncBatchAnnotateFilesOperation(name string) *As
 	return c.internalClient.AsyncBatchAnnotateFilesOperation(name)
 }
 
+// GetOperation is a utility method from google.longrunning.Operations.
+func (c *ImageAnnotatorClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	return c.internalClient.GetOperation(ctx, req, opts...)
+}
+
 // imageAnnotatorGRPCClient is a client for interacting with Cloud Vision API over gRPC transport.
 //
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
@@ -299,8 +308,12 @@ type imageAnnotatorGRPCClient struct {
 	// Users should not Close this client.
 	LROClient **lroauto.OperationsClient
 
+	operationsClient longrunningpb.OperationsClient
+
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewImageAnnotatorClient creates a new image annotator client based on gRPC.
@@ -329,6 +342,8 @@ func NewImageAnnotatorClient(ctx context.Context, opts ...option.ClientOption) (
 		connPool:             connPool,
 		imageAnnotatorClient: visionpb.NewImageAnnotatorClient(connPool),
 		CallOptions:          &client.CallOptions,
+		logger:               internaloption.GetLogger(opts),
+		operationsClient:     longrunningpb.NewOperationsClient(connPool),
 	}
 	c.setGoogleClientInfo()
 
@@ -361,8 +376,10 @@ func (c *imageAnnotatorGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *imageAnnotatorGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -389,6 +406,8 @@ type imageAnnotatorRESTClient struct {
 
 	// Points back to the CallOptions field of the containing ImageAnnotatorClient
 	CallOptions **ImageAnnotatorCallOptions
+
+	logger *slog.Logger
 }
 
 // NewImageAnnotatorRESTClient creates a new image annotator rest client.
@@ -408,6 +427,7 @@ func NewImageAnnotatorRESTClient(ctx context.Context, opts ...option.ClientOptio
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -432,6 +452,7 @@ func defaultImageAnnotatorRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://vision.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -440,8 +461,10 @@ func defaultImageAnnotatorRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *imageAnnotatorRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -467,7 +490,7 @@ func (c *imageAnnotatorGRPCClient) BatchAnnotateImages(ctx context.Context, req 
 	var resp *visionpb.BatchAnnotateImagesResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.imageAnnotatorClient.BatchAnnotateImages(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.imageAnnotatorClient.BatchAnnotateImages, req, settings.GRPC, c.logger, "BatchAnnotateImages")
 		return err
 	}, opts...)
 	if err != nil {
@@ -485,7 +508,7 @@ func (c *imageAnnotatorGRPCClient) BatchAnnotateFiles(ctx context.Context, req *
 	var resp *visionpb.BatchAnnotateFilesResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.imageAnnotatorClient.BatchAnnotateFiles(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.imageAnnotatorClient.BatchAnnotateFiles, req, settings.GRPC, c.logger, "BatchAnnotateFiles")
 		return err
 	}, opts...)
 	if err != nil {
@@ -503,7 +526,7 @@ func (c *imageAnnotatorGRPCClient) AsyncBatchAnnotateImages(ctx context.Context,
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.imageAnnotatorClient.AsyncBatchAnnotateImages(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.imageAnnotatorClient.AsyncBatchAnnotateImages, req, settings.GRPC, c.logger, "AsyncBatchAnnotateImages")
 		return err
 	}, opts...)
 	if err != nil {
@@ -523,7 +546,7 @@ func (c *imageAnnotatorGRPCClient) AsyncBatchAnnotateFiles(ctx context.Context, 
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.imageAnnotatorClient.AsyncBatchAnnotateFiles(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.imageAnnotatorClient.AsyncBatchAnnotateFiles, req, settings.GRPC, c.logger, "AsyncBatchAnnotateFiles")
 		return err
 	}, opts...)
 	if err != nil {
@@ -532,6 +555,24 @@ func (c *imageAnnotatorGRPCClient) AsyncBatchAnnotateFiles(ctx context.Context, 
 	return &AsyncBatchAnnotateFilesOperation{
 		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
 	}, nil
+}
+
+func (c *imageAnnotatorGRPCClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetOperation[0:len((*c.CallOptions).GetOperation):len((*c.CallOptions).GetOperation)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // BatchAnnotateImages run image detection and annotation for a batch of images.
@@ -573,17 +614,7 @@ func (c *imageAnnotatorRESTClient) BatchAnnotateImages(ctx context.Context, req 
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "BatchAnnotateImages")
 		if err != nil {
 			return err
 		}
@@ -645,17 +676,7 @@ func (c *imageAnnotatorRESTClient) BatchAnnotateFiles(ctx context.Context, req *
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "BatchAnnotateFiles")
 		if err != nil {
 			return err
 		}
@@ -718,21 +739,10 @@ func (c *imageAnnotatorRESTClient) AsyncBatchAnnotateImages(ctx context.Context,
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "AsyncBatchAnnotateImages")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -793,21 +803,10 @@ func (c *imageAnnotatorRESTClient) AsyncBatchAnnotateFiles(ctx context.Context, 
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "AsyncBatchAnnotateFiles")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -823,6 +822,56 @@ func (c *imageAnnotatorRESTClient) AsyncBatchAnnotateFiles(ctx context.Context, 
 		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
 		pollPath: override,
 	}, nil
+}
+
+// GetOperation is a utility method from google.longrunning.Operations.
+func (c *imageAnnotatorRESTClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetOperation[0:len((*c.CallOptions).GetOperation):len((*c.CallOptions).GetOperation)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
 }
 
 // AsyncBatchAnnotateFilesOperation returns a new AsyncBatchAnnotateFilesOperation from a given name.

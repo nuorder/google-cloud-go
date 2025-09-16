@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@ package cx
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -29,7 +30,6 @@ import (
 	cxpb "cloud.google.com/go/dialogflow/cx/apiv3/cxpb"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -38,6 +38,7 @@ import (
 	locationpb "google.golang.org/genproto/googleapis/cloud/location"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -46,16 +47,17 @@ var newSessionsClientHook clientHook
 
 // SessionsCallOptions contains the retry settings for each method of SessionsClient.
 type SessionsCallOptions struct {
-	DetectIntent          []gax.CallOption
-	StreamingDetectIntent []gax.CallOption
-	MatchIntent           []gax.CallOption
-	FulfillIntent         []gax.CallOption
-	SubmitAnswerFeedback  []gax.CallOption
-	GetLocation           []gax.CallOption
-	ListLocations         []gax.CallOption
-	CancelOperation       []gax.CallOption
-	GetOperation          []gax.CallOption
-	ListOperations        []gax.CallOption
+	DetectIntent                []gax.CallOption
+	ServerStreamingDetectIntent []gax.CallOption
+	StreamingDetectIntent       []gax.CallOption
+	MatchIntent                 []gax.CallOption
+	FulfillIntent               []gax.CallOption
+	SubmitAnswerFeedback        []gax.CallOption
+	GetLocation                 []gax.CallOption
+	ListLocations               []gax.CallOption
+	CancelOperation             []gax.CallOption
+	GetOperation                []gax.CallOption
+	ListOperations              []gax.CallOption
 }
 
 func defaultSessionsGRPCClientOptions() []option.ClientOption {
@@ -67,6 +69,7 @@ func defaultSessionsGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://dialogflow.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -86,7 +89,8 @@ func defaultSessionsCallOptions() *SessionsCallOptions {
 				})
 			}),
 		},
-		StreamingDetectIntent: []gax.CallOption{},
+		ServerStreamingDetectIntent: []gax.CallOption{},
+		StreamingDetectIntent:       []gax.CallOption{},
 		MatchIntent: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
@@ -144,6 +148,9 @@ func defaultSessionsRESTCallOptions() *SessionsCallOptions {
 					http.StatusServiceUnavailable)
 			}),
 		},
+		ServerStreamingDetectIntent: []gax.CallOption{
+			gax.WithTimeout(220000 * time.Millisecond),
+		},
 		StreamingDetectIntent: []gax.CallOption{
 			gax.WithTimeout(220000 * time.Millisecond),
 		},
@@ -194,6 +201,7 @@ type internalSessionsClient interface {
 	setGoogleClientInfo(...string)
 	Connection() *grpc.ClientConn
 	DetectIntent(context.Context, *cxpb.DetectIntentRequest, ...gax.CallOption) (*cxpb.DetectIntentResponse, error)
+	ServerStreamingDetectIntent(context.Context, *cxpb.DetectIntentRequest, ...gax.CallOption) (cxpb.Sessions_ServerStreamingDetectIntentClient, error)
 	StreamingDetectIntent(context.Context, ...gax.CallOption) (cxpb.Sessions_StreamingDetectIntentClient, error)
 	MatchIntent(context.Context, *cxpb.MatchIntentRequest, ...gax.CallOption) (*cxpb.MatchIntentResponse, error)
 	FulfillIntent(context.Context, *cxpb.FulfillIntentRequest, ...gax.CallOption) (*cxpb.FulfillIntentResponse, error)
@@ -253,6 +261,15 @@ func (c *SessionsClient) Connection() *grpc.ClientConn {
 // environments (at https://cloud.google.com/dialogflow/cx/docs/concept/version).
 func (c *SessionsClient) DetectIntent(ctx context.Context, req *cxpb.DetectIntentRequest, opts ...gax.CallOption) (*cxpb.DetectIntentResponse, error) {
 	return c.internalClient.DetectIntent(ctx, req, opts...)
+}
+
+// ServerStreamingDetectIntent processes a natural language query and returns structured, actionable data
+// as a result through server-side streaming. Server-side streaming allows
+// Dialogflow to send partial
+// responses (at https://cloud.google.com/dialogflow/cx/docs/concept/fulfillment#partial-response)
+// earlier in a single request.
+func (c *SessionsClient) ServerStreamingDetectIntent(ctx context.Context, req *cxpb.DetectIntentRequest, opts ...gax.CallOption) (cxpb.Sessions_ServerStreamingDetectIntentClient, error) {
+	return c.internalClient.ServerStreamingDetectIntent(ctx, req, opts...)
 }
 
 // StreamingDetectIntent processes a natural language query in audio format in a streaming fashion
@@ -335,6 +352,8 @@ type sessionsGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewSessionsClient creates a new sessions client based on gRPC.
@@ -364,6 +383,7 @@ func NewSessionsClient(ctx context.Context, opts ...option.ClientOption) (*Sessi
 		connPool:         connPool,
 		sessionsClient:   cxpb.NewSessionsClient(connPool),
 		CallOptions:      &client.CallOptions,
+		logger:           internaloption.GetLogger(opts),
 		operationsClient: longrunningpb.NewOperationsClient(connPool),
 		locationsClient:  locationpb.NewLocationsClient(connPool),
 	}
@@ -387,8 +407,10 @@ func (c *sessionsGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *sessionsGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -410,6 +432,8 @@ type sessionsRESTClient struct {
 
 	// Points back to the CallOptions field of the containing SessionsClient
 	CallOptions **SessionsCallOptions
+
+	logger *slog.Logger
 }
 
 // NewSessionsRESTClient creates a new sessions rest client.
@@ -430,6 +454,7 @@ func NewSessionsRESTClient(ctx context.Context, opts ...option.ClientOption) (*S
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -444,6 +469,7 @@ func defaultSessionsRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://dialogflow.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -452,8 +478,10 @@ func defaultSessionsRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *sessionsRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -479,7 +507,27 @@ func (c *sessionsGRPCClient) DetectIntent(ctx context.Context, req *cxpb.DetectI
 	var resp *cxpb.DetectIntentResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.sessionsClient.DetectIntent(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.sessionsClient.DetectIntent, req, settings.GRPC, c.logger, "DetectIntent")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *sessionsGRPCClient) ServerStreamingDetectIntent(ctx context.Context, req *cxpb.DetectIntentRequest, opts ...gax.CallOption) (cxpb.Sessions_ServerStreamingDetectIntentClient, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "session", url.QueryEscape(req.GetSession()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ServerStreamingDetectIntent[0:len((*c.CallOptions).ServerStreamingDetectIntent):len((*c.CallOptions).ServerStreamingDetectIntent)], opts...)
+	var resp cxpb.Sessions_ServerStreamingDetectIntentClient
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		c.logger.DebugContext(ctx, "api streaming client request", "serviceName", serviceName, "rpcName", "ServerStreamingDetectIntent")
+		resp, err = c.sessionsClient.ServerStreamingDetectIntent(ctx, req, settings.GRPC...)
+		c.logger.DebugContext(ctx, "api streaming client response", "serviceName", serviceName, "rpcName", "ServerStreamingDetectIntent")
 		return err
 	}, opts...)
 	if err != nil {
@@ -494,7 +542,9 @@ func (c *sessionsGRPCClient) StreamingDetectIntent(ctx context.Context, opts ...
 	opts = append((*c.CallOptions).StreamingDetectIntent[0:len((*c.CallOptions).StreamingDetectIntent):len((*c.CallOptions).StreamingDetectIntent)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
+		c.logger.DebugContext(ctx, "api streaming client request", "serviceName", serviceName, "rpcName", "StreamingDetectIntent")
 		resp, err = c.sessionsClient.StreamingDetectIntent(ctx, settings.GRPC...)
+		c.logger.DebugContext(ctx, "api streaming client response", "serviceName", serviceName, "rpcName", "StreamingDetectIntent")
 		return err
 	}, opts...)
 	if err != nil {
@@ -512,7 +562,7 @@ func (c *sessionsGRPCClient) MatchIntent(ctx context.Context, req *cxpb.MatchInt
 	var resp *cxpb.MatchIntentResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.sessionsClient.MatchIntent(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.sessionsClient.MatchIntent, req, settings.GRPC, c.logger, "MatchIntent")
 		return err
 	}, opts...)
 	if err != nil {
@@ -530,7 +580,7 @@ func (c *sessionsGRPCClient) FulfillIntent(ctx context.Context, req *cxpb.Fulfil
 	var resp *cxpb.FulfillIntentResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.sessionsClient.FulfillIntent(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.sessionsClient.FulfillIntent, req, settings.GRPC, c.logger, "FulfillIntent")
 		return err
 	}, opts...)
 	if err != nil {
@@ -548,7 +598,7 @@ func (c *sessionsGRPCClient) SubmitAnswerFeedback(ctx context.Context, req *cxpb
 	var resp *cxpb.AnswerFeedback
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.sessionsClient.SubmitAnswerFeedback(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.sessionsClient.SubmitAnswerFeedback, req, settings.GRPC, c.logger, "SubmitAnswerFeedback")
 		return err
 	}, opts...)
 	if err != nil {
@@ -566,7 +616,7 @@ func (c *sessionsGRPCClient) GetLocation(ctx context.Context, req *locationpb.Ge
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -595,7 +645,7 @@ func (c *sessionsGRPCClient) ListLocations(ctx context.Context, req *locationpb.
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -629,7 +679,7 @@ func (c *sessionsGRPCClient) CancelOperation(ctx context.Context, req *longrunni
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -644,7 +694,7 @@ func (c *sessionsGRPCClient) GetOperation(ctx context.Context, req *longrunningp
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -673,7 +723,7 @@ func (c *sessionsGRPCClient) ListOperations(ctx context.Context, req *longrunnin
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -745,17 +795,7 @@ func (c *sessionsRESTClient) DetectIntent(ctx context.Context, req *cxpb.DetectI
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "DetectIntent")
 		if err != nil {
 			return err
 		}
@@ -772,6 +812,112 @@ func (c *sessionsRESTClient) DetectIntent(ctx context.Context, req *cxpb.DetectI
 	return resp, nil
 }
 
+// ServerStreamingDetectIntent processes a natural language query and returns structured, actionable data
+// as a result through server-side streaming. Server-side streaming allows
+// Dialogflow to send partial
+// responses (at https://cloud.google.com/dialogflow/cx/docs/concept/fulfillment#partial-response)
+// earlier in a single request.
+func (c *sessionsRESTClient) ServerStreamingDetectIntent(ctx context.Context, req *cxpb.DetectIntentRequest, opts ...gax.CallOption) (cxpb.Sessions_ServerStreamingDetectIntentClient, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v3/%v:serverStreamingDetectIntent", req.GetSession())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "session", url.QueryEscape(req.GetSession()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	var streamClient *serverStreamingDetectIntentRESTStreamClient
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		httpRsp, err := executeStreamingHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "ServerStreamingDetectIntent")
+		if err != nil {
+			return err
+		}
+
+		streamClient = &serverStreamingDetectIntentRESTStreamClient{
+			ctx:    ctx,
+			md:     metadata.MD(httpRsp.Header),
+			stream: gax.NewProtoJSONStreamReader(httpRsp.Body, (&cxpb.DetectIntentResponse{}).ProtoReflect().Type()),
+		}
+		return nil
+	}, opts...)
+
+	return streamClient, e
+}
+
+// serverStreamingDetectIntentRESTStreamClient is the stream client used to consume the server stream created by
+// the REST implementation of ServerStreamingDetectIntent.
+type serverStreamingDetectIntentRESTStreamClient struct {
+	ctx    context.Context
+	md     metadata.MD
+	stream *gax.ProtoJSONStream
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) Recv() (*cxpb.DetectIntentResponse, error) {
+	if err := c.ctx.Err(); err != nil {
+		defer c.stream.Close()
+		return nil, err
+	}
+	msg, err := c.stream.Recv()
+	if err != nil {
+		defer c.stream.Close()
+		return nil, err
+	}
+	res := msg.(*cxpb.DetectIntentResponse)
+	return res, nil
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) Header() (metadata.MD, error) {
+	return c.md, nil
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) Trailer() metadata.MD {
+	return c.md
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) CloseSend() error {
+	// This is a no-op to fulfill the interface.
+	return errors.New("this method is not implemented for a server-stream")
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) Context() context.Context {
+	return c.ctx
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) SendMsg(m interface{}) error {
+	// This is a no-op to fulfill the interface.
+	return errors.New("this method is not implemented for a server-stream")
+}
+
+func (c *serverStreamingDetectIntentRESTStreamClient) RecvMsg(m interface{}) error {
+	// This is a no-op to fulfill the interface.
+	return errors.New("this method is not implemented, use Recv")
+}
+
 // StreamingDetectIntent processes a natural language query in audio format in a streaming fashion
 // and returns structured, actionable data as a result. This method is only
 // available via the gRPC API (not REST).
@@ -782,7 +928,7 @@ func (c *sessionsRESTClient) DetectIntent(ctx context.Context, req *cxpb.DetectI
 //
 // This method is not supported for the REST transport.
 func (c *sessionsRESTClient) StreamingDetectIntent(ctx context.Context, opts ...gax.CallOption) (cxpb.Sessions_StreamingDetectIntentClient, error) {
-	return nil, fmt.Errorf("StreamingDetectIntent not yet supported for REST clients")
+	return nil, errors.New("StreamingDetectIntent not yet supported for REST clients")
 }
 
 // MatchIntent returns preliminary intent match results, doesn’t change the session
@@ -825,17 +971,7 @@ func (c *sessionsRESTClient) MatchIntent(ctx context.Context, req *cxpb.MatchInt
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "MatchIntent")
 		if err != nil {
 			return err
 		}
@@ -897,17 +1033,7 @@ func (c *sessionsRESTClient) FulfillIntent(ctx context.Context, req *cxpb.Fulfil
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "FulfillIntent")
 		if err != nil {
 			return err
 		}
@@ -964,17 +1090,7 @@ func (c *sessionsRESTClient) SubmitAnswerFeedback(ctx context.Context, req *cxpb
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SubmitAnswerFeedback")
 		if err != nil {
 			return err
 		}
@@ -1024,17 +1140,7 @@ func (c *sessionsRESTClient) GetLocation(ctx context.Context, req *locationpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetLocation")
 		if err != nil {
 			return err
 		}
@@ -1099,21 +1205,10 @@ func (c *sessionsRESTClient) ListLocations(ctx context.Context, req *locationpb.
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListLocations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1173,15 +1268,8 @@ func (c *sessionsRESTClient) CancelOperation(ctx context.Context, req *longrunni
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "CancelOperation")
+		return err
 	}, opts...)
 }
 
@@ -1218,17 +1306,7 @@ func (c *sessionsRESTClient) GetOperation(ctx context.Context, req *longrunningp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
 		if err != nil {
 			return err
 		}
@@ -1293,21 +1371,10 @@ func (c *sessionsRESTClient) ListOperations(ctx context.Context, req *longrunnin
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}

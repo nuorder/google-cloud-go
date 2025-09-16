@@ -25,11 +25,12 @@ import (
 	"testing"
 	"time"
 
+	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
 	pb "cloud.google.com/go/bigtable/internal/conformance"
 	"cloud.google.com/go/bigtable/internal/mockserver"
 	"google.golang.org/api/option"
-	btpb "google.golang.org/genproto/googleapis/bigtable/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -48,12 +49,12 @@ func TestConformance(t *testing.T) {
 	}
 	defer srv.Close()
 
-	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	c, err := NewClient(ctx, "some-project", "some-instance", option.WithGRPCConn(conn))
+	c, err := NewClientWithConfig(ctx, "some-project", "some-instance", disableMetricsConfig, option.WithGRPCConn(conn))
 	if err != nil {
 		t.Fatal(err)
 	}

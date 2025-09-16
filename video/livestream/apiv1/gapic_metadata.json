@@ -25,6 +25,16 @@
                 "CreateChannel"
               ]
             },
+            "CreateClip": {
+              "methods": [
+                "CreateClip"
+              ]
+            },
+            "CreateDvrSession": {
+              "methods": [
+                "CreateDvrSession"
+              ]
+            },
             "CreateEvent": {
               "methods": [
                 "CreateEvent"
@@ -43,6 +53,16 @@
             "DeleteChannel": {
               "methods": [
                 "DeleteChannel"
+              ]
+            },
+            "DeleteClip": {
+              "methods": [
+                "DeleteClip"
+              ]
+            },
+            "DeleteDvrSession": {
+              "methods": [
+                "DeleteDvrSession"
               ]
             },
             "DeleteEvent": {
@@ -68,6 +88,16 @@
             "GetChannel": {
               "methods": [
                 "GetChannel"
+              ]
+            },
+            "GetClip": {
+              "methods": [
+                "GetClip"
+              ]
+            },
+            "GetDvrSession": {
+              "methods": [
+                "GetDvrSession"
               ]
             },
             "GetEvent": {
@@ -105,6 +135,16 @@
                 "ListChannels"
               ]
             },
+            "ListClips": {
+              "methods": [
+                "ListClips"
+              ]
+            },
+            "ListDvrSessions": {
+              "methods": [
+                "ListDvrSessions"
+              ]
+            },
             "ListEvents": {
               "methods": [
                 "ListEvents"
@@ -138,6 +178,11 @@
             "UpdateChannel": {
               "methods": [
                 "UpdateChannel"
+              ]
+            },
+            "UpdateDvrSession": {
+              "methods": [
+                "UpdateDvrSession"
               ]
             },
             "UpdateInput": {
@@ -170,6 +215,16 @@
                 "CreateChannel"
               ]
             },
+            "CreateClip": {
+              "methods": [
+                "CreateClip"
+              ]
+            },
+            "CreateDvrSession": {
+              "methods": [
+                "CreateDvrSession"
+              ]
+            },
             "CreateEvent": {
               "methods": [
                 "CreateEvent"
@@ -188,6 +243,16 @@
             "DeleteChannel": {
               "methods": [
                 "DeleteChannel"
+              ]
+            },
+            "DeleteClip": {
+              "methods": [
+                "DeleteClip"
+              ]
+            },
+            "DeleteDvrSession": {
+              "methods": [
+                "DeleteDvrSession"
               ]
             },
             "DeleteEvent": {
@@ -213,6 +278,16 @@
             "GetChannel": {
               "methods": [
                 "GetChannel"
+              ]
+            },
+            "GetClip": {
+              "methods": [
+                "GetClip"
+              ]
+            },
+            "GetDvrSession": {
+              "methods": [
+                "GetDvrSession"
               ]
             },
             "GetEvent": {
@@ -250,6 +325,16 @@
                 "ListChannels"
               ]
             },
+            "ListClips": {
+              "methods": [
+                "ListClips"
+              ]
+            },
+            "ListDvrSessions": {
+              "methods": [
+                "ListDvrSessions"
+              ]
+            },
             "ListEvents": {
               "methods": [
                 "ListEvents"
@@ -283,6 +368,11 @@
             "UpdateChannel": {
               "methods": [
                 "UpdateChannel"
+              ]
+            },
+            "UpdateDvrSession": {
+              "methods": [
+                "UpdateDvrSession"
               ]
             },
             "UpdateInput": {

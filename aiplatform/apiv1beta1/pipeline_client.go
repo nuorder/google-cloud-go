@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -32,7 +32,6 @@ import (
 	lroauto "cloud.google.com/go/longrunning/autogen"
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -59,6 +58,7 @@ type PipelineCallOptions struct {
 	DeletePipelineJob       []gax.CallOption
 	BatchDeletePipelineJobs []gax.CallOption
 	CancelPipelineJob       []gax.CallOption
+	BatchCancelPipelineJobs []gax.CallOption
 	GetLocation             []gax.CallOption
 	ListLocations           []gax.CallOption
 	GetIamPolicy            []gax.CallOption
@@ -80,6 +80,7 @@ func defaultPipelineGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://aiplatform.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -108,6 +109,7 @@ func defaultPipelineCallOptions() *PipelineCallOptions {
 		DeletePipelineJob:       []gax.CallOption{},
 		BatchDeletePipelineJobs: []gax.CallOption{},
 		CancelPipelineJob:       []gax.CallOption{},
+		BatchCancelPipelineJobs: []gax.CallOption{},
 		GetLocation:             []gax.CallOption{},
 		ListLocations:           []gax.CallOption{},
 		GetIamPolicy:            []gax.CallOption{},
@@ -144,6 +146,7 @@ func defaultPipelineRESTCallOptions() *PipelineCallOptions {
 		DeletePipelineJob:       []gax.CallOption{},
 		BatchDeletePipelineJobs: []gax.CallOption{},
 		CancelPipelineJob:       []gax.CallOption{},
+		BatchCancelPipelineJobs: []gax.CallOption{},
 		GetLocation:             []gax.CallOption{},
 		ListLocations:           []gax.CallOption{},
 		GetIamPolicy:            []gax.CallOption{},
@@ -176,6 +179,8 @@ type internalPipelineClient interface {
 	BatchDeletePipelineJobs(context.Context, *aiplatformpb.BatchDeletePipelineJobsRequest, ...gax.CallOption) (*BatchDeletePipelineJobsOperation, error)
 	BatchDeletePipelineJobsOperation(name string) *BatchDeletePipelineJobsOperation
 	CancelPipelineJob(context.Context, *aiplatformpb.CancelPipelineJobRequest, ...gax.CallOption) error
+	BatchCancelPipelineJobs(context.Context, *aiplatformpb.BatchCancelPipelineJobsRequest, ...gax.CallOption) (*BatchCancelPipelineJobsOperation, error)
+	BatchCancelPipelineJobsOperation(name string) *BatchCancelPipelineJobsOperation
 	GetLocation(context.Context, *locationpb.GetLocationRequest, ...gax.CallOption) (*locationpb.Location, error)
 	ListLocations(context.Context, *locationpb.ListLocationsRequest, ...gax.CallOption) *LocationIterator
 	GetIamPolicy(context.Context, *iampb.GetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
@@ -331,6 +336,23 @@ func (c *PipelineClient) CancelPipelineJob(ctx context.Context, req *aiplatformp
 	return c.internalClient.CancelPipelineJob(ctx, req, opts...)
 }
 
+// BatchCancelPipelineJobs batch cancel PipelineJobs.
+// Firstly the server will check if all the jobs are in non-terminal states,
+// and skip the jobs that are already terminated.
+// If the operation failed, none of the pipeline jobs are cancelled.
+// The server will poll the states of all the pipeline jobs periodically
+// to check the cancellation status.
+// This operation will return an LRO.
+func (c *PipelineClient) BatchCancelPipelineJobs(ctx context.Context, req *aiplatformpb.BatchCancelPipelineJobsRequest, opts ...gax.CallOption) (*BatchCancelPipelineJobsOperation, error) {
+	return c.internalClient.BatchCancelPipelineJobs(ctx, req, opts...)
+}
+
+// BatchCancelPipelineJobsOperation returns a new BatchCancelPipelineJobsOperation from a given name.
+// The name must be that of a previously created BatchCancelPipelineJobsOperation, possibly from a different process.
+func (c *PipelineClient) BatchCancelPipelineJobsOperation(name string) *BatchCancelPipelineJobsOperation {
+	return c.internalClient.BatchCancelPipelineJobsOperation(name)
+}
+
 // GetLocation gets information about a location.
 func (c *PipelineClient) GetLocation(ctx context.Context, req *locationpb.GetLocationRequest, opts ...gax.CallOption) (*locationpb.Location, error) {
 	return c.internalClient.GetLocation(ctx, req, opts...)
@@ -418,6 +440,8 @@ type pipelineGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewPipelineClient creates a new pipeline service client based on gRPC.
@@ -446,6 +470,7 @@ func NewPipelineClient(ctx context.Context, opts ...option.ClientOption) (*Pipel
 		connPool:         connPool,
 		pipelineClient:   aiplatformpb.NewPipelineServiceClient(connPool),
 		CallOptions:      &client.CallOptions,
+		logger:           internaloption.GetLogger(opts),
 		operationsClient: longrunningpb.NewOperationsClient(connPool),
 		iamPolicyClient:  iampb.NewIAMPolicyClient(connPool),
 		locationsClient:  locationpb.NewLocationsClient(connPool),
@@ -481,8 +506,10 @@ func (c *pipelineGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *pipelineGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -509,6 +536,8 @@ type pipelineRESTClient struct {
 
 	// Points back to the CallOptions field of the containing PipelineClient
 	CallOptions **PipelineCallOptions
+
+	logger *slog.Logger
 }
 
 // NewPipelineRESTClient creates a new pipeline service rest client.
@@ -528,6 +557,7 @@ func NewPipelineRESTClient(ctx context.Context, opts ...option.ClientOption) (*P
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -552,6 +582,7 @@ func defaultPipelineRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://aiplatform.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -560,8 +591,10 @@ func defaultPipelineRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *pipelineRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -587,7 +620,7 @@ func (c *pipelineGRPCClient) CreateTrainingPipeline(ctx context.Context, req *ai
 	var resp *aiplatformpb.TrainingPipeline
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.CreateTrainingPipeline(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.CreateTrainingPipeline, req, settings.GRPC, c.logger, "CreateTrainingPipeline")
 		return err
 	}, opts...)
 	if err != nil {
@@ -605,7 +638,7 @@ func (c *pipelineGRPCClient) GetTrainingPipeline(ctx context.Context, req *aipla
 	var resp *aiplatformpb.TrainingPipeline
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.GetTrainingPipeline(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.GetTrainingPipeline, req, settings.GRPC, c.logger, "GetTrainingPipeline")
 		return err
 	}, opts...)
 	if err != nil {
@@ -634,7 +667,7 @@ func (c *pipelineGRPCClient) ListTrainingPipelines(ctx context.Context, req *aip
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.pipelineClient.ListTrainingPipelines(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.pipelineClient.ListTrainingPipelines, req, settings.GRPC, c.logger, "ListTrainingPipelines")
 			return err
 		}, opts...)
 		if err != nil {
@@ -669,7 +702,7 @@ func (c *pipelineGRPCClient) DeleteTrainingPipeline(ctx context.Context, req *ai
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.DeleteTrainingPipeline(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.DeleteTrainingPipeline, req, settings.GRPC, c.logger, "DeleteTrainingPipeline")
 		return err
 	}, opts...)
 	if err != nil {
@@ -688,7 +721,7 @@ func (c *pipelineGRPCClient) CancelTrainingPipeline(ctx context.Context, req *ai
 	opts = append((*c.CallOptions).CancelTrainingPipeline[0:len((*c.CallOptions).CancelTrainingPipeline):len((*c.CallOptions).CancelTrainingPipeline)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.pipelineClient.CancelTrainingPipeline(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.pipelineClient.CancelTrainingPipeline, req, settings.GRPC, c.logger, "CancelTrainingPipeline")
 		return err
 	}, opts...)
 	return err
@@ -703,7 +736,7 @@ func (c *pipelineGRPCClient) CreatePipelineJob(ctx context.Context, req *aiplatf
 	var resp *aiplatformpb.PipelineJob
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.CreatePipelineJob(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.CreatePipelineJob, req, settings.GRPC, c.logger, "CreatePipelineJob")
 		return err
 	}, opts...)
 	if err != nil {
@@ -721,7 +754,7 @@ func (c *pipelineGRPCClient) GetPipelineJob(ctx context.Context, req *aiplatform
 	var resp *aiplatformpb.PipelineJob
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.GetPipelineJob(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.GetPipelineJob, req, settings.GRPC, c.logger, "GetPipelineJob")
 		return err
 	}, opts...)
 	if err != nil {
@@ -750,7 +783,7 @@ func (c *pipelineGRPCClient) ListPipelineJobs(ctx context.Context, req *aiplatfo
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.pipelineClient.ListPipelineJobs(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.pipelineClient.ListPipelineJobs, req, settings.GRPC, c.logger, "ListPipelineJobs")
 			return err
 		}, opts...)
 		if err != nil {
@@ -785,7 +818,7 @@ func (c *pipelineGRPCClient) DeletePipelineJob(ctx context.Context, req *aiplatf
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.DeletePipelineJob(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.DeletePipelineJob, req, settings.GRPC, c.logger, "DeletePipelineJob")
 		return err
 	}, opts...)
 	if err != nil {
@@ -805,7 +838,7 @@ func (c *pipelineGRPCClient) BatchDeletePipelineJobs(ctx context.Context, req *a
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.pipelineClient.BatchDeletePipelineJobs(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.pipelineClient.BatchDeletePipelineJobs, req, settings.GRPC, c.logger, "BatchDeletePipelineJobs")
 		return err
 	}, opts...)
 	if err != nil {
@@ -824,10 +857,30 @@ func (c *pipelineGRPCClient) CancelPipelineJob(ctx context.Context, req *aiplatf
 	opts = append((*c.CallOptions).CancelPipelineJob[0:len((*c.CallOptions).CancelPipelineJob):len((*c.CallOptions).CancelPipelineJob)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.pipelineClient.CancelPipelineJob(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.pipelineClient.CancelPipelineJob, req, settings.GRPC, c.logger, "CancelPipelineJob")
 		return err
 	}, opts...)
 	return err
+}
+
+func (c *pipelineGRPCClient) BatchCancelPipelineJobs(ctx context.Context, req *aiplatformpb.BatchCancelPipelineJobsRequest, opts ...gax.CallOption) (*BatchCancelPipelineJobsOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).BatchCancelPipelineJobs[0:len((*c.CallOptions).BatchCancelPipelineJobs):len((*c.CallOptions).BatchCancelPipelineJobs)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.pipelineClient.BatchCancelPipelineJobs, req, settings.GRPC, c.logger, "BatchCancelPipelineJobs")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &BatchCancelPipelineJobsOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
 }
 
 func (c *pipelineGRPCClient) GetLocation(ctx context.Context, req *locationpb.GetLocationRequest, opts ...gax.CallOption) (*locationpb.Location, error) {
@@ -839,7 +892,7 @@ func (c *pipelineGRPCClient) GetLocation(ctx context.Context, req *locationpb.Ge
 	var resp *locationpb.Location
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.locationsClient.GetLocation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.locationsClient.GetLocation, req, settings.GRPC, c.logger, "GetLocation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -868,7 +921,7 @@ func (c *pipelineGRPCClient) ListLocations(ctx context.Context, req *locationpb.
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.locationsClient.ListLocations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.locationsClient.ListLocations, req, settings.GRPC, c.logger, "ListLocations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -903,7 +956,7 @@ func (c *pipelineGRPCClient) GetIamPolicy(ctx context.Context, req *iampb.GetIam
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -921,7 +974,7 @@ func (c *pipelineGRPCClient) SetIamPolicy(ctx context.Context, req *iampb.SetIam
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -939,7 +992,7 @@ func (c *pipelineGRPCClient) TestIamPermissions(ctx context.Context, req *iampb.
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.iamPolicyClient.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.iamPolicyClient.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
 		return err
 	}, opts...)
 	if err != nil {
@@ -956,7 +1009,7 @@ func (c *pipelineGRPCClient) CancelOperation(ctx context.Context, req *longrunni
 	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.CancelOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
 		return err
 	}, opts...)
 	return err
@@ -970,7 +1023,7 @@ func (c *pipelineGRPCClient) DeleteOperation(ctx context.Context, req *longrunni
 	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.operationsClient.DeleteOperation(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
 		return err
 	}, opts...)
 	return err
@@ -985,7 +1038,7 @@ func (c *pipelineGRPCClient) GetOperation(ctx context.Context, req *longrunningp
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.GetOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1014,7 +1067,7 @@ func (c *pipelineGRPCClient) ListOperations(ctx context.Context, req *longrunnin
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.operationsClient.ListOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1049,7 +1102,7 @@ func (c *pipelineGRPCClient) WaitOperation(ctx context.Context, req *longrunning
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.operationsClient.WaitOperation(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.operationsClient.WaitOperation, req, settings.GRPC, c.logger, "WaitOperation")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1074,6 +1127,11 @@ func (c *pipelineRESTClient) CreateTrainingPipeline(ctx context.Context, req *ai
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v/trainingPipelines", req.GetParent())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
 
@@ -1094,17 +1152,7 @@ func (c *pipelineRESTClient) CreateTrainingPipeline(ctx context.Context, req *ai
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateTrainingPipeline")
 		if err != nil {
 			return err
 		}
@@ -1129,6 +1177,11 @@ func (c *pipelineRESTClient) GetTrainingPipeline(ctx context.Context, req *aipla
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1149,17 +1202,7 @@ func (c *pipelineRESTClient) GetTrainingPipeline(ctx context.Context, req *aipla
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetTrainingPipeline")
 		if err != nil {
 			return err
 		}
@@ -1198,6 +1241,7 @@ func (c *pipelineRESTClient) ListTrainingPipelines(ctx context.Context, req *aip
 		baseUrl.Path += fmt.Sprintf("/v1beta1/%v/trainingPipelines", req.GetParent())
 
 		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
 		if req.GetFilter() != "" {
 			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
 		}
@@ -1208,11 +1252,11 @@ func (c *pipelineRESTClient) ListTrainingPipelines(ctx context.Context, req *aip
 			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
 		}
 		if req.GetReadMask() != nil {
-			readMask, err := protojson.Marshal(req.GetReadMask())
+			field, err := protojson.Marshal(req.GetReadMask())
 			if err != nil {
 				return nil, "", err
 			}
-			params.Add("readMask", string(readMask[1:len(readMask)-1]))
+			params.Add("readMask", string(field[1:len(field)-1]))
 		}
 
 		baseUrl.RawQuery = params.Encode()
@@ -1230,21 +1274,10 @@ func (c *pipelineRESTClient) ListTrainingPipelines(ctx context.Context, req *aip
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListTrainingPipelines")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1282,6 +1315,11 @@ func (c *pipelineRESTClient) DeleteTrainingPipeline(ctx context.Context, req *ai
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1301,21 +1339,10 @@ func (c *pipelineRESTClient) DeleteTrainingPipeline(ctx context.Context, req *ai
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteTrainingPipeline")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1360,6 +1387,11 @@ func (c *pipelineRESTClient) CancelTrainingPipeline(ctx context.Context, req *ai
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v:cancel", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1377,15 +1409,8 @@ func (c *pipelineRESTClient) CancelTrainingPipeline(ctx context.Context, req *ai
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CancelTrainingPipeline")
+		return err
 	}, opts...)
 }
 
@@ -1405,6 +1430,7 @@ func (c *pipelineRESTClient) CreatePipelineJob(ctx context.Context, req *aiplatf
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v/pipelineJobs", req.GetParent())
 
 	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetPipelineJobId() != "" {
 		params.Add("pipelineJobId", fmt.Sprintf("%v", req.GetPipelineJobId()))
 	}
@@ -1431,17 +1457,7 @@ func (c *pipelineRESTClient) CreatePipelineJob(ctx context.Context, req *aiplatf
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreatePipelineJob")
 		if err != nil {
 			return err
 		}
@@ -1466,6 +1482,11 @@ func (c *pipelineRESTClient) GetPipelineJob(ctx context.Context, req *aiplatform
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1486,17 +1507,7 @@ func (c *pipelineRESTClient) GetPipelineJob(ctx context.Context, req *aiplatform
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetPipelineJob")
 		if err != nil {
 			return err
 		}
@@ -1535,6 +1546,7 @@ func (c *pipelineRESTClient) ListPipelineJobs(ctx context.Context, req *aiplatfo
 		baseUrl.Path += fmt.Sprintf("/v1beta1/%v/pipelineJobs", req.GetParent())
 
 		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
 		if req.GetFilter() != "" {
 			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
 		}
@@ -1548,11 +1560,11 @@ func (c *pipelineRESTClient) ListPipelineJobs(ctx context.Context, req *aiplatfo
 			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
 		}
 		if req.GetReadMask() != nil {
-			readMask, err := protojson.Marshal(req.GetReadMask())
+			field, err := protojson.Marshal(req.GetReadMask())
 			if err != nil {
 				return nil, "", err
 			}
-			params.Add("readMask", string(readMask[1:len(readMask)-1]))
+			params.Add("readMask", string(field[1:len(field)-1]))
 		}
 
 		baseUrl.RawQuery = params.Encode()
@@ -1570,21 +1582,10 @@ func (c *pipelineRESTClient) ListPipelineJobs(ctx context.Context, req *aiplatfo
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListPipelineJobs")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1622,6 +1623,11 @@ func (c *pipelineRESTClient) DeletePipelineJob(ctx context.Context, req *aiplatf
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1641,21 +1647,10 @@ func (c *pipelineRESTClient) DeletePipelineJob(ctx context.Context, req *aiplatf
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeletePipelineJob")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1689,6 +1684,11 @@ func (c *pipelineRESTClient) BatchDeletePipelineJobs(ctx context.Context, req *a
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v/pipelineJobs:batchDelete", req.GetParent())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
 
@@ -1708,21 +1708,10 @@ func (c *pipelineRESTClient) BatchDeletePipelineJobs(ctx context.Context, req *a
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "BatchDeletePipelineJobs")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1766,6 +1755,11 @@ func (c *pipelineRESTClient) CancelPipelineJob(ctx context.Context, req *aiplatf
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v:cancel", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -1783,16 +1777,74 @@ func (c *pipelineRESTClient) CancelPipelineJob(ctx context.Context, req *aiplatf
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CancelPipelineJob")
+		return err
+	}, opts...)
+}
+
+// BatchCancelPipelineJobs batch cancel PipelineJobs.
+// Firstly the server will check if all the jobs are in non-terminal states,
+// and skip the jobs that are already terminated.
+// If the operation failed, none of the pipeline jobs are cancelled.
+// The server will poll the states of all the pipeline jobs periodically
+// to check the cancellation status.
+// This operation will return an LRO.
+func (c *pipelineRESTClient) BatchCancelPipelineJobs(ctx context.Context, req *aiplatformpb.BatchCancelPipelineJobsRequest, opts ...gax.CallOption) (*BatchCancelPipelineJobsOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1beta1/%v/pipelineJobs:batchCancel", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
 
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "BatchCancelPipelineJobs")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
 	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/ui/%s", resp.GetName())
+	return &BatchCancelPipelineJobsOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
 }
 
 // GetLocation gets information about a location.
@@ -1802,6 +1854,11 @@ func (c *pipelineRESTClient) GetLocation(ctx context.Context, req *locationpb.Ge
 		return nil, err
 	}
 	baseUrl.Path += fmt.Sprintf("/ui/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
 
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
@@ -1823,17 +1880,7 @@ func (c *pipelineRESTClient) GetLocation(ctx context.Context, req *locationpb.Ge
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetLocation")
 		if err != nil {
 			return err
 		}
@@ -1872,6 +1919,7 @@ func (c *pipelineRESTClient) ListLocations(ctx context.Context, req *locationpb.
 		baseUrl.Path += fmt.Sprintf("/ui/%v/locations", req.GetName())
 
 		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
 		if req.GetFilter() != "" {
 			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
 		}
@@ -1897,21 +1945,10 @@ func (c *pipelineRESTClient) ListLocations(ctx context.Context, req *locationpb.
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListLocations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1956,6 +1993,11 @@ func (c *pipelineRESTClient) GetIamPolicy(ctx context.Context, req *iampb.GetIam
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v:getIamPolicy", req.GetResource())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "resource", url.QueryEscape(req.GetResource()))}
 
@@ -1976,17 +2018,7 @@ func (c *pipelineRESTClient) GetIamPolicy(ctx context.Context, req *iampb.GetIam
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "GetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -2021,6 +2053,11 @@ func (c *pipelineRESTClient) SetIamPolicy(ctx context.Context, req *iampb.SetIam
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v:setIamPolicy", req.GetResource())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "resource", url.QueryEscape(req.GetResource()))}
 
@@ -2041,17 +2078,7 @@ func (c *pipelineRESTClient) SetIamPolicy(ctx context.Context, req *iampb.SetIam
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -2088,6 +2115,11 @@ func (c *pipelineRESTClient) TestIamPermissions(ctx context.Context, req *iampb.
 	}
 	baseUrl.Path += fmt.Sprintf("/v1beta1/%v:testIamPermissions", req.GetResource())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "resource", url.QueryEscape(req.GetResource()))}
 
@@ -2108,17 +2140,7 @@ func (c *pipelineRESTClient) TestIamPermissions(ctx context.Context, req *iampb.
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "TestIamPermissions")
 		if err != nil {
 			return err
 		}
@@ -2143,6 +2165,11 @@ func (c *pipelineRESTClient) CancelOperation(ctx context.Context, req *longrunni
 	}
 	baseUrl.Path += fmt.Sprintf("/ui/%v:cancel", req.GetName())
 
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
 
@@ -2160,15 +2187,8 @@ func (c *pipelineRESTClient) CancelOperation(ctx context.Context, req *longrunni
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "CancelOperation")
+		return err
 	}, opts...)
 }
 
@@ -2179,6 +2199,11 @@ func (c *pipelineRESTClient) DeleteOperation(ctx context.Context, req *longrunni
 		return err
 	}
 	baseUrl.Path += fmt.Sprintf("/ui/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
 
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
@@ -2197,15 +2222,8 @@ func (c *pipelineRESTClient) DeleteOperation(ctx context.Context, req *longrunni
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteOperation")
+		return err
 	}, opts...)
 }
 
@@ -2216,6 +2234,11 @@ func (c *pipelineRESTClient) GetOperation(ctx context.Context, req *longrunningp
 		return nil, err
 	}
 	baseUrl.Path += fmt.Sprintf("/ui/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
 
 	// Build HTTP headers from client and context metadata.
 	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
@@ -2237,17 +2260,7 @@ func (c *pipelineRESTClient) GetOperation(ctx context.Context, req *longrunningp
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
 		if err != nil {
 			return err
 		}
@@ -2286,6 +2299,7 @@ func (c *pipelineRESTClient) ListOperations(ctx context.Context, req *longrunnin
 		baseUrl.Path += fmt.Sprintf("/ui/%v/operations", req.GetName())
 
 		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
 		if req.GetFilter() != "" {
 			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
 		}
@@ -2311,21 +2325,10 @@ func (c *pipelineRESTClient) ListOperations(ctx context.Context, req *longrunnin
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -2364,12 +2367,13 @@ func (c *pipelineRESTClient) WaitOperation(ctx context.Context, req *longrunning
 	baseUrl.Path += fmt.Sprintf("/ui/%v:wait", req.GetName())
 
 	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetTimeout() != nil {
-		timeout, err := protojson.Marshal(req.GetTimeout())
+		field, err := protojson.Marshal(req.GetTimeout())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("timeout", string(timeout[1:len(timeout)-1]))
+		params.Add("timeout", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -2394,17 +2398,7 @@ func (c *pipelineRESTClient) WaitOperation(ctx context.Context, req *longrunning
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "WaitOperation")
 		if err != nil {
 			return err
 		}
@@ -2419,6 +2413,24 @@ func (c *pipelineRESTClient) WaitOperation(ctx context.Context, req *longrunning
 		return nil, e
 	}
 	return resp, nil
+}
+
+// BatchCancelPipelineJobsOperation returns a new BatchCancelPipelineJobsOperation from a given name.
+// The name must be that of a previously created BatchCancelPipelineJobsOperation, possibly from a different process.
+func (c *pipelineGRPCClient) BatchCancelPipelineJobsOperation(name string) *BatchCancelPipelineJobsOperation {
+	return &BatchCancelPipelineJobsOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// BatchCancelPipelineJobsOperation returns a new BatchCancelPipelineJobsOperation from a given name.
+// The name must be that of a previously created BatchCancelPipelineJobsOperation, possibly from a different process.
+func (c *pipelineRESTClient) BatchCancelPipelineJobsOperation(name string) *BatchCancelPipelineJobsOperation {
+	override := fmt.Sprintf("/ui/%s", name)
+	return &BatchCancelPipelineJobsOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
 }
 
 // BatchDeletePipelineJobsOperation returns a new BatchDeletePipelineJobsOperation from a given name.

@@ -46,19 +46,24 @@ func (c *Client) PartitionedUpdateWithOptions(ctx context.Context, statement Sta
 }
 
 func (c *Client) partitionedUpdate(ctx context.Context, statement Statement, options QueryOptions) (count int64, err error) {
-	ctx = trace.StartSpan(ctx, "cloud.google.com/go/spanner.PartitionedUpdate")
-	defer func() { trace.EndSpan(ctx, err) }()
+	ctx, _ = startSpan(ctx, "PartitionedUpdate", c.otConfig.commonTraceStartOptions...)
+	defer func() { endSpan(ctx, err) }()
 	if err := checkNestedTxn(ctx); err != nil {
 		return 0, err
 	}
-
-	sh, err := c.idleSessions.take(ctx)
+	var sh *sessionHandle
+	if c.idleSessions.isMultiplexedSessionForPartitionedOpsEnabled() {
+		sh, err = c.idleSessions.takeMultiplexed(ctx)
+	} else {
+		sh, err = c.idleSessions.take(ctx)
+	}
 	if err != nil {
 		return 0, ToSpannerError(err)
 	}
-	if sh != nil {
-		defer sh.recycle()
+	if sh == nil {
+		return 0, spannerErrorf(codes.Internal, "no session available")
 	}
+	defer sh.recycle()
 	// Mark isLongRunningTransaction to true, as the session in case of partitioned dml can be long-running
 	sh.mu.Lock()
 	sh.eligibleForLongRunning = true
@@ -84,9 +89,27 @@ func (c *Client) partitionedUpdate(ctx context.Context, statement Statement, opt
 	// Execute the PDML and retry if the transaction is aborted.
 	executePdmlWithRetry := func(ctx context.Context) (int64, error) {
 		for {
-			count, err := executePdml(contextWithOutgoingMetadata(ctx, sh.getMetadata(), c.disableRouteToLeader), sh, req)
+			count, err := executePdml(contextWithOutgoingMetadata(ctx, sh.getMetadata(), c.disableRouteToLeader), sh, req, options)
 			if err == nil {
 				return count, nil
+			}
+			if isUnimplementedErrorForMultiplexedPartitionedDML(err) && sh.session.pool.isMultiplexedSessionForPartitionedOpsEnabled() {
+				logf(c.logger, "Warning: Multiplexed sessions are not supported for partitioned operations in this environment. Falling back to regular sessions.")
+				sh.session.pool.disableMultiplexedSessionForPartitionedOps()
+				sh, err = c.idleSessions.take(ctx)
+				if err != nil {
+					return 0, ToSpannerError(err)
+				}
+				if sh == nil {
+					return 0, spannerErrorf(codes.Internal, "no session available")
+				}
+				defer sh.recycle()
+				// Mark isLongRunningTransaction to true, as the session in case of partitioned dml can be long-running
+				sh.mu.Lock()
+				sh.eligibleForLongRunning = true
+				sh.mu.Unlock()
+				req.Session = sh.getID()
+				continue
 			}
 			delay, shouldRetry := retryer.Retry(err)
 			if !shouldRetry {
@@ -106,14 +129,15 @@ func (c *Client) partitionedUpdate(ctx context.Context, statement Statement, opt
 // 3. Execute the update statement on the PDML transaction
 //
 // Note that PDML transactions cannot be committed or rolled back.
-func executePdml(ctx context.Context, sh *sessionHandle, req *sppb.ExecuteSqlRequest) (count int64, err error) {
+func executePdml(ctx context.Context, sh *sessionHandle, req *sppb.ExecuteSqlRequest, options QueryOptions) (count int64, err error) {
 	var md metadata.MD
 	sh.updateLastUseTime()
 	// Begin transaction.
 	res, err := sh.getClient().BeginTransaction(ctx, &sppb.BeginTransactionRequest{
 		Session: sh.getID(),
 		Options: &sppb.TransactionOptions{
-			Mode: &sppb.TransactionOptions_PartitionedDml_{PartitionedDml: &sppb.TransactionOptions_PartitionedDml{}},
+			Mode:                        &sppb.TransactionOptions_PartitionedDml_{PartitionedDml: &sppb.TransactionOptions_PartitionedDml{}},
+			ExcludeTxnFromChangeStreams: options.ExcludeTxnFromChangeStreams,
 		},
 	})
 	if err != nil {
@@ -131,6 +155,9 @@ func executePdml(ctx context.Context, sh *sessionHandle, req *sppb.ExecuteSqlReq
 		if err != nil {
 			trace.TracePrintf(ctx, nil, "Error in recording GFE Latency. Try disabling and rerunning. Error: %v", err)
 		}
+	}
+	if metricErr := recordGFELatencyMetricsOT(ctx, md, "executePdml_ExecuteSql", sh.session.pool.otConfig); metricErr != nil {
+		trace.TracePrintf(ctx, nil, "Error in recording GFE Latency through OpenTelemetry. Error: %v", metricErr)
 	}
 	if err != nil {
 		return 0, err

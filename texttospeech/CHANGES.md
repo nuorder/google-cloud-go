@@ -1,5 +1,185 @@
 # Changes
 
+## [1.14.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.13.0...texttospeech/v1.14.0) (2025-09-04)
+
+
+### Features
+
+* **texttospeech:** Add enum value M4A to enum AudioEncoding ([51583bd](https://github.com/googleapis/google-cloud-go/commit/51583bd5c9b886d22b45da092dc8311422b8b5ac))
+* **texttospeech:** Add prompt to SynthesisInput ([10e67ef](https://github.com/googleapis/google-cloud-go/commit/10e67efccf048adea11d3ecba8d0c625455e545f))
+* **texttospeech:** Support promptable voices by specifying a model name and a prompt ([51583bd](https://github.com/googleapis/google-cloud-go/commit/51583bd5c9b886d22b45da092dc8311422b8b5ac))
+
+
+### Documentation
+
+* **texttospeech:** A comment for enum value AUDIO_ENCODING_UNSPECIFIED in enum AudioEncoding is changed ([51583bd](https://github.com/googleapis/google-cloud-go/commit/51583bd5c9b886d22b45da092dc8311422b8b5ac))
+
+## [1.13.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.12.1...texttospeech/v1.13.0) (2025-05-06)
+
+
+### Features
+
+* **texttospeech:** Support markup input for Cloud TTS Chirp 3 ([#12110](https://github.com/googleapis/google-cloud-go/issues/12110)) ([658d3d6](https://github.com/googleapis/google-cloud-go/commit/658d3d6cfb37bdf15ae40250fc1b9cb7b3b5ef80))
+* **texttospeech:** Support pinyin/yomigana custom pronunciation encodings for cmn-cn/ja-jp ([658d3d6](https://github.com/googleapis/google-cloud-go/commit/658d3d6cfb37bdf15ae40250fc1b9cb7b3b5ef80))
+
+## [1.12.1](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.12.0...texttospeech/v1.12.1) (2025-04-15)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update google.golang.org/api to 0.229.0 ([3319672](https://github.com/googleapis/google-cloud-go/commit/3319672f3dba84a7150772ccb5433e02dab7e201))
+
+## [1.12.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.11.2...texttospeech/v1.12.0) (2025-03-31)
+
+
+### Features
+
+* **texttospeech:** Support HD voice custom pronunciations ([#11920](https://github.com/googleapis/google-cloud-go/issues/11920)) ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+
+
+### Documentation
+
+* **texttospeech:** A comment for enum value `OGG_OPUS` in enum `AudioEncoding` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for enum value `PCM` in enum `AudioEncoding` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for enum value `PHONETIC_ENCODING_IPA` in enum `PhoneticEncoding` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for enum value `PHONETIC_ENCODING_X_SAMPA` in enum `PhoneticEncoding` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `audio_encoding` in message `.google.cloud.texttospeech.v1.StreamingAudioConfig` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `custom_pronunciations` in message `.google.cloud.texttospeech.v1.SynthesisInput` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `low_latency_journey_synthesis` in message `.google.cloud.texttospeech.v1.AdvancedVoiceOptions` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `phrase` in message `.google.cloud.texttospeech.v1.CustomPronunciationParams` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `pronunciations` in message `.google.cloud.texttospeech.v1.CustomPronunciations` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `text` in message `.google.cloud.texttospeech.v1.StreamingSynthesisInput` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for field `voice_clone` in message `.google.cloud.texttospeech.v1.VoiceSelectionParams` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for message `MultiSpeakerMarkup` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+* **texttospeech:** A comment for method `StreamingSynthesize` in service `TextToSpeech` is changed ([f437f08](https://github.com/googleapis/google-cloud-go/commit/f437f0871a88abbeb918ce7364d0299a513cc311))
+
+## [1.11.2](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.11.1...texttospeech/v1.11.2) (2025-03-13)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update golang.org/x/net to 0.37.0 ([1144978](https://github.com/googleapis/google-cloud-go/commit/11449782c7fb4896bf8b8b9cde8e7441c84fb2fd))
+
+## [1.11.1](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.11.0...texttospeech/v1.11.1) (2025-03-06)
+
+
+### Bug Fixes
+
+* **texttospeech:** Fix out-of-sync version.go ([28f0030](https://github.com/googleapis/google-cloud-go/commit/28f00304ebb13abfd0da2f45b9b79de093cca1ec))
+
+## [1.11.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.10.1...texttospeech/v1.11.0) (2025-01-08)
+
+
+### Features
+
+* **texttospeech:** StreamingSynthesize now supports opus ([#11365](https://github.com/googleapis/google-cloud-go/issues/11365)) ([e4e1a49](https://github.com/googleapis/google-cloud-go/commit/e4e1a498f21b0792e0a7662f82f9e062e5aa0fe9))
+
+## [1.10.1](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.10.0...texttospeech/v1.10.1) (2025-01-02)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update golang.org/x/net to v0.33.0 ([e9b0b69](https://github.com/googleapis/google-cloud-go/commit/e9b0b69644ea5b276cacff0a707e8a5e87efafc9))
+
+## [1.10.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.9.0...texttospeech/v1.10.0) (2024-11-06)
+
+
+### Features
+
+* **texttospeech:** Add multi-speaker markup, which allows generating dialogue between multiple speakers ([2c83297](https://github.com/googleapis/google-cloud-go/commit/2c83297a569117b0252b5b2edaecb09e4924d979))
+
+## [1.9.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.8.1...texttospeech/v1.9.0) (2024-10-23)
+
+
+### Features
+
+* **texttospeech:** Add brand voice lite, which lets you clone a voice with just 10 seconds of audio ([#11014](https://github.com/googleapis/google-cloud-go/issues/11014)) ([6e69d2e](https://github.com/googleapis/google-cloud-go/commit/6e69d2e85849002bad227ea5bebcde9199605bef))
+* **texttospeech:** Add CustomPronunciationParams for upcoming feature work ([f0b05e2](https://github.com/googleapis/google-cloud-go/commit/f0b05e260435d5e8889b9a0ca0ab215fcde169ab))
+* **texttospeech:** Add low latency journey option to proto ([f0b05e2](https://github.com/googleapis/google-cloud-go/commit/f0b05e260435d5e8889b9a0ca0ab215fcde169ab))
+
+
+### Bug Fixes
+
+* **texttospeech:** Update google.golang.org/api to v0.203.0 ([8bb87d5](https://github.com/googleapis/google-cloud-go/commit/8bb87d56af1cba736e0fe243979723e747e5e11e))
+* **texttospeech:** WARNING: On approximately Dec 1, 2024, an update to Protobuf will change service registration function signatures to use an interface instead of a concrete type in generated .pb.go files. This change is expected to affect very few if any users of this client library. For more information, see https://togithub.com/googleapis/google-cloud-go/issues/11020. ([2b8ca4b](https://github.com/googleapis/google-cloud-go/commit/2b8ca4b4127ce3025c7a21cc7247510e07cc5625))
+
+## [1.8.1](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.8.0...texttospeech/v1.8.1) (2024-09-12)
+
+
+### Bug Fixes
+
+* **texttospeech:** Bump dependencies ([2ddeb15](https://github.com/googleapis/google-cloud-go/commit/2ddeb1544a53188a7592046b98913982f1b0cf04))
+
+## [1.8.0](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.12...texttospeech/v1.8.0) (2024-08-20)
+
+
+### Features
+
+* **texttospeech:** A new method `StreamingSynthesize` is added to service `TextToSpeech` ([#10687](https://github.com/googleapis/google-cloud-go/issues/10687)) ([b32cb37](https://github.com/googleapis/google-cloud-go/commit/b32cb378ab03f34c0670a8a204bd0ef3f71d48d4))
+* **texttospeech:** Add support for Go 1.23 iterators ([84461c0](https://github.com/googleapis/google-cloud-go/commit/84461c0ba464ec2f951987ba60030e37c8a8fc18))
+
+
+### Documentation
+
+* **texttospeech:** A comment for field `name` in message `.google.cloud.texttospeech.v1.VoiceSelectionParams` is changed ([b32cb37](https://github.com/googleapis/google-cloud-go/commit/b32cb378ab03f34c0670a8a204bd0ef3f71d48d4))
+* **texttospeech:** Update Long Audio capabilities to include SSML ([84461c0](https://github.com/googleapis/google-cloud-go/commit/84461c0ba464ec2f951987ba60030e37c8a8fc18))
+
+## [1.7.12](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.11...texttospeech/v1.7.12) (2024-08-08)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update google.golang.org/api to v0.191.0 ([5b32644](https://github.com/googleapis/google-cloud-go/commit/5b32644eb82eb6bd6021f80b4fad471c60fb9d73))
+
+## [1.7.11](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.10...texttospeech/v1.7.11) (2024-07-24)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update dependencies ([257c40b](https://github.com/googleapis/google-cloud-go/commit/257c40bd6d7e59730017cf32bda8823d7a232758))
+
+## [1.7.10](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.9...texttospeech/v1.7.10) (2024-07-10)
+
+
+### Bug Fixes
+
+* **texttospeech:** Bump google.golang.org/grpc@v1.64.1 ([8ecc4e9](https://github.com/googleapis/google-cloud-go/commit/8ecc4e9622e5bbe9b90384d5848ab816027226c5))
+
+## [1.7.9](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.8...texttospeech/v1.7.9) (2024-07-01)
+
+
+### Bug Fixes
+
+* **texttospeech:** Bump google.golang.org/api@v0.187.0 ([8fa9e39](https://github.com/googleapis/google-cloud-go/commit/8fa9e398e512fd8533fd49060371e61b5725a85b))
+
+## [1.7.8](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.7...texttospeech/v1.7.8) (2024-06-26)
+
+
+### Bug Fixes
+
+* **texttospeech:** Enable new auth lib ([b95805f](https://github.com/googleapis/google-cloud-go/commit/b95805f4c87d3e8d10ea23bd7a2d68d7a4157568))
+
+## [1.7.7](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.6...texttospeech/v1.7.7) (2024-05-01)
+
+
+### Bug Fixes
+
+* **texttospeech:** Bump x/net to v0.24.0 ([ba31ed5](https://github.com/googleapis/google-cloud-go/commit/ba31ed5fda2c9664f2e1cf972469295e63deb5b4))
+
+## [1.7.6](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.5...texttospeech/v1.7.6) (2024-03-14)
+
+
+### Bug Fixes
+
+* **texttospeech:** Update protobuf dep to v1.33.0 ([30b038d](https://github.com/googleapis/google-cloud-go/commit/30b038d8cac0b8cd5dd4761c87f3f298760dd33a))
+
+## [1.7.5](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.4...texttospeech/v1.7.5) (2024-01-30)
+
+
+### Bug Fixes
+
+* **texttospeech:** Enable universe domain resolution options ([fd1d569](https://github.com/googleapis/google-cloud-go/commit/fd1d56930fa8a747be35a224611f4797b8aeb698))
+
 ## [1.7.4](https://github.com/googleapis/google-cloud-go/compare/texttospeech/v1.7.3...texttospeech/v1.7.4) (2023-11-01)
 
 
@@ -99,4 +279,3 @@ Stabilize GA surface.
 
 This is the first tag to carve out texttospeech as its own module. See
 [Add a module to a multi-module repository](https://github.com/golang/go/wiki/Modules#is-it-possible-to-add-a-module-to-a-multi-module-repository).
-

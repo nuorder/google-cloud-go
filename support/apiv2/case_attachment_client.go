@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package support
 import (
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -27,7 +27,6 @@ import (
 
 	supportpb "cloud.google.com/go/support/apiv2/supportpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -55,6 +54,7 @@ func defaultCaseAttachmentGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://cloudsupport.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -104,7 +104,7 @@ type internalCaseAttachmentClient interface {
 // CaseAttachmentClient is a client for interacting with Google Cloud Support API.
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 //
-// A service to manage file attachment for Google Cloud support cases.
+// A service to manage file attachments for Google Cloud support cases.
 type CaseAttachmentClient struct {
 	// The internal transport-dependent client.
 	internalClient internalCaseAttachmentClient
@@ -136,7 +136,7 @@ func (c *CaseAttachmentClient) Connection() *grpc.ClientConn {
 	return c.internalClient.Connection()
 }
 
-// ListAttachments retrieve all attachments associated with a support case.
+// ListAttachments list all the attachments associated with a support case.
 func (c *CaseAttachmentClient) ListAttachments(ctx context.Context, req *supportpb.ListAttachmentsRequest, opts ...gax.CallOption) *AttachmentIterator {
 	return c.internalClient.ListAttachments(ctx, req, opts...)
 }
@@ -156,12 +156,14 @@ type caseAttachmentGRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewCaseAttachmentClient creates a new case attachment service client based on gRPC.
 // The returned client must be Closed when it is done being used to clean up its underlying connections.
 //
-// A service to manage file attachment for Google Cloud support cases.
+// A service to manage file attachments for Google Cloud support cases.
 func NewCaseAttachmentClient(ctx context.Context, opts ...option.ClientOption) (*CaseAttachmentClient, error) {
 	clientOpts := defaultCaseAttachmentGRPCClientOptions()
 	if newCaseAttachmentClientHook != nil {
@@ -182,6 +184,7 @@ func NewCaseAttachmentClient(ctx context.Context, opts ...option.ClientOption) (
 		connPool:             connPool,
 		caseAttachmentClient: supportpb.NewCaseAttachmentServiceClient(connPool),
 		CallOptions:          &client.CallOptions,
+		logger:               internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -203,8 +206,10 @@ func (c *caseAttachmentGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *caseAttachmentGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -226,11 +231,13 @@ type caseAttachmentRESTClient struct {
 
 	// Points back to the CallOptions field of the containing CaseAttachmentClient
 	CallOptions **CaseAttachmentCallOptions
+
+	logger *slog.Logger
 }
 
 // NewCaseAttachmentRESTClient creates a new case attachment service rest client.
 //
-// A service to manage file attachment for Google Cloud support cases.
+// A service to manage file attachments for Google Cloud support cases.
 func NewCaseAttachmentRESTClient(ctx context.Context, opts ...option.ClientOption) (*CaseAttachmentClient, error) {
 	clientOpts := append(defaultCaseAttachmentRESTClientOptions(), opts...)
 	httpClient, endpoint, err := httptransport.NewClient(ctx, clientOpts...)
@@ -243,6 +250,7 @@ func NewCaseAttachmentRESTClient(ctx context.Context, opts ...option.ClientOptio
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -257,6 +265,7 @@ func defaultCaseAttachmentRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://cloudsupport.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -265,8 +274,10 @@ func defaultCaseAttachmentRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *caseAttachmentRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -303,7 +314,7 @@ func (c *caseAttachmentGRPCClient) ListAttachments(ctx context.Context, req *sup
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.caseAttachmentClient.ListAttachments(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.caseAttachmentClient.ListAttachments, req, settings.GRPC, c.logger, "ListAttachments")
 			return err
 		}, opts...)
 		if err != nil {
@@ -329,7 +340,7 @@ func (c *caseAttachmentGRPCClient) ListAttachments(ctx context.Context, req *sup
 	return it
 }
 
-// ListAttachments retrieve all attachments associated with a support case.
+// ListAttachments list all the attachments associated with a support case.
 func (c *caseAttachmentRESTClient) ListAttachments(ctx context.Context, req *supportpb.ListAttachmentsRequest, opts ...gax.CallOption) *AttachmentIterator {
 	it := &AttachmentIterator{}
 	req = proto.Clone(req).(*supportpb.ListAttachmentsRequest)
@@ -374,21 +385,10 @@ func (c *caseAttachmentRESTClient) ListAttachments(ctx context.Context, req *sup
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListAttachments")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}

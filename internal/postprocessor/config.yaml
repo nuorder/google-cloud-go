@@ -9,24 +9,35 @@ modules:
   - apigateway
   - apigeeconnect
   - apigeeregistry
+  - apihub
   - apikeys
   - appengine
+  - apphub
   - apps
   - area120
   - artifactregistry
   - asset
   - assuredworkloads
   - automl
+  - backupdr
   - baremetalsolution
   - batch
   - beyondcorp
+  # List the bigquery/v2 module before the bigquery module so that the contents
+  # are processed using the correct inner module boundary.
+  # More info: https://github.com/googleapis/google-cloud-go/issues/12452
+  - bigquery/v2
   - bigquery
   - bigtable
   - billing
   - binaryauthorization
+  - capacityplanner
   - certificatemanager
   - channel
+  - chat
+  - chronicle
   - cloudbuild
+  - cloudcontrolspartner
   - clouddms
   - cloudprofiler
   - cloudquotas
@@ -35,6 +46,7 @@ modules:
   - compute
   - confidentialcomputing
   - config
+  - configdelivery
   - contactcenterinsights
   - container
   - containeranalysis
@@ -49,9 +61,10 @@ modules:
   - datastore
   - datastream
   - deploy
+  - developerconnect
+  - devicestreaming
   - dialogflow
   - discoveryengine
-  - dlp
   - documentai
   - domains
   - edgecontainer
@@ -60,8 +73,10 @@ modules:
   - essentialcontacts
   - eventarc
   - filestore
+  - financialservices
   - firestore
   - functions
+  - geminidataanalytics
   - gkebackup
   - gkeconnect
   - gkehub
@@ -70,35 +85,48 @@ modules:
   - gsuiteaddons
   - iam
   - iap
+  - identitytoolkit
   - ids
   - iot
   - kms
   - language
+  - licensemanager
   - lifesciences
   - logging
   - longrunning
+  - lustre
+  - maintenance
   - managedidentities
+  - managedkafka
   - maps
   - mediatranslation
   - memcache
+  - memorystore
   - metastore
   - migrationcenter
+  - modelarmor
   - monitoring
   - netapp
   - networkconnectivity
   - networkmanagement
   - networksecurity
+  - networkservices
   - notebooks
   - optimization
+  - oracledatabase
   - orchestration
   - orgpolicy
   - osconfig
   - oslogin
+  - parallelstore
+  - parametermanager
   - phishingprotection
   - policysimulator
   - policytroubleshooter
   - privatecatalog
+  - privilegedaccessmanager
   - profiler
+  - pubsub/v2
   - pubsub
   - pubsublite
   - rapidmigrationassessment
@@ -107,7 +135,6 @@ modules:
   - recommender
   - redis
   - resourcemanager
-  - resourcesettings
   - retail
   - run
   - scheduler
@@ -127,8 +154,10 @@ modules:
   - spanner
   - speech
   - storage
+  - storagebatchoperations
   - storageinsights
   - storagetransfer
+  - streetview
   - support
   - talent
   - telcoautomation
@@ -274,6 +303,9 @@ service-configs:
   - input-directory: google/ai/generativelanguage/v1
     service-config: generativelanguage_v1.yaml
     import-path: cloud.google.com/go/ai/generativelanguage/apiv1
+  - input-directory: google/ai/generativelanguage/v1alpha
+    service-config: generativelanguage_v1alpha.yaml
+    import-path: cloud.google.com/go/ai/generativelanguage/apiv1alpha
   - input-directory: google/ai/generativelanguage/v1beta
     service-config: generativelanguage_v1beta.yaml
     import-path: cloud.google.com/go/ai/generativelanguage/apiv1beta
@@ -289,6 +321,15 @@ service-configs:
   - input-directory: google/appengine/v1
     service-config: appengine_v1.yaml
     import-path: cloud.google.com/go/appengine/apiv1
+  - input-directory: google/apps/events/subscriptions/v1
+    service-config: workspaceevents_v1.yaml
+    import-path: cloud.google.com/go/apps/events/subscriptions/apiv1
+  - input-directory: google/apps/events/subscriptions/v1beta
+    service-config: workspaceevents_v1beta.yaml
+    import-path: cloud.google.com/go/apps/events/subscriptions/apiv1beta
+  - input-directory: google/apps/meet/v2
+    service-config: meet_v2.yaml
+    import-path: cloud.google.com/go/apps/meet/apiv2
   - input-directory: google/apps/meet/v2beta
     service-config: meet_v2beta.yaml
     import-path: cloud.google.com/go/apps/meet/apiv2beta
@@ -335,6 +376,12 @@ service-configs:
   - input-directory: google/cloud/apigeeregistry/v1
     service-config: apigeeregistry_v1.yaml
     import-path: cloud.google.com/go/apigeeregistry/apiv1
+  - input-directory: google/cloud/apihub/v1
+    service-config: apihub_v1.yaml
+    import-path: cloud.google.com/go/apihub/apiv1
+  - input-directory: google/cloud/apphub/v1
+    service-config: apphub_v1.yaml
+    import-path: cloud.google.com/go/apphub/apiv1
   - input-directory: google/cloud/asset/v1
     service-config: cloudasset_v1.yaml
     import-path: cloud.google.com/go/asset/apiv1
@@ -356,6 +403,9 @@ service-configs:
   - input-directory: google/cloud/automl/v1beta1
     service-config: automl_v1beta1.yaml
     import-path: cloud.google.com/go/automl/apiv1beta1
+  - input-directory: google/cloud/backupdr/v1
+    service-config: backupdr_v1.yaml
+    import-path: cloud.google.com/go/backupdr/apiv1
   - input-directory: google/cloud/baremetalsolution/v2
     service-config: baremetalsolution_v2.yaml
     import-path: cloud.google.com/go/baremetalsolution/apiv2
@@ -401,6 +451,12 @@ service-configs:
   - input-directory: google/cloud/bigquery/datapolicies/v1beta1
     service-config: bigquerydatapolicy_v1beta1.yaml
     import-path: cloud.google.com/go/bigquery/datapolicies/apiv1beta1
+  - input-directory: google/cloud/bigquery/datapolicies/v2
+    service-config: bigquerydatapolicy_v2.yaml
+    import-path: cloud.google.com/go/bigquery/datapolicies/apiv2
+  - input-directory: google/cloud/bigquery/datapolicies/v2beta1
+    service-config: bigquerydatapolicy_v2beta1.yaml
+    import-path: cloud.google.com/go/bigquery/datapolicies/apiv2beta1
   - input-directory: google/cloud/bigquery/datatransfer/v1
     service-config: bigquerydatatransfer_v1.yaml
     import-path: cloud.google.com/go/bigquery/datatransfer/apiv1
@@ -416,12 +472,29 @@ service-configs:
   - input-directory: google/cloud/bigquery/storage/v1
     service-config: bigquerystorage_v1.yaml
     import-path: cloud.google.com/go/bigquery/storage/apiv1
+  - input-directory: google/cloud/bigquery/storage/v1alpha
+    service-config: bigquerystorage_v1alpha.yaml
+    import-path: cloud.google.com/go/bigquery/storage/apiv1alpha
+  - input-directory: google/cloud/bigquery/storage/v1beta
+    service-config: bigquerystorage_v1beta.yaml
+    import-path: cloud.google.com/go/bigquery/storage/apiv1beta
   - input-directory: google/cloud/bigquery/storage/v1beta1
     service-config: bigquerystorage_v1beta1.yaml
     import-path: cloud.google.com/go/bigquery/storage/apiv1beta1
   - input-directory: google/cloud/bigquery/storage/v1beta2
     service-config: bigquerystorage_v1beta2.yaml
     import-path: cloud.google.com/go/bigquery/storage/apiv1beta2
+  - input-directory: google/cloud/bigquery/v2
+    service-config: bigquery_v2.yaml
+    import-path: cloud.google.com/go/bigquery/v2/apiv2
+  - input-directory: google/bigtable/admin/v2
+    service-config: bigtableadmin_v2.yaml
+    import-path: cloud.google.com/go/bigtable/admin/apiv2
+    release-level-override: stable
+  - input-directory: google/bigtable/v2
+    service-config: bigtable_v2.yaml
+    import-path: cloud.google.com/go/bigtable/apiv2
+    release-level-override: stable
   - input-directory: google/cloud/billing/budgets/v1
     service-config: billingbudgets.yaml
     import-path: cloud.google.com/go/billing/budgets/apiv1
@@ -437,12 +510,27 @@ service-configs:
   - input-directory: google/cloud/binaryauthorization/v1beta1
     service-config: binaryauthorization_v1beta1.yaml
     import-path: cloud.google.com/go/binaryauthorization/apiv1beta1
+  - input-directory: google/cloud/capacityplanner/v1beta
+    service-config: capacityplanner_v1beta.yaml
+    import-path: cloud.google.com/go/capacityplanner/apiv1beta
   - input-directory: google/cloud/certificatemanager/v1
     service-config: certificatemanager_v1.yaml
     import-path: cloud.google.com/go/certificatemanager/apiv1
   - input-directory: google/cloud/channel/v1
     service-config: cloudchannel_v1.yaml
     import-path: cloud.google.com/go/channel/apiv1
+  - input-directory: google/chat/v1
+    service-config: chat_v1.yaml
+    import-path: cloud.google.com/go/chat/apiv1
+  - input-directory: google/cloud/chronicle/v1
+    service-config: chronicle_v1.yaml
+    import-path: cloud.google.com/go/chronicle/apiv1
+  - input-directory: google/cloud/cloudcontrolspartner/v1
+    service-config: cloudcontrolspartner_v1.yaml
+    import-path: cloud.google.com/go/cloudcontrolspartner/apiv1
+  - input-directory: google/cloud/cloudcontrolspartner/v1beta
+    service-config: cloudcontrolspartner_v1beta.yaml
+    import-path: cloud.google.com/go/cloudcontrolspartner/apiv1beta
   - input-directory: google/cloud/clouddms/v1
     service-config: datamigration_v1.yaml
     import-path: cloud.google.com/go/clouddms/apiv1
@@ -452,15 +540,27 @@ service-configs:
   - input-directory: google/api/cloudquotas/v1
     service-config: cloudquotas_v1.yaml
     import-path: cloud.google.com/go/cloudquotas/apiv1
+  - input-directory: google/api/cloudquotas/v1beta
+    service-config: cloudquotas_v1beta.yaml
+    import-path: cloud.google.com/go/cloudquotas/apiv1beta
   - input-directory: google/cloud/commerce/consumer/procurement/v1
     service-config: cloudcommerceconsumerprocurement_v1.yaml
     import-path: cloud.google.com/go/commerce/consumer/procurement/apiv1
   - input-directory: google/cloud/compute/v1
     service-config: compute_v1.yaml
     import-path: cloud.google.com/go/compute/apiv1
+  - input-directory: google/cloud/compute/v1beta
+    service-config: compute_v1beta.yaml
+    import-path: cloud.google.com/go/compute/apiv1beta
   - input-directory: google/cloud/config/v1
     service-config: config_v1.yaml
     import-path: cloud.google.com/go/config/apiv1
+  - input-directory: google/cloud/configdelivery/v1
+    service-config: configdelivery_v1.yaml
+    import-path: cloud.google.com/go/configdelivery/apiv1
+  - input-directory: google/cloud/configdelivery/v1beta
+    service-config: configdelivery_v1beta.yaml
+    import-path: cloud.google.com/go/configdelivery/apiv1beta
   - input-directory: google/cloud/contactcenterinsights/v1
     service-config: contactcenterinsights_v1.yaml
     import-path: cloud.google.com/go/contactcenterinsights/apiv1
@@ -473,9 +573,9 @@ service-configs:
   - input-directory: google/cloud/datacatalog/v1beta1
     service-config: datacatalog_v1beta1.yaml
     import-path: cloud.google.com/go/datacatalog/apiv1beta1
-  - input-directory: google/cloud/dataform/v1alpha2
-    service-config: dataform_v1alpha2.yaml
-    import-path: cloud.google.com/go/dataform/apiv1alpha2
+  - input-directory: google/cloud/dataform/v1
+    service-config: dataform_v1.yaml
+    import-path: cloud.google.com/go/dataform/apiv1
   - input-directory: google/cloud/dataform/v1beta1
     service-config: dataform_v1beta1.yaml
     import-path: cloud.google.com/go/dataform/apiv1beta1
@@ -504,6 +604,12 @@ service-configs:
   - input-directory: google/cloud/deploy/v1
     service-config: clouddeploy_v1.yaml
     import-path: cloud.google.com/go/deploy/apiv1
+  - input-directory: google/cloud/developerconnect/v1
+    service-config: developerconnect_v1.yaml
+    import-path: cloud.google.com/go/developerconnect/apiv1
+  - input-directory: google/cloud/devicestreaming/v1
+    service-config: devicestreaming_v1.yaml
+    import-path: cloud.google.com/go/devicestreaming/apiv1
   - input-directory: google/cloud/dialogflow/cx/v3
     service-config: dialogflow_v3.yaml
     import-path: cloud.google.com/go/dialogflow/cx/apiv3
@@ -552,6 +658,9 @@ service-configs:
   - input-directory: google/cloud/filestore/v1
     service-config: file_v1.yaml
     import-path: cloud.google.com/go/filestore/apiv1
+  - input-directory: google/cloud/financialservices/v1
+    service-config: financialservices_v1.yaml
+    import-path: cloud.google.com/go/financialservices/apiv1
   - input-directory: google/cloud/functions/v1
     service-config: cloudfunctions_v1.yaml
     import-path: cloud.google.com/go/functions/apiv1
@@ -561,12 +670,18 @@ service-configs:
   - input-directory: google/cloud/functions/v2beta
     service-config: cloudfunctions_v2beta.yaml
     import-path: cloud.google.com/go/functions/apiv2beta
+  - input-directory: google/cloud/geminidataanalytics/v1beta
+    service-config: geminidataanalytics_v1beta.yaml
+    import-path: cloud.google.com/go/geminidataanalytics/apiv1beta
   - input-directory: google/cloud/gkebackup/v1
     service-config: gkebackup_v1.yaml
     import-path: cloud.google.com/go/gkebackup/apiv1
   - input-directory: google/cloud/gkeconnect/gateway/v1beta1
     service-config: connectgateway_v1beta1.yaml
     import-path: cloud.google.com/go/gkeconnect/gateway/apiv1beta1
+  - input-directory: google/cloud/gkeconnect/gateway/v1
+    service-config: connectgateway_v1.yaml
+    import-path: cloud.google.com/go/gkeconnect/gateway/apiv1
   - input-directory: google/cloud/gkehub/v1beta1
     service-config: gkehub_v1beta1.yaml
     import-path: cloud.google.com/go/gkehub/apiv1beta1
@@ -579,6 +694,9 @@ service-configs:
   - input-directory: google/cloud/iap/v1
     service-config: iap_v1.yaml
     import-path: cloud.google.com/go/iap/apiv1
+  - input-directory: google/cloud/identitytoolkit/v2
+    service-config: identitytoolkit_v2.yaml
+    import-path: cloud.google.com/go/identitytoolkit/apiv2
   - input-directory: google/cloud/ids/v1
     service-config: ids_v1.yaml
     import-path: cloud.google.com/go/ids/apiv1
@@ -600,12 +718,27 @@ service-configs:
   - input-directory: google/cloud/language/v2
     service-config: language_v2.yaml
     import-path: cloud.google.com/go/language/apiv2
+  - input-directory: google/cloud/licensemanager/v1
+    service-config: licensemanager_v1.yaml
+    import-path: cloud.google.com/go/licensemanager/apiv1
   - input-directory: google/cloud/lifesciences/v2beta
     service-config: lifesciences_v2beta.yaml
     import-path: cloud.google.com/go/lifesciences/apiv2beta
+  - input-directory: google/cloud/lustre/v1
+    service-config: lustre_v1.yaml
+    import-path: cloud.google.com/go/lustre/apiv1
+  - input-directory: google/cloud/maintenance/api/v1beta
+    service-config: maintenance_v1beta.yaml
+    import-path: cloud.google.com/go/maintenance/api/apiv1beta
   - input-directory: google/cloud/managedidentities/v1
     service-config: managedidentities_v1.yaml
     import-path: cloud.google.com/go/managedidentities/apiv1
+  - input-directory: google/cloud/managedkafka/v1
+    service-config: managedkafka_v1.yaml
+    import-path: cloud.google.com/go/managedkafka/apiv1
+  - input-directory: google/cloud/managedkafka/schemaregistry/v1
+    service-config: managedkafka_v1.yaml
+    import-path: cloud.google.com/go/managedkafka/schemaregistry/apiv1
   - input-directory: google/cloud/mediatranslation/v1beta1
     service-config: mediatranslation_v1beta1.yaml
     import-path: cloud.google.com/go/mediatranslation/apiv1beta1
@@ -615,6 +748,12 @@ service-configs:
   - input-directory: google/cloud/memcache/v1beta2
     service-config: memcache_v1beta2.yaml
     import-path: cloud.google.com/go/memcache/apiv1beta2
+  - input-directory: google/cloud/memorystore/v1
+    service-config: memorystore_v1.yaml
+    import-path: cloud.google.com/go/memorystore/apiv1
+  - input-directory: google/cloud/memorystore/v1beta
+    service-config: memorystore_v1beta.yaml
+    import-path: cloud.google.com/go/memorystore/apiv1beta
   - input-directory: google/cloud/metastore/v1
     service-config: metastore_v1.yaml
     import-path: cloud.google.com/go/metastore/apiv1
@@ -642,6 +781,9 @@ service-configs:
   - input-directory: google/cloud/networksecurity/v1beta1
     service-config: networksecurity_v1beta1.yaml
     import-path: cloud.google.com/go/networksecurity/apiv1beta1
+  - input-directory: google/cloud/networkservices/v1
+    service-config: networkservices_v1.yaml
+    import-path: cloud.google.com/go/networkservices/apiv1
   - input-directory: google/cloud/notebooks/v1
     service-config: notebooks_v1.yaml
     import-path: cloud.google.com/go/notebooks/apiv1
@@ -654,6 +796,9 @@ service-configs:
   - input-directory: google/cloud/optimization/v1
     service-config: cloudoptimization_v1.yaml
     import-path: cloud.google.com/go/optimization/apiv1
+  - input-directory: google/cloud/oracledatabase/v1
+    service-config: oracledatabase_v1.yaml
+    import-path: cloud.google.com/go/oracledatabase/apiv1
   - input-directory: google/cloud/orchestration/airflow/service/v1
     service-config: composer_v1.yaml
     import-path: cloud.google.com/go/orchestration/airflow/service/apiv1
@@ -687,6 +832,15 @@ service-configs:
   - input-directory: google/cloud/oslogin/common
     service-config:
     import-path: cloud.google.com/go/oslogin/common
+  - input-directory: google/cloud/parallelstore/v1
+    service-config: parallelstore_v1.yaml
+    import-path: cloud.google.com/go/parallelstore/apiv1
+  - input-directory: google/cloud/parallelstore/v1beta
+    service-config: parallelstore_v1beta.yaml
+    import-path: cloud.google.com/go/parallelstore/apiv1beta
+  - input-directory: google/cloud/parametermanager/v1
+    service-config: parametermanager_v1.yaml
+    import-path: cloud.google.com/go/parametermanager/apiv1
   - input-directory: google/cloud/phishingprotection/v1beta1
     service-config: phishingprotection_v1beta1.yaml
     import-path: cloud.google.com/go/phishingprotection/apiv1beta1
@@ -702,6 +856,9 @@ service-configs:
   - input-directory: google/cloud/privatecatalog/v1beta1
     service-config: cloudprivatecatalog_v1beta1.yaml
     import-path: cloud.google.com/go/privatecatalog/apiv1beta1
+  - input-directory: google/cloud/privilegedaccessmanager/v1
+    service-config: privilegedaccessmanager_v1.yaml
+    import-path: cloud.google.com/go/privilegedaccessmanager/apiv1
   - input-directory: google/cloud/pubsublite/v1
     service-config: pubsublite_v1.yaml
     import-path: cloud.google.com/go/pubsublite/apiv1
@@ -740,9 +897,6 @@ service-configs:
   - input-directory: google/cloud/resourcemanager/v3
     service-config: cloudresourcemanager_v3.yaml
     import-path: cloud.google.com/go/resourcemanager/apiv3
-  - input-directory: google/cloud/resourcesettings/v1
-    service-config: resourcesettings_v1.yaml
-    import-path: cloud.google.com/go/resourcesettings/apiv1
   - input-directory: google/cloud/retail/v2
     service-config: retail_v2.yaml
     import-path: cloud.google.com/go/retail/apiv2
@@ -764,6 +918,9 @@ service-configs:
   - input-directory: google/cloud/secretmanager/v1
     service-config: secretmanager_v1.yaml
     import-path: cloud.google.com/go/secretmanager/apiv1
+  - input-directory: google/cloud/secretmanager/v1beta2
+    service-config: secretmanager_v1beta2.yaml
+    import-path: cloud.google.com/go/secretmanager/apiv1beta2
   - input-directory: google/cloud/securesourcemanager/v1
     service-config: securesourcemanager_v1.yaml
     import-path: cloud.google.com/go/securesourcemanager/apiv1
@@ -773,6 +930,9 @@ service-configs:
   - input-directory: google/cloud/security/publicca/v1beta1
     service-config: publicca_v1beta1.yaml
     import-path: cloud.google.com/go/security/publicca/apiv1beta1
+  - input-directory: google/cloud/security/publicca/v1
+    service-config: publicca_v1.yaml
+    import-path: cloud.google.com/go/security/publicca/apiv1
   - input-directory: google/cloud/securitycenter/settings/v1beta1
     service-config: securitycenter_settings.yaml
     import-path: cloud.google.com/go/securitycenter/settings/apiv1beta1
@@ -785,6 +945,9 @@ service-configs:
   - input-directory: google/cloud/securitycenter/v1p1beta1
     service-config: securitycenter_v1p1beta1.yaml
     import-path: cloud.google.com/go/securitycenter/apiv1p1beta1
+  - input-directory: google/cloud/securitycenter/v2
+    service-config: securitycenter_v2.yaml
+    import-path: cloud.google.com/go/securitycenter/apiv2
   - input-directory: google/cloud/securitycentermanagement/v1
     service-config: securitycentermanagement_v1.yaml
     import-path: cloud.google.com/go/securitycentermanagement/apiv1
@@ -815,9 +978,84 @@ service-configs:
   - input-directory: google/shopping/css/v1
     service-config: css_v1.yaml
     import-path: cloud.google.com/go/shopping/css/apiv1
+  - input-directory: google/shopping/merchant/accounts/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/accounts/apiv1
+  - input-directory: google/shopping/merchant/accounts/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/accounts/apiv1beta
+  - input-directory: google/shopping/merchant/conversions/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/conversions/apiv1
+  - input-directory: google/shopping/merchant/conversions/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/conversions/apiv1beta
+  - input-directory: google/shopping/merchant/datasources/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/datasources/apiv1
+  - input-directory: google/shopping/merchant/datasources/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/datasources/apiv1beta
+  - input-directory: google/shopping/merchant/notifications/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/notifications/apiv1
+  - input-directory: google/shopping/merchant/notifications/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/notifications/apiv1beta
+  - input-directory: google/shopping/merchant/ordertracking/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/ordertracking/apiv1
+  - input-directory: google/shopping/merchant/ordertracking/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/ordertracking/apiv1beta
+  - input-directory: google/shopping/merchant/products/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/products/apiv1
+  - input-directory: google/shopping/merchant/products/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/products/apiv1beta
+  - input-directory: google/shopping/merchant/productstudio/v1alpha
+    service-config: merchantapi_v1alpha.yaml
+    import-path: cloud.google.com/go/shopping/merchant/productstudio/apiv1alpha
+  - input-directory: google/shopping/merchant/promotions/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/promotions/apiv1
+  - input-directory: google/shopping/merchant/promotions/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/promotions/apiv1beta
+  - input-directory: google/shopping/merchant/quota/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/quota/apiv1
+  - input-directory: google/shopping/merchant/quota/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/quota/apiv1beta
+  - input-directory: google/shopping/merchant/inventories/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/inventories/apiv1
   - input-directory: google/shopping/merchant/inventories/v1beta
     service-config: merchantapi_v1beta.yaml
     import-path: cloud.google.com/go/shopping/merchant/inventories/apiv1beta
+  - input-directory: google/shopping/merchant/issueresolution/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/issueresolution/apiv1
+  - input-directory: google/shopping/merchant/issueresolution/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/issueresolution/apiv1beta
+  - input-directory: google/shopping/merchant/lfp/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/lfp/apiv1
+  - input-directory: google/shopping/merchant/lfp/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/lfp/apiv1beta
+  - input-directory: google/shopping/merchant/reports/v1
+    service-config: merchantapi_v1.yaml
+    import-path: cloud.google.com/go/shopping/merchant/reports/apiv1
+  - input-directory: google/shopping/merchant/reports/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/reports/apiv1beta
+  - input-directory: google/shopping/merchant/reviews/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/reviews/apiv1beta
   - input-directory: google/shopping/type
     service-config:
     import-path: cloud.google.com/go/shopping/type
@@ -830,12 +1068,18 @@ service-configs:
   - input-directory: google/cloud/speech/v2
     service-config: speech_v2.yaml
     import-path: cloud.google.com/go/speech/apiv2
+  - input-directory: google/cloud/storagebatchoperations/v1
+    service-config: storagebatchoperations_v1.yaml
+    import-path: cloud.google.com/go/storagebatchoperations/apiv1
   - input-directory: google/cloud/storageinsights/v1
     service-config: storageinsights_v1.yaml
     import-path: cloud.google.com/go/storageinsights/apiv1
   - input-directory: google/cloud/support/v2
     service-config: cloudsupport_v2.yaml
     import-path: cloud.google.com/go/support/apiv2
+  - input-directory: google/cloud/support/v2beta
+    service-config: cloudsupport_v2beta.yaml
+    import-path: cloud.google.com/go/support/apiv2beta
   - input-directory: google/cloud/talent/v4
     service-config: jobs_v4.yaml
     import-path: cloud.google.com/go/talent/apiv4
@@ -863,9 +1107,6 @@ service-configs:
   - input-directory: google/cloud/translate/v3
     service-config: translate_v3.yaml
     import-path: cloud.google.com/go/translate/apiv3
-  - input-directory: google/devtools/clouddebugger/v2
-    service-config: clouddebugger_v2.yaml
-    import-path: cloud.google.com/go/debugger/apiv2
   - input-directory: google/devtools/clouderrorreporting/v1beta1
     service-config: clouderrorreporting_v1beta1.yaml
     import-path: cloud.google.com/go/errorreporting/apiv1beta1
@@ -885,7 +1126,7 @@ service-configs:
     service-config: videointelligence_v1.yaml
     import-path: cloud.google.com/go/videointelligence/apiv1
   - input-directory: google/cloud/videointelligence/v1beta2
-    service-config: ../videointelligence_v1beta2.yaml
+    service-config: videointelligence_v1beta2.yaml
     import-path: cloud.google.com/go/videointelligence/apiv1beta2
   - input-directory: google/cloud/videointelligence/v1p3beta1
     service-config: videointelligence_v1p3beta1.yaml
@@ -946,6 +1187,10 @@ service-configs:
   - input-directory: google/datastore/admin/v1
     service-config: datastore_v1.yaml
     import-path: cloud.google.com/go/datastore/admin/apiv1
+  - input-directory: google/datastore/v1
+    service-config: datastore_v1.yaml
+    import-path: cloud.google.com/go/datastore/apiv1
+    release-level-override: stable
   - input-directory: google/devtools/artifactregistry/v1
     service-config: artifactregistry_v1.yaml
     import-path: cloud.google.com/go/artifactregistry/apiv1
@@ -958,9 +1203,6 @@ service-configs:
   - input-directory: google/devtools/cloudbuild/v2
     service-config: cloudbuild_v2.yaml
     import-path: cloud.google.com/go/cloudbuild/apiv2
-  - input-directory: google/cloud/compute/v1
-    service-config: compute_v1.yaml
-    import-path: cloud.google.com/go/compute/apiv1
   - input-directory: google/cloud/confidentialcomputing/v1
     service-config: confidentialcomputing_v1.yaml
     import-path: cloud.google.com/go/confidentialcomputing/apiv1
@@ -985,6 +1227,12 @@ service-configs:
   - input-directory: google/iam/v2
     service-config: iam_v2.yaml
     import-path: cloud.google.com/go/iam/apiv2
+  - input-directory: google/iam/v3
+    service-config: iam_v3.yaml
+    import-path: cloud.google.com/go/iam/apiv3
+  - input-directory: google/iam/v3beta
+    service-config: iam_v3beta.yaml
+    import-path: cloud.google.com/go/iam/apiv3beta
   - input-directory: google/identity/accesscontextmanager/v1
     service-config: accesscontextmanager_v1.yaml
     import-path: cloud.google.com/go/accesscontextmanager/apiv1
@@ -997,21 +1245,33 @@ service-configs:
   - input-directory: google/maps/addressvalidation/v1
     service-config: addressvalidation_v1.yaml
     import-path: cloud.google.com/go/maps/addressvalidation/apiv1
+  - input-directory: google/maps/areainsights/v1
+    service-config: areainsights_v1.yaml
+    import-path: cloud.google.com/go/maps/areainsights/apiv1
   - input-directory: google/maps/fleetengine/v1
     service-config: fleetengine_v1.yaml
     import-path: cloud.google.com/go/maps/fleetengine/apiv1
   - input-directory: google/maps/fleetengine/delivery/v1
     service-config: fleetengine_v1.yaml
     import-path: cloud.google.com/go/maps/fleetengine/delivery/apiv1
-  - input-directory: google/maps/mapsplatformdatasets/v1alpha
-    service-config: mapsplatformdatasets_v1alpha.yaml
-    import-path: cloud.google.com/go/maps/mapsplatformdatasets/apiv1alpha
   - input-directory: google/maps/places/v1
     service-config: places_v1.yaml
     import-path: cloud.google.com/go/maps/places/apiv1
+  - input-directory: google/maps/routeoptimization/v1
+    service-config: routeoptimization_v1.yaml
+    import-path: cloud.google.com/go/maps/routeoptimization/apiv1
   - input-directory: google/maps/routing/v2
     service-config: routes_v2.yaml
     import-path: cloud.google.com/go/maps/routing/apiv2
+  - input-directory: google/maps/solar/v1
+    service-config: solar_v1.yaml
+    import-path: cloud.google.com/go/maps/solar/apiv1
+  - input-directory: google/cloud/modelarmor/v1
+    service-config: modelarmor_v1.yaml
+    import-path: cloud.google.com/go/modelarmor/apiv1
+  - input-directory: google/cloud/modelarmor/v1beta
+    service-config: modelarmor_v1beta.yaml
+    import-path: cloud.google.com/go/modelarmor/apiv1beta
   - input-directory: google/monitoring/dashboard/v1
     service-config: monitoring.yaml
     import-path: cloud.google.com/go/monitoring/dashboard/apiv1
@@ -1021,17 +1281,17 @@ service-configs:
   - input-directory: google/monitoring/v3
     service-config: monitoring.yaml
     import-path: cloud.google.com/go/monitoring/apiv3/v2
-  - input-directory: google/privacy/dlp/v2
-    service-config: dlp_v2.yaml
-    import-path: cloud.google.com/go/dlp/apiv2
   - input-directory: google/pubsub/v1
     service-config: pubsub_v1.yaml
-    import-path: cloud.google.com/go/pubsub/apiv1
+    import-path: cloud.google.com/go/pubsub/v2/apiv1
+  - input-directory: google/spanner/adapter/v1
+    service-config: spanner.yaml
+    import-path: cloud.google.com/go/spanner/adapter/apiv1
   - input-directory: google/spanner/admin/database/v1
     service-config: spanner.yaml
     import-path: cloud.google.com/go/spanner/admin/database/apiv1
   - input-directory: google/spanner/admin/instance/v1
-    service-config: spanner_admin_instance.yaml
+    service-config: spanner.yaml
     import-path: cloud.google.com/go/spanner/admin/instance/apiv1
   - input-directory: google/spanner/v1
     service-config: spanner.yaml
@@ -1039,12 +1299,18 @@ service-configs:
   - input-directory: google/spanner/executor/v1
     service-config: spanner_cloud_executor.yaml
     import-path: cloud.google.com/go/spanner/executor/apiv1
+  - input-directory: google/storage/control/v2
+    service-config: storage_v2.yaml
+    import-path: cloud.google.com/go/storage/control/apiv2
   - input-directory: google/storage/v2
     service-config: storage_v2.yaml
     import-path: cloud.google.com/go/storage/internal/apiv2
   - input-directory: google/storagetransfer/v1
     service-config: storagetransfer_v1.yaml
     import-path: cloud.google.com/go/storagetransfer/apiv1
+  - input-directory: google/streetview/publish/v1
+    service-config: streetviewpublish.yaml
+    import-path: cloud.google.com/go/streetview/publish/apiv1
     # All entries below are clients that are not currently copied by owlbot. They
     # explicitly express their import path for some code gen.
   - input-directory: google/devtools/containeranalysis/v1beta1/grafeas
@@ -1054,3 +1320,27 @@ service-configs:
   - input-directory: google/cloud/video/stitcher/v1
     service-config: videostitcher_v1.yaml
     import-path: cloud.google.com/go/video/stitcher/apiv1
+
+skip-module-scan-paths:
+  # ignore the root module
+  - .
+  # individually released modules
+  - auth
+  - auth/oauth2adapt
+  - bigquery
+  - bigquery/v2
+  - bigtable
+  - datastore
+  - dlp
+  - errorreporting
+  - firestore
+  - logging
+  - profiler
+  - pubsub/v2
+  - pubsub
+  - pubsublite
+  - spanner
+  - storage
+  - vertexai
+  # unreleased modules
+  - spanner/test/opentelemetry/test

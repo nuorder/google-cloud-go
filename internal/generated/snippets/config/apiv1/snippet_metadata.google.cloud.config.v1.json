@@ -1,7 +1,7 @@
 {
   "clientLibrary": {
     "name": "cloud.google.com/go/config/apiv1",
-    "version": "0.2.0",
+    "version": "1.5.0",
     "language": "GO",
     "apis": [
       {
@@ -791,6 +791,98 @@
       ]
     },
     {
+      "regionTag": "config_v1_generated_Config_GetResourceChange_sync",
+      "title": "config GetResourceChange Sample",
+      "description": "GetResourceChange get a ResourceChange for a given preview.",
+      "file": "Client/GetResourceChange/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "GetResourceChange",
+        "fullName": "google.cloud.config.v1.Client.GetResourceChange",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.GetResourceChangeRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "*configpb.ResourceChange",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "GetResourceChange",
+          "fullName": "google.cloud.config.v1.Config.GetResourceChange",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 53,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
+      "regionTag": "config_v1_generated_Config_GetResourceDrift_sync",
+      "title": "config GetResourceDrift Sample",
+      "description": "GetResourceDrift get a ResourceDrift for a given preview.",
+      "file": "Client/GetResourceDrift/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "GetResourceDrift",
+        "fullName": "google.cloud.config.v1.Client.GetResourceDrift",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.GetResourceDriftRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "*configpb.ResourceDrift",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "GetResourceDrift",
+          "fullName": "google.cloud.config.v1.Config.GetResourceDrift",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 53,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
       "regionTag": "config_v1_generated_Config_GetRevision_sync",
       "title": "config GetRevision Sample",
       "description": "GetRevision gets details about a [Revision][google.cloud.config.v1.Revision].",
@@ -821,6 +913,52 @@
         "method": {
           "shortName": "GetRevision",
           "fullName": "google.cloud.config.v1.Config.GetRevision",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 53,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
+      "regionTag": "config_v1_generated_Config_GetTerraformVersion_sync",
+      "title": "config GetTerraformVersion Sample",
+      "description": "GetTerraformVersion gets details about a\n[TerraformVersion][google.cloud.config.v1.TerraformVersion].",
+      "file": "Client/GetTerraformVersion/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "GetTerraformVersion",
+        "fullName": "google.cloud.config.v1.Client.GetTerraformVersion",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.GetTerraformVersionRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "*configpb.TerraformVersion",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "GetTerraformVersion",
+          "fullName": "google.cloud.config.v1.Config.GetTerraformVersion",
           "service": {
             "shortName": "Config",
             "fullName": "google.cloud.config.v1.Config"
@@ -923,7 +1061,7 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
           "type": "FULL"
         }
       ]
@@ -969,7 +1107,7 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
           "type": "FULL"
         }
       ]
@@ -1015,7 +1153,7 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
           "type": "FULL"
         }
       ]
@@ -1061,7 +1199,99 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
+      "regionTag": "config_v1_generated_Config_ListResourceChanges_sync",
+      "title": "config ListResourceChanges Sample",
+      "description": "ListResourceChanges lists ResourceChanges for a given preview.",
+      "file": "Client/ListResourceChanges/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "ListResourceChanges",
+        "fullName": "google.cloud.config.v1.Client.ListResourceChanges",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.ListResourceChangesRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "ResourceChangeIterator",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "ListResourceChanges",
+          "fullName": "google.cloud.config.v1.Config.ListResourceChanges",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 66,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
+      "regionTag": "config_v1_generated_Config_ListResourceDrifts_sync",
+      "title": "config ListResourceDrifts Sample",
+      "description": "ListResourceDrifts list ResourceDrifts for a given preview.",
+      "file": "Client/ListResourceDrifts/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "ListResourceDrifts",
+        "fullName": "google.cloud.config.v1.Client.ListResourceDrifts",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.ListResourceDriftsRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "ResourceDriftIterator",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "ListResourceDrifts",
+          "fullName": "google.cloud.config.v1.Config.ListResourceDrifts",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 66,
           "type": "FULL"
         }
       ]
@@ -1069,7 +1299,7 @@
     {
       "regionTag": "config_v1_generated_Config_ListResources_sync",
       "title": "config ListResources Sample",
-      "description": "ListResources lists [Resource][google.cloud.config.v1.Resource]s in a given revision.",
+      "description": "ListResources lists [Resources][google.cloud.config.v1.Resource] in a given revision.",
       "file": "Client/ListResources/main.go",
       "language": "GO",
       "clientMethod": {
@@ -1107,7 +1337,7 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
           "type": "FULL"
         }
       ]
@@ -1153,7 +1383,53 @@
       "segments": [
         {
           "start": 18,
-          "end": 60,
+          "end": 66,
+          "type": "FULL"
+        }
+      ]
+    },
+    {
+      "regionTag": "config_v1_generated_Config_ListTerraformVersions_sync",
+      "title": "config ListTerraformVersions Sample",
+      "description": "ListTerraformVersions lists [TerraformVersion][google.cloud.config.v1.TerraformVersion]s in a\ngiven project and location.",
+      "file": "Client/ListTerraformVersions/main.go",
+      "language": "GO",
+      "clientMethod": {
+        "shortName": "ListTerraformVersions",
+        "fullName": "google.cloud.config.v1.Client.ListTerraformVersions",
+        "parameters": [
+          {
+            "type": "context.Context",
+            "name": "ctx"
+          },
+          {
+            "type": "configpb.ListTerraformVersionsRequest",
+            "name": "req"
+          },
+          {
+            "type": "...gax.CallOption",
+            "name": "opts"
+          }
+        ],
+        "resultType": "TerraformVersionIterator",
+        "client": {
+          "shortName": "Client",
+          "fullName": "google.cloud.config.v1.Client"
+        },
+        "method": {
+          "shortName": "ListTerraformVersions",
+          "fullName": "google.cloud.config.v1.Config.ListTerraformVersions",
+          "service": {
+            "shortName": "Config",
+            "fullName": "google.cloud.config.v1.Config"
+          }
+        }
+      },
+      "origin": "API_DEFINITION",
+      "segments": [
+        {
+          "start": 18,
+          "end": 66,
           "type": "FULL"
         }
       ]

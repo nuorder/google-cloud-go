@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -32,7 +32,6 @@ import (
 	longrunningpb "cloud.google.com/go/longrunning/autogen/longrunningpb"
 	instancepb "cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
@@ -48,20 +47,31 @@ var newInstanceAdminClientHook clientHook
 
 // InstanceAdminCallOptions contains the retry settings for each method of InstanceAdminClient.
 type InstanceAdminCallOptions struct {
-	ListInstanceConfigs          []gax.CallOption
-	GetInstanceConfig            []gax.CallOption
-	CreateInstanceConfig         []gax.CallOption
-	UpdateInstanceConfig         []gax.CallOption
-	DeleteInstanceConfig         []gax.CallOption
-	ListInstanceConfigOperations []gax.CallOption
-	ListInstances                []gax.CallOption
-	GetInstance                  []gax.CallOption
-	CreateInstance               []gax.CallOption
-	UpdateInstance               []gax.CallOption
-	DeleteInstance               []gax.CallOption
-	SetIamPolicy                 []gax.CallOption
-	GetIamPolicy                 []gax.CallOption
-	TestIamPermissions           []gax.CallOption
+	ListInstanceConfigs             []gax.CallOption
+	GetInstanceConfig               []gax.CallOption
+	CreateInstanceConfig            []gax.CallOption
+	UpdateInstanceConfig            []gax.CallOption
+	DeleteInstanceConfig            []gax.CallOption
+	ListInstanceConfigOperations    []gax.CallOption
+	ListInstances                   []gax.CallOption
+	ListInstancePartitions          []gax.CallOption
+	GetInstance                     []gax.CallOption
+	CreateInstance                  []gax.CallOption
+	UpdateInstance                  []gax.CallOption
+	DeleteInstance                  []gax.CallOption
+	SetIamPolicy                    []gax.CallOption
+	GetIamPolicy                    []gax.CallOption
+	TestIamPermissions              []gax.CallOption
+	GetInstancePartition            []gax.CallOption
+	CreateInstancePartition         []gax.CallOption
+	DeleteInstancePartition         []gax.CallOption
+	UpdateInstancePartition         []gax.CallOption
+	ListInstancePartitionOperations []gax.CallOption
+	MoveInstance                    []gax.CallOption
+	CancelOperation                 []gax.CallOption
+	DeleteOperation                 []gax.CallOption
+	GetOperation                    []gax.CallOption
+	ListOperations                  []gax.CallOption
 }
 
 func defaultInstanceAdminGRPCClientOptions() []option.ClientOption {
@@ -73,6 +83,7 @@ func defaultInstanceAdminGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://spanner.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -123,6 +134,7 @@ func defaultInstanceAdminCallOptions() *InstanceAdminCallOptions {
 				})
 			}),
 		},
+		ListInstancePartitions: []gax.CallOption{},
 		GetInstance: []gax.CallOption{
 			gax.WithTimeout(3600000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
@@ -174,6 +186,16 @@ func defaultInstanceAdminCallOptions() *InstanceAdminCallOptions {
 		TestIamPermissions: []gax.CallOption{
 			gax.WithTimeout(30000 * time.Millisecond),
 		},
+		GetInstancePartition:            []gax.CallOption{},
+		CreateInstancePartition:         []gax.CallOption{},
+		DeleteInstancePartition:         []gax.CallOption{},
+		UpdateInstancePartition:         []gax.CallOption{},
+		ListInstancePartitionOperations: []gax.CallOption{},
+		MoveInstance:                    []gax.CallOption{},
+		CancelOperation:                 []gax.CallOption{},
+		DeleteOperation:                 []gax.CallOption{},
+		GetOperation:                    []gax.CallOption{},
+		ListOperations:                  []gax.CallOption{},
 	}
 }
 
@@ -219,6 +241,7 @@ func defaultInstanceAdminRESTCallOptions() *InstanceAdminCallOptions {
 					http.StatusGatewayTimeout)
 			}),
 		},
+		ListInstancePartitions: []gax.CallOption{},
 		GetInstance: []gax.CallOption{
 			gax.WithTimeout(3600000 * time.Millisecond),
 			gax.WithRetry(func() gax.Retryer {
@@ -267,10 +290,20 @@ func defaultInstanceAdminRESTCallOptions() *InstanceAdminCallOptions {
 		TestIamPermissions: []gax.CallOption{
 			gax.WithTimeout(30000 * time.Millisecond),
 		},
+		GetInstancePartition:            []gax.CallOption{},
+		CreateInstancePartition:         []gax.CallOption{},
+		DeleteInstancePartition:         []gax.CallOption{},
+		UpdateInstancePartition:         []gax.CallOption{},
+		ListInstancePartitionOperations: []gax.CallOption{},
+		MoveInstance:                    []gax.CallOption{},
+		CancelOperation:                 []gax.CallOption{},
+		DeleteOperation:                 []gax.CallOption{},
+		GetOperation:                    []gax.CallOption{},
+		ListOperations:                  []gax.CallOption{},
 	}
 }
 
-// internalInstanceAdminClient is an interface that defines the methods available from Cloud Spanner Instance Admin API.
+// internalInstanceAdminClient is an interface that defines the methods available from Cloud Spanner API.
 type internalInstanceAdminClient interface {
 	Close() error
 	setGoogleClientInfo(...string)
@@ -284,6 +317,7 @@ type internalInstanceAdminClient interface {
 	DeleteInstanceConfig(context.Context, *instancepb.DeleteInstanceConfigRequest, ...gax.CallOption) error
 	ListInstanceConfigOperations(context.Context, *instancepb.ListInstanceConfigOperationsRequest, ...gax.CallOption) *OperationIterator
 	ListInstances(context.Context, *instancepb.ListInstancesRequest, ...gax.CallOption) *InstanceIterator
+	ListInstancePartitions(context.Context, *instancepb.ListInstancePartitionsRequest, ...gax.CallOption) *InstancePartitionIterator
 	GetInstance(context.Context, *instancepb.GetInstanceRequest, ...gax.CallOption) (*instancepb.Instance, error)
 	CreateInstance(context.Context, *instancepb.CreateInstanceRequest, ...gax.CallOption) (*CreateInstanceOperation, error)
 	CreateInstanceOperation(name string) *CreateInstanceOperation
@@ -293,9 +327,22 @@ type internalInstanceAdminClient interface {
 	SetIamPolicy(context.Context, *iampb.SetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
 	GetIamPolicy(context.Context, *iampb.GetIamPolicyRequest, ...gax.CallOption) (*iampb.Policy, error)
 	TestIamPermissions(context.Context, *iampb.TestIamPermissionsRequest, ...gax.CallOption) (*iampb.TestIamPermissionsResponse, error)
+	GetInstancePartition(context.Context, *instancepb.GetInstancePartitionRequest, ...gax.CallOption) (*instancepb.InstancePartition, error)
+	CreateInstancePartition(context.Context, *instancepb.CreateInstancePartitionRequest, ...gax.CallOption) (*CreateInstancePartitionOperation, error)
+	CreateInstancePartitionOperation(name string) *CreateInstancePartitionOperation
+	DeleteInstancePartition(context.Context, *instancepb.DeleteInstancePartitionRequest, ...gax.CallOption) error
+	UpdateInstancePartition(context.Context, *instancepb.UpdateInstancePartitionRequest, ...gax.CallOption) (*UpdateInstancePartitionOperation, error)
+	UpdateInstancePartitionOperation(name string) *UpdateInstancePartitionOperation
+	ListInstancePartitionOperations(context.Context, *instancepb.ListInstancePartitionOperationsRequest, ...gax.CallOption) *OperationIterator
+	MoveInstance(context.Context, *instancepb.MoveInstanceRequest, ...gax.CallOption) (*MoveInstanceOperation, error)
+	MoveInstanceOperation(name string) *MoveInstanceOperation
+	CancelOperation(context.Context, *longrunningpb.CancelOperationRequest, ...gax.CallOption) error
+	DeleteOperation(context.Context, *longrunningpb.DeleteOperationRequest, ...gax.CallOption) error
+	GetOperation(context.Context, *longrunningpb.GetOperationRequest, ...gax.CallOption) (*longrunningpb.Operation, error)
+	ListOperations(context.Context, *longrunningpb.ListOperationsRequest, ...gax.CallOption) *OperationIterator
 }
 
-// InstanceAdminClient is a client for interacting with Cloud Spanner Instance Admin API.
+// InstanceAdminClient is a client for interacting with Cloud Spanner API.
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 //
 // # Cloud Spanner Instance Admin API
@@ -356,6 +403,9 @@ func (c *InstanceAdminClient) Connection() *grpc.ClientConn {
 }
 
 // ListInstanceConfigs lists the supported instance configurations for a given project.
+//
+// Returns both Google-managed configurations and user-managed
+// configurations.
 func (c *InstanceAdminClient) ListInstanceConfigs(ctx context.Context, req *instancepb.ListInstanceConfigsRequest, opts ...gax.CallOption) *InstanceConfigIterator {
 	return c.internalClient.ListInstanceConfigs(ctx, req, opts...)
 }
@@ -365,40 +415,40 @@ func (c *InstanceAdminClient) GetInstanceConfig(ctx context.Context, req *instan
 	return c.internalClient.GetInstanceConfig(ctx, req, opts...)
 }
 
-// CreateInstanceConfig creates an instance config and begins preparing it to be used. The
-// returned [long-running operation][google.longrunning.Operation]
+// CreateInstanceConfig creates an instance configuration and begins preparing it to be used. The
+// returned long-running operation
 // can be used to track the progress of preparing the new
-// instance config. The instance config name is assigned by the caller. If the
-// named instance config already exists, CreateInstanceConfig returns
-// ALREADY_EXISTS.
+// instance configuration. The instance configuration name is assigned by the
+// caller. If the named instance configuration already exists,
+// CreateInstanceConfig returns ALREADY_EXISTS.
 //
 // Immediately after the request returns:
 //
-//	The instance config is readable via the API, with all requested
-//	attributes. The instance config’s
+//	The instance configuration is readable via the API, with all requested
+//	attributes. The instance configuration’s
 //	reconciling
 //	field is set to true. Its state is CREATING.
 //
 // While the operation is pending:
 //
-//	Cancelling the operation renders the instance config immediately
+//	Cancelling the operation renders the instance configuration immediately
 //	unreadable via the API.
 //
 //	Except for deleting the creating resource, all other attempts to modify
-//	the instance config are rejected.
+//	the instance configuration are rejected.
 //
 // Upon completion of the returned operation:
 //
 //	Instances can be created using the instance configuration.
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field becomes false. Its state becomes READY.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format
 // <instance_config_name>/operations/<operation_id> and can be used to track
-// creation of the instance config. The
+// creation of the instance configuration. The
 // metadata field type is
 // CreateInstanceConfigMetadata.
 // The response field type is
@@ -418,16 +468,16 @@ func (c *InstanceAdminClient) CreateInstanceConfigOperation(name string) *Create
 	return c.internalClient.CreateInstanceConfigOperation(name)
 }
 
-// UpdateInstanceConfig updates an instance config. The returned
-// [long-running operation][google.longrunning.Operation] can be used to track
-// the progress of updating the instance. If the named instance config does
-// not exist, returns NOT_FOUND.
+// UpdateInstanceConfig updates an instance configuration. The returned
+// long-running operation can be used to track
+// the progress of updating the instance. If the named instance configuration
+// does not exist, returns NOT_FOUND.
 //
-// Only user managed configurations can be updated.
+// Only user-managed configurations can be updated.
 //
 // Immediately after the request returns:
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field is set to true.
 //
@@ -438,9 +488,9 @@ func (c *InstanceAdminClient) CreateInstanceConfigOperation(name string) *Create
 //	The operation is guaranteed to succeed at undoing all changes, after
 //	which point it terminates with a CANCELLED status.
 //
-//	All other attempts to modify the instance config are rejected.
+//	All other attempts to modify the instance configuration are rejected.
 //
-//	Reading the instance config via the API continues to give the
+//	Reading the instance configuration via the API continues to give the
 //	pre-request values.
 //
 // Upon completion of the returned operation:
@@ -448,16 +498,16 @@ func (c *InstanceAdminClient) CreateInstanceConfigOperation(name string) *Create
 //	Creating instances using the instance configuration uses the new
 //	values.
 //
-//	The instance config’s new values are readable via the API.
+//	The new values of the instance configuration are readable via the API.
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field becomes false.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format
 // <instance_config_name>/operations/<operation_id> and can be used to track
-// the instance config modification.  The
+// the instance configuration modification.  The
 // metadata field type is
 // UpdateInstanceConfigMetadata.
 // The response field type is
@@ -476,11 +526,11 @@ func (c *InstanceAdminClient) UpdateInstanceConfigOperation(name string) *Update
 	return c.internalClient.UpdateInstanceConfigOperation(name)
 }
 
-// DeleteInstanceConfig deletes the instance config. Deletion is only allowed when no
+// DeleteInstanceConfig deletes the instance configuration. Deletion is only allowed when no
 // instances are using the configuration. If any instances are using
-// the config, returns FAILED_PRECONDITION.
+// the configuration, returns FAILED_PRECONDITION.
 //
-// Only user managed configurations can be deleted.
+// Only user-managed configurations can be deleted.
 //
 // Authorization requires spanner.instanceConfigs.delete permission on
 // the resource [name][google.spanner.admin.instance.v1.InstanceConfig.name (at http://google.spanner.admin.instance.v1.InstanceConfig.name)].
@@ -488,9 +538,9 @@ func (c *InstanceAdminClient) DeleteInstanceConfig(ctx context.Context, req *ins
 	return c.internalClient.DeleteInstanceConfig(ctx, req, opts...)
 }
 
-// ListInstanceConfigOperations lists the user-managed instance config [long-running
-// operations][google.longrunning.Operation] in the given project. An instance
-// config operation has a name of the form
+// ListInstanceConfigOperations lists the user-managed instance configuration long-running
+// operations in the given project. An instance
+// configuration operation has a name of the form
 // projects/<project>/instanceConfigs/<instance_config>/operations/<operation>.
 // The long-running operation
 // metadata field type
@@ -508,13 +558,18 @@ func (c *InstanceAdminClient) ListInstances(ctx context.Context, req *instancepb
 	return c.internalClient.ListInstances(ctx, req, opts...)
 }
 
+// ListInstancePartitions lists all instance partitions for the given instance.
+func (c *InstanceAdminClient) ListInstancePartitions(ctx context.Context, req *instancepb.ListInstancePartitionsRequest, opts ...gax.CallOption) *InstancePartitionIterator {
+	return c.internalClient.ListInstancePartitions(ctx, req, opts...)
+}
+
 // GetInstance gets information about a particular instance.
 func (c *InstanceAdminClient) GetInstance(ctx context.Context, req *instancepb.GetInstanceRequest, opts ...gax.CallOption) (*instancepb.Instance, error) {
 	return c.internalClient.GetInstance(ctx, req, opts...)
 }
 
 // CreateInstance creates an instance and begins preparing it to begin serving. The
-// returned [long-running operation][google.longrunning.Operation]
+// returned long-running operation
 // can be used to track the progress of preparing the new
 // instance. The instance name is assigned by the caller. If the
 // named instance already exists, CreateInstance returns
@@ -545,7 +600,7 @@ func (c *InstanceAdminClient) GetInstance(ctx context.Context, req *instancepb.G
 //
 //	The instance’s state becomes READY.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format <instance_name>/operations/<operation_id> and
 // can be used to track creation of the instance.  The
 // metadata field type is
@@ -563,8 +618,7 @@ func (c *InstanceAdminClient) CreateInstanceOperation(name string) *CreateInstan
 }
 
 // UpdateInstance updates an instance, and begins allocating or releasing resources
-// as requested. The returned [long-running
-// operation][google.longrunning.Operation] can be used to track the
+// as requested. The returned long-running operation can be used to track the
 // progress of updating the instance. If the named instance does not
 // exist, returns NOT_FOUND.
 //
@@ -596,7 +650,7 @@ func (c *InstanceAdminClient) CreateInstanceOperation(name string) *CreateInstan
 //
 //	The instance’s new resource levels are readable via the API.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format <instance_name>/operations/<operation_id> and
 // can be used to track the instance modification.  The
 // metadata field type is
@@ -659,7 +713,252 @@ func (c *InstanceAdminClient) TestIamPermissions(ctx context.Context, req *iampb
 	return c.internalClient.TestIamPermissions(ctx, req, opts...)
 }
 
-// instanceAdminGRPCClient is a client for interacting with Cloud Spanner Instance Admin API over gRPC transport.
+// GetInstancePartition gets information about a particular instance partition.
+func (c *InstanceAdminClient) GetInstancePartition(ctx context.Context, req *instancepb.GetInstancePartitionRequest, opts ...gax.CallOption) (*instancepb.InstancePartition, error) {
+	return c.internalClient.GetInstancePartition(ctx, req, opts...)
+}
+
+// CreateInstancePartition creates an instance partition and begins preparing it to be used. The
+// returned long-running operation
+// can be used to track the progress of preparing the new instance partition.
+// The instance partition name is assigned by the caller. If the named
+// instance partition already exists, CreateInstancePartition returns
+// ALREADY_EXISTS.
+//
+// Immediately upon completion of this request:
+//
+//	The instance partition is readable via the API, with all requested
+//	attributes but no allocated resources. Its state is CREATING.
+//
+// Until completion of the returned operation:
+//
+//	Cancelling the operation renders the instance partition immediately
+//	unreadable via the API.
+//
+//	The instance partition can be deleted.
+//
+//	All other attempts to modify the instance partition are rejected.
+//
+// Upon completion of the returned operation:
+//
+//	Billing for all successfully-allocated resources begins (some types
+//	may have lower than the requested levels).
+//
+//	Databases can start using this instance partition.
+//
+//	The instance partition’s allocated resource levels are readable via the
+//	API.
+//
+//	The instance partition’s state becomes READY.
+//
+// The returned long-running operation will
+// have a name of the format
+// <instance_partition_name>/operations/<operation_id> and can be used to
+// track creation of the instance partition.  The
+// metadata field type is
+// CreateInstancePartitionMetadata.
+// The response field type is
+// InstancePartition, if
+// successful.
+func (c *InstanceAdminClient) CreateInstancePartition(ctx context.Context, req *instancepb.CreateInstancePartitionRequest, opts ...gax.CallOption) (*CreateInstancePartitionOperation, error) {
+	return c.internalClient.CreateInstancePartition(ctx, req, opts...)
+}
+
+// CreateInstancePartitionOperation returns a new CreateInstancePartitionOperation from a given name.
+// The name must be that of a previously created CreateInstancePartitionOperation, possibly from a different process.
+func (c *InstanceAdminClient) CreateInstancePartitionOperation(name string) *CreateInstancePartitionOperation {
+	return c.internalClient.CreateInstancePartitionOperation(name)
+}
+
+// DeleteInstancePartition deletes an existing instance partition. Requires that the
+// instance partition is not used by any database or backup and is not the
+// default instance partition of an instance.
+//
+// Authorization requires spanner.instancePartitions.delete permission on
+// the resource
+// [name][google.spanner.admin.instance.v1.InstancePartition.name (at http://google.spanner.admin.instance.v1.InstancePartition.name)].
+func (c *InstanceAdminClient) DeleteInstancePartition(ctx context.Context, req *instancepb.DeleteInstancePartitionRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteInstancePartition(ctx, req, opts...)
+}
+
+// UpdateInstancePartition updates an instance partition, and begins allocating or releasing resources
+// as requested. The returned long-running operation can be used to track the
+// progress of updating the instance partition. If the named instance
+// partition does not exist, returns NOT_FOUND.
+//
+// Immediately upon completion of this request:
+//
+//	For resource types for which a decrease in the instance partition’s
+//	allocation has been requested, billing is based on the newly-requested
+//	level.
+//
+// Until completion of the returned operation:
+//
+//	Cancelling the operation sets its metadata’s
+//	cancel_time,
+//	and begins restoring resources to their pre-request values. The
+//	operation is guaranteed to succeed at undoing all resource changes,
+//	after which point it terminates with a CANCELLED status.
+//
+//	All other attempts to modify the instance partition are rejected.
+//
+//	Reading the instance partition via the API continues to give the
+//	pre-request resource levels.
+//
+// Upon completion of the returned operation:
+//
+//	Billing begins for all successfully-allocated resources (some types
+//	may have lower than the requested levels).
+//
+//	All newly-reserved resources are available for serving the instance
+//	partition’s tables.
+//
+//	The instance partition’s new resource levels are readable via the API.
+//
+// The returned long-running operation will
+// have a name of the format
+// <instance_partition_name>/operations/<operation_id> and can be used to
+// track the instance partition modification. The
+// metadata field type is
+// UpdateInstancePartitionMetadata.
+// The response field type is
+// InstancePartition, if
+// successful.
+//
+// Authorization requires spanner.instancePartitions.update permission on
+// the resource
+// [name][google.spanner.admin.instance.v1.InstancePartition.name (at http://google.spanner.admin.instance.v1.InstancePartition.name)].
+func (c *InstanceAdminClient) UpdateInstancePartition(ctx context.Context, req *instancepb.UpdateInstancePartitionRequest, opts ...gax.CallOption) (*UpdateInstancePartitionOperation, error) {
+	return c.internalClient.UpdateInstancePartition(ctx, req, opts...)
+}
+
+// UpdateInstancePartitionOperation returns a new UpdateInstancePartitionOperation from a given name.
+// The name must be that of a previously created UpdateInstancePartitionOperation, possibly from a different process.
+func (c *InstanceAdminClient) UpdateInstancePartitionOperation(name string) *UpdateInstancePartitionOperation {
+	return c.internalClient.UpdateInstancePartitionOperation(name)
+}
+
+// ListInstancePartitionOperations lists instance partition long-running operations in the given instance.
+// An instance partition operation has a name of the form
+// projects/<project>/instances/<instance>/instancePartitions/<instance_partition>/operations/<operation>.
+// The long-running operation
+// metadata field type
+// metadata.type_url describes the type of the metadata. Operations returned
+// include those that have completed/failed/canceled within the last 7 days,
+// and pending operations. Operations returned are ordered by
+// operation.metadata.value.start_time in descending order starting from the
+// most recently started operation.
+//
+// Authorization requires spanner.instancePartitionOperations.list
+// permission on the resource
+// parent.
+func (c *InstanceAdminClient) ListInstancePartitionOperations(ctx context.Context, req *instancepb.ListInstancePartitionOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	return c.internalClient.ListInstancePartitionOperations(ctx, req, opts...)
+}
+
+// MoveInstance moves an instance to the target instance configuration. You can use the
+// returned long-running operation to track
+// the progress of moving the instance.
+//
+// MoveInstance returns FAILED_PRECONDITION if the instance meets any of
+// the following criteria:
+//
+//	Is undergoing a move to a different instance configuration
+//
+//	Has backups
+//
+//	Has an ongoing update
+//
+//	Contains any CMEK-enabled databases
+//
+//	Is a free trial instance
+//
+// While the operation is pending:
+//
+//	All other attempts to modify the instance, including changes to its
+//	compute capacity, are rejected.
+//
+//	The following database and backup admin operations are rejected:
+//
+//	  DatabaseAdmin.CreateDatabase
+//
+//	  DatabaseAdmin.UpdateDatabaseDdl (disabled if default_leader is
+//	  specified in the request.)
+//
+//	  DatabaseAdmin.RestoreDatabase
+//
+//	  DatabaseAdmin.CreateBackup
+//
+//	  DatabaseAdmin.CopyBackup
+//
+//	Both the source and target instance configurations are subject to
+//	hourly compute and storage charges.
+//
+//	The instance might experience higher read-write latencies and a higher
+//	transaction abort rate. However, moving an instance doesn’t cause any
+//	downtime.
+//
+// The returned long-running operation has
+// a name of the format
+// <instance_name>/operations/<operation_id> and can be used to track
+// the move instance operation. The
+// metadata field type is
+// MoveInstanceMetadata.
+// The response field type is
+// Instance,
+// if successful.
+// Cancelling the operation sets its metadata’s
+// cancel_time.
+// Cancellation is not immediate because it involves moving any data
+// previously moved to the target instance configuration back to the original
+// instance configuration. You can use this operation to track the progress of
+// the cancellation. Upon successful completion of the cancellation, the
+// operation terminates with CANCELLED status.
+//
+// If not cancelled, upon completion of the returned operation:
+//
+//	The instance successfully moves to the target instance
+//	configuration.
+//
+//	You are billed for compute and storage in target instance
+//	configuration.
+//
+// Authorization requires the spanner.instances.update permission on
+// the resource instance.
+//
+// For more details, see
+// Move an instance (at https://cloud.google.com/spanner/docs/move-instance).
+func (c *InstanceAdminClient) MoveInstance(ctx context.Context, req *instancepb.MoveInstanceRequest, opts ...gax.CallOption) (*MoveInstanceOperation, error) {
+	return c.internalClient.MoveInstance(ctx, req, opts...)
+}
+
+// MoveInstanceOperation returns a new MoveInstanceOperation from a given name.
+// The name must be that of a previously created MoveInstanceOperation, possibly from a different process.
+func (c *InstanceAdminClient) MoveInstanceOperation(name string) *MoveInstanceOperation {
+	return c.internalClient.MoveInstanceOperation(name)
+}
+
+// CancelOperation is a utility method from google.longrunning.Operations.
+func (c *InstanceAdminClient) CancelOperation(ctx context.Context, req *longrunningpb.CancelOperationRequest, opts ...gax.CallOption) error {
+	return c.internalClient.CancelOperation(ctx, req, opts...)
+}
+
+// DeleteOperation is a utility method from google.longrunning.Operations.
+func (c *InstanceAdminClient) DeleteOperation(ctx context.Context, req *longrunningpb.DeleteOperationRequest, opts ...gax.CallOption) error {
+	return c.internalClient.DeleteOperation(ctx, req, opts...)
+}
+
+// GetOperation is a utility method from google.longrunning.Operations.
+func (c *InstanceAdminClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	return c.internalClient.GetOperation(ctx, req, opts...)
+}
+
+// ListOperations is a utility method from google.longrunning.Operations.
+func (c *InstanceAdminClient) ListOperations(ctx context.Context, req *longrunningpb.ListOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	return c.internalClient.ListOperations(ctx, req, opts...)
+}
+
+// instanceAdminGRPCClient is a client for interacting with Cloud Spanner API over gRPC transport.
 //
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 type instanceAdminGRPCClient struct {
@@ -677,8 +976,12 @@ type instanceAdminGRPCClient struct {
 	// Users should not Close this client.
 	LROClient **lroauto.OperationsClient
 
+	operationsClient longrunningpb.OperationsClient
+
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewInstanceAdminClient creates a new instance admin client based on gRPC.
@@ -725,6 +1028,8 @@ func NewInstanceAdminClient(ctx context.Context, opts ...option.ClientOption) (*
 		connPool:            connPool,
 		instanceAdminClient: instancepb.NewInstanceAdminClient(connPool),
 		CallOptions:         &client.CallOptions,
+		logger:              internaloption.GetLogger(opts),
+		operationsClient:    longrunningpb.NewOperationsClient(connPool),
 	}
 	c.setGoogleClientInfo()
 
@@ -757,8 +1062,10 @@ func (c *instanceAdminGRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *instanceAdminGRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -785,6 +1092,8 @@ type instanceAdminRESTClient struct {
 
 	// Points back to the CallOptions field of the containing InstanceAdminClient
 	CallOptions **InstanceAdminCallOptions
+
+	logger *slog.Logger
 }
 
 // NewInstanceAdminRESTClient creates a new instance admin rest client.
@@ -822,6 +1131,7 @@ func NewInstanceAdminRESTClient(ctx context.Context, opts ...option.ClientOption
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -846,6 +1156,7 @@ func defaultInstanceAdminRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://spanner.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -854,8 +1165,10 @@ func defaultInstanceAdminRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *instanceAdminRESTClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -892,7 +1205,7 @@ func (c *instanceAdminGRPCClient) ListInstanceConfigs(ctx context.Context, req *
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.instanceAdminClient.ListInstanceConfigs(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.instanceAdminClient.ListInstanceConfigs, req, settings.GRPC, c.logger, "ListInstanceConfigs")
 			return err
 		}, opts...)
 		if err != nil {
@@ -927,7 +1240,7 @@ func (c *instanceAdminGRPCClient) GetInstanceConfig(ctx context.Context, req *in
 	var resp *instancepb.InstanceConfig
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.GetInstanceConfig(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.GetInstanceConfig, req, settings.GRPC, c.logger, "GetInstanceConfig")
 		return err
 	}, opts...)
 	if err != nil {
@@ -945,7 +1258,7 @@ func (c *instanceAdminGRPCClient) CreateInstanceConfig(ctx context.Context, req 
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.CreateInstanceConfig(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.CreateInstanceConfig, req, settings.GRPC, c.logger, "CreateInstanceConfig")
 		return err
 	}, opts...)
 	if err != nil {
@@ -965,7 +1278,7 @@ func (c *instanceAdminGRPCClient) UpdateInstanceConfig(ctx context.Context, req 
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.UpdateInstanceConfig(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.UpdateInstanceConfig, req, settings.GRPC, c.logger, "UpdateInstanceConfig")
 		return err
 	}, opts...)
 	if err != nil {
@@ -984,7 +1297,7 @@ func (c *instanceAdminGRPCClient) DeleteInstanceConfig(ctx context.Context, req 
 	opts = append((*c.CallOptions).DeleteInstanceConfig[0:len((*c.CallOptions).DeleteInstanceConfig):len((*c.CallOptions).DeleteInstanceConfig)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.instanceAdminClient.DeleteInstanceConfig(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.instanceAdminClient.DeleteInstanceConfig, req, settings.GRPC, c.logger, "DeleteInstanceConfig")
 		return err
 	}, opts...)
 	return err
@@ -1010,7 +1323,7 @@ func (c *instanceAdminGRPCClient) ListInstanceConfigOperations(ctx context.Conte
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.instanceAdminClient.ListInstanceConfigOperations(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.instanceAdminClient.ListInstanceConfigOperations, req, settings.GRPC, c.logger, "ListInstanceConfigOperations")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1056,7 +1369,7 @@ func (c *instanceAdminGRPCClient) ListInstances(ctx context.Context, req *instan
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.instanceAdminClient.ListInstances(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.instanceAdminClient.ListInstances, req, settings.GRPC, c.logger, "ListInstances")
 			return err
 		}, opts...)
 		if err != nil {
@@ -1065,6 +1378,52 @@ func (c *instanceAdminGRPCClient) ListInstances(ctx context.Context, req *instan
 
 		it.Response = resp
 		return resp.GetInstances(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *instanceAdminGRPCClient) ListInstancePartitions(ctx context.Context, req *instancepb.ListInstancePartitionsRequest, opts ...gax.CallOption) *InstancePartitionIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListInstancePartitions[0:len((*c.CallOptions).ListInstancePartitions):len((*c.CallOptions).ListInstancePartitions)], opts...)
+	it := &InstancePartitionIterator{}
+	req = proto.Clone(req).(*instancepb.ListInstancePartitionsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*instancepb.InstancePartition, string, error) {
+		resp := &instancepb.ListInstancePartitionsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.instanceAdminClient.ListInstancePartitions, req, settings.GRPC, c.logger, "ListInstancePartitions")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetInstancePartitions(), resp.GetNextPageToken(), nil
 	}
 	fetch := func(pageSize int, pageToken string) (string, error) {
 		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
@@ -1091,7 +1450,7 @@ func (c *instanceAdminGRPCClient) GetInstance(ctx context.Context, req *instance
 	var resp *instancepb.Instance
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.GetInstance(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.GetInstance, req, settings.GRPC, c.logger, "GetInstance")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1109,7 +1468,7 @@ func (c *instanceAdminGRPCClient) CreateInstance(ctx context.Context, req *insta
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.CreateInstance(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.CreateInstance, req, settings.GRPC, c.logger, "CreateInstance")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1129,7 +1488,7 @@ func (c *instanceAdminGRPCClient) UpdateInstance(ctx context.Context, req *insta
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.UpdateInstance(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.UpdateInstance, req, settings.GRPC, c.logger, "UpdateInstance")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1148,7 +1507,7 @@ func (c *instanceAdminGRPCClient) DeleteInstance(ctx context.Context, req *insta
 	opts = append((*c.CallOptions).DeleteInstance[0:len((*c.CallOptions).DeleteInstance):len((*c.CallOptions).DeleteInstance)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.instanceAdminClient.DeleteInstance(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.instanceAdminClient.DeleteInstance, req, settings.GRPC, c.logger, "DeleteInstance")
 		return err
 	}, opts...)
 	return err
@@ -1163,7 +1522,7 @@ func (c *instanceAdminGRPCClient) SetIamPolicy(ctx context.Context, req *iampb.S
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.SetIamPolicy, req, settings.GRPC, c.logger, "SetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1181,7 +1540,7 @@ func (c *instanceAdminGRPCClient) GetIamPolicy(ctx context.Context, req *iampb.G
 	var resp *iampb.Policy
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.GetIamPolicy, req, settings.GRPC, c.logger, "GetIamPolicy")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1199,7 +1558,7 @@ func (c *instanceAdminGRPCClient) TestIamPermissions(ctx context.Context, req *i
 	var resp *iampb.TestIamPermissionsResponse
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.instanceAdminClient.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.instanceAdminClient.TestIamPermissions, req, settings.GRPC, c.logger, "TestIamPermissions")
 		return err
 	}, opts...)
 	if err != nil {
@@ -1208,7 +1567,240 @@ func (c *instanceAdminGRPCClient) TestIamPermissions(ctx context.Context, req *i
 	return resp, nil
 }
 
+func (c *instanceAdminGRPCClient) GetInstancePartition(ctx context.Context, req *instancepb.GetInstancePartitionRequest, opts ...gax.CallOption) (*instancepb.InstancePartition, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetInstancePartition[0:len((*c.CallOptions).GetInstancePartition):len((*c.CallOptions).GetInstancePartition)], opts...)
+	var resp *instancepb.InstancePartition
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.instanceAdminClient.GetInstancePartition, req, settings.GRPC, c.logger, "GetInstancePartition")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *instanceAdminGRPCClient) CreateInstancePartition(ctx context.Context, req *instancepb.CreateInstancePartitionRequest, opts ...gax.CallOption) (*CreateInstancePartitionOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CreateInstancePartition[0:len((*c.CallOptions).CreateInstancePartition):len((*c.CallOptions).CreateInstancePartition)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.instanceAdminClient.CreateInstancePartition, req, settings.GRPC, c.logger, "CreateInstancePartition")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &CreateInstancePartitionOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *instanceAdminGRPCClient) DeleteInstancePartition(ctx context.Context, req *instancepb.DeleteInstancePartitionRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteInstancePartition[0:len((*c.CallOptions).DeleteInstancePartition):len((*c.CallOptions).DeleteInstancePartition)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.instanceAdminClient.DeleteInstancePartition, req, settings.GRPC, c.logger, "DeleteInstancePartition")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *instanceAdminGRPCClient) UpdateInstancePartition(ctx context.Context, req *instancepb.UpdateInstancePartitionRequest, opts ...gax.CallOption) (*UpdateInstancePartitionOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "instance_partition.name", url.QueryEscape(req.GetInstancePartition().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).UpdateInstancePartition[0:len((*c.CallOptions).UpdateInstancePartition):len((*c.CallOptions).UpdateInstancePartition)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.instanceAdminClient.UpdateInstancePartition, req, settings.GRPC, c.logger, "UpdateInstancePartition")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateInstancePartitionOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *instanceAdminGRPCClient) ListInstancePartitionOperations(ctx context.Context, req *instancepb.ListInstancePartitionOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListInstancePartitionOperations[0:len((*c.CallOptions).ListInstancePartitionOperations):len((*c.CallOptions).ListInstancePartitionOperations)], opts...)
+	it := &OperationIterator{}
+	req = proto.Clone(req).(*instancepb.ListInstancePartitionOperationsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*longrunningpb.Operation, string, error) {
+		resp := &instancepb.ListInstancePartitionOperationsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.instanceAdminClient.ListInstancePartitionOperations, req, settings.GRPC, c.logger, "ListInstancePartitionOperations")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetOperations(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+func (c *instanceAdminGRPCClient) MoveInstance(ctx context.Context, req *instancepb.MoveInstanceRequest, opts ...gax.CallOption) (*MoveInstanceOperation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).MoveInstance[0:len((*c.CallOptions).MoveInstance):len((*c.CallOptions).MoveInstance)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.instanceAdminClient.MoveInstance, req, settings.GRPC, c.logger, "MoveInstance")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &MoveInstanceOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, resp),
+	}, nil
+}
+
+func (c *instanceAdminGRPCClient) CancelOperation(ctx context.Context, req *longrunningpb.CancelOperationRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).CancelOperation[0:len((*c.CallOptions).CancelOperation):len((*c.CallOptions).CancelOperation)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.operationsClient.CancelOperation, req, settings.GRPC, c.logger, "CancelOperation")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *instanceAdminGRPCClient) DeleteOperation(ctx context.Context, req *longrunningpb.DeleteOperationRequest, opts ...gax.CallOption) error {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).DeleteOperation[0:len((*c.CallOptions).DeleteOperation):len((*c.CallOptions).DeleteOperation)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		_, err = executeRPC(ctx, c.operationsClient.DeleteOperation, req, settings.GRPC, c.logger, "DeleteOperation")
+		return err
+	}, opts...)
+	return err
+}
+
+func (c *instanceAdminGRPCClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).GetOperation[0:len((*c.CallOptions).GetOperation):len((*c.CallOptions).GetOperation)], opts...)
+	var resp *longrunningpb.Operation
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = executeRPC(ctx, c.operationsClient.GetOperation, req, settings.GRPC, c.logger, "GetOperation")
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *instanceAdminGRPCClient) ListOperations(ctx context.Context, req *longrunningpb.ListOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	ctx = gax.InsertMetadataIntoOutgoingContext(ctx, hds...)
+	opts = append((*c.CallOptions).ListOperations[0:len((*c.CallOptions).ListOperations):len((*c.CallOptions).ListOperations)], opts...)
+	it := &OperationIterator{}
+	req = proto.Clone(req).(*longrunningpb.ListOperationsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*longrunningpb.Operation, string, error) {
+		resp := &longrunningpb.ListOperationsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = executeRPC(ctx, c.operationsClient.ListOperations, req, settings.GRPC, c.logger, "ListOperations")
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+
+		it.Response = resp
+		return resp.GetOperations(), resp.GetNextPageToken(), nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
 // ListInstanceConfigs lists the supported instance configurations for a given project.
+//
+// Returns both Google-managed configurations and user-managed
+// configurations.
 func (c *instanceAdminRESTClient) ListInstanceConfigs(ctx context.Context, req *instancepb.ListInstanceConfigsRequest, opts ...gax.CallOption) *InstanceConfigIterator {
 	it := &InstanceConfigIterator{}
 	req = proto.Clone(req).(*instancepb.ListInstanceConfigsRequest)
@@ -1253,21 +1845,10 @@ func (c *instanceAdminRESTClient) ListInstanceConfigs(ctx context.Context, req *
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInstanceConfigs")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1330,17 +1911,7 @@ func (c *instanceAdminRESTClient) GetInstanceConfig(ctx context.Context, req *in
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetInstanceConfig")
 		if err != nil {
 			return err
 		}
@@ -1357,40 +1928,40 @@ func (c *instanceAdminRESTClient) GetInstanceConfig(ctx context.Context, req *in
 	return resp, nil
 }
 
-// CreateInstanceConfig creates an instance config and begins preparing it to be used. The
-// returned [long-running operation][google.longrunning.Operation]
+// CreateInstanceConfig creates an instance configuration and begins preparing it to be used. The
+// returned long-running operation
 // can be used to track the progress of preparing the new
-// instance config. The instance config name is assigned by the caller. If the
-// named instance config already exists, CreateInstanceConfig returns
-// ALREADY_EXISTS.
+// instance configuration. The instance configuration name is assigned by the
+// caller. If the named instance configuration already exists,
+// CreateInstanceConfig returns ALREADY_EXISTS.
 //
 // Immediately after the request returns:
 //
-//	The instance config is readable via the API, with all requested
-//	attributes. The instance config’s
+//	The instance configuration is readable via the API, with all requested
+//	attributes. The instance configuration’s
 //	reconciling
 //	field is set to true. Its state is CREATING.
 //
 // While the operation is pending:
 //
-//	Cancelling the operation renders the instance config immediately
+//	Cancelling the operation renders the instance configuration immediately
 //	unreadable via the API.
 //
 //	Except for deleting the creating resource, all other attempts to modify
-//	the instance config are rejected.
+//	the instance configuration are rejected.
 //
 // Upon completion of the returned operation:
 //
 //	Instances can be created using the instance configuration.
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field becomes false. Its state becomes READY.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format
 // <instance_config_name>/operations/<operation_id> and can be used to track
-// creation of the instance config. The
+// creation of the instance configuration. The
 // metadata field type is
 // CreateInstanceConfigMetadata.
 // The response field type is
@@ -1437,21 +2008,10 @@ func (c *instanceAdminRESTClient) CreateInstanceConfig(ctx context.Context, req 
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateInstanceConfig")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1469,16 +2029,16 @@ func (c *instanceAdminRESTClient) CreateInstanceConfig(ctx context.Context, req 
 	}, nil
 }
 
-// UpdateInstanceConfig updates an instance config. The returned
-// [long-running operation][google.longrunning.Operation] can be used to track
-// the progress of updating the instance. If the named instance config does
-// not exist, returns NOT_FOUND.
+// UpdateInstanceConfig updates an instance configuration. The returned
+// long-running operation can be used to track
+// the progress of updating the instance. If the named instance configuration
+// does not exist, returns NOT_FOUND.
 //
-// Only user managed configurations can be updated.
+// Only user-managed configurations can be updated.
 //
 // Immediately after the request returns:
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field is set to true.
 //
@@ -1489,9 +2049,9 @@ func (c *instanceAdminRESTClient) CreateInstanceConfig(ctx context.Context, req 
 //	The operation is guaranteed to succeed at undoing all changes, after
 //	which point it terminates with a CANCELLED status.
 //
-//	All other attempts to modify the instance config are rejected.
+//	All other attempts to modify the instance configuration are rejected.
 //
-//	Reading the instance config via the API continues to give the
+//	Reading the instance configuration via the API continues to give the
 //	pre-request values.
 //
 // Upon completion of the returned operation:
@@ -1499,16 +2059,16 @@ func (c *instanceAdminRESTClient) CreateInstanceConfig(ctx context.Context, req 
 //	Creating instances using the instance configuration uses the new
 //	values.
 //
-//	The instance config’s new values are readable via the API.
+//	The new values of the instance configuration are readable via the API.
 //
-//	The instance config’s
+//	The instance configuration’s
 //	reconciling
 //	field becomes false.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format
 // <instance_config_name>/operations/<operation_id> and can be used to track
-// the instance config modification.  The
+// the instance configuration modification.  The
 // metadata field type is
 // UpdateInstanceConfigMetadata.
 // The response field type is
@@ -1554,21 +2114,10 @@ func (c *instanceAdminRESTClient) UpdateInstanceConfig(ctx context.Context, req 
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateInstanceConfig")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -1586,11 +2135,11 @@ func (c *instanceAdminRESTClient) UpdateInstanceConfig(ctx context.Context, req 
 	}, nil
 }
 
-// DeleteInstanceConfig deletes the instance config. Deletion is only allowed when no
+// DeleteInstanceConfig deletes the instance configuration. Deletion is only allowed when no
 // instances are using the configuration. If any instances are using
-// the config, returns FAILED_PRECONDITION.
+// the configuration, returns FAILED_PRECONDITION.
 //
-// Only user managed configurations can be deleted.
+// Only user-managed configurations can be deleted.
 //
 // Authorization requires spanner.instanceConfigs.delete permission on
 // the resource [name][google.spanner.admin.instance.v1.InstanceConfig.name (at http://google.spanner.admin.instance.v1.InstanceConfig.name)].
@@ -1629,21 +2178,14 @@ func (c *instanceAdminRESTClient) DeleteInstanceConfig(ctx context.Context, req 
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteInstanceConfig")
+		return err
 	}, opts...)
 }
 
-// ListInstanceConfigOperations lists the user-managed instance config [long-running
-// operations][google.longrunning.Operation] in the given project. An instance
-// config operation has a name of the form
+// ListInstanceConfigOperations lists the user-managed instance configuration long-running
+// operations in the given project. An instance
+// configuration operation has a name of the form
 // projects/<project>/instanceConfigs/<instance_config>/operations/<operation>.
 // The long-running operation
 // metadata field type
@@ -1699,21 +2241,10 @@ func (c *instanceAdminRESTClient) ListInstanceConfigOperations(ctx context.Conte
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInstanceConfigOperations")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1769,6 +2300,13 @@ func (c *instanceAdminRESTClient) ListInstances(ctx context.Context, req *instan
 		if req.GetFilter() != "" {
 			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
 		}
+		if req.GetInstanceDeadline() != nil {
+			field, err := protojson.Marshal(req.GetInstanceDeadline())
+			if err != nil {
+				return nil, "", err
+			}
+			params.Add("instanceDeadline", string(field[1:len(field)-1]))
+		}
 		if req.GetPageSize() != 0 {
 			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
 		}
@@ -1791,21 +2329,10 @@ func (c *instanceAdminRESTClient) ListInstances(ctx context.Context, req *instan
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInstances")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1835,6 +2362,91 @@ func (c *instanceAdminRESTClient) ListInstances(ctx context.Context, req *instan
 	return it
 }
 
+// ListInstancePartitions lists all instance partitions for the given instance.
+func (c *instanceAdminRESTClient) ListInstancePartitions(ctx context.Context, req *instancepb.ListInstancePartitionsRequest, opts ...gax.CallOption) *InstancePartitionIterator {
+	it := &InstancePartitionIterator{}
+	req = proto.Clone(req).(*instancepb.ListInstancePartitionsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*instancepb.InstancePartition, string, error) {
+		resp := &instancepb.ListInstancePartitionsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/instancePartitions", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetInstancePartitionDeadline() != nil {
+			field, err := protojson.Marshal(req.GetInstancePartitionDeadline())
+			if err != nil {
+				return nil, "", err
+			}
+			params.Add("instancePartitionDeadline", string(field[1:len(field)-1]))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInstancePartitions")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetInstancePartitions(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
 // GetInstance gets information about a particular instance.
 func (c *instanceAdminRESTClient) GetInstance(ctx context.Context, req *instancepb.GetInstanceRequest, opts ...gax.CallOption) (*instancepb.Instance, error) {
 	baseUrl, err := url.Parse(c.endpoint)
@@ -1846,11 +2458,11 @@ func (c *instanceAdminRESTClient) GetInstance(ctx context.Context, req *instance
 	params := url.Values{}
 	params.Add("$alt", "json;enum-encoding=int")
 	if req.GetFieldMask() != nil {
-		fieldMask, err := protojson.Marshal(req.GetFieldMask())
+		field, err := protojson.Marshal(req.GetFieldMask())
 		if err != nil {
 			return nil, err
 		}
-		params.Add("fieldMask", string(fieldMask[1:len(fieldMask)-1]))
+		params.Add("fieldMask", string(field[1:len(field)-1]))
 	}
 
 	baseUrl.RawQuery = params.Encode()
@@ -1875,17 +2487,7 @@ func (c *instanceAdminRESTClient) GetInstance(ctx context.Context, req *instance
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetInstance")
 		if err != nil {
 			return err
 		}
@@ -1903,7 +2505,7 @@ func (c *instanceAdminRESTClient) GetInstance(ctx context.Context, req *instance
 }
 
 // CreateInstance creates an instance and begins preparing it to begin serving. The
-// returned [long-running operation][google.longrunning.Operation]
+// returned long-running operation
 // can be used to track the progress of preparing the new
 // instance. The instance name is assigned by the caller. If the
 // named instance already exists, CreateInstance returns
@@ -1934,7 +2536,7 @@ func (c *instanceAdminRESTClient) GetInstance(ctx context.Context, req *instance
 //
 //	The instance’s state becomes READY.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format <instance_name>/operations/<operation_id> and
 // can be used to track creation of the instance.  The
 // metadata field type is
@@ -1978,21 +2580,10 @@ func (c *instanceAdminRESTClient) CreateInstance(ctx context.Context, req *insta
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateInstance")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2011,8 +2602,7 @@ func (c *instanceAdminRESTClient) CreateInstance(ctx context.Context, req *insta
 }
 
 // UpdateInstance updates an instance, and begins allocating or releasing resources
-// as requested. The returned [long-running
-// operation][google.longrunning.Operation] can be used to track the
+// as requested. The returned long-running operation can be used to track the
 // progress of updating the instance. If the named instance does not
 // exist, returns NOT_FOUND.
 //
@@ -2044,7 +2634,7 @@ func (c *instanceAdminRESTClient) CreateInstance(ctx context.Context, req *insta
 //
 //	The instance’s new resource levels are readable via the API.
 //
-// The returned [long-running operation][google.longrunning.Operation] will
+// The returned long-running operation will
 // have a name of the format <instance_name>/operations/<operation_id> and
 // can be used to track the instance modification.  The
 // metadata field type is
@@ -2091,21 +2681,10 @@ func (c *instanceAdminRESTClient) UpdateInstance(ctx context.Context, req *insta
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateInstance")
 		if err != nil {
 			return err
 		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
-		if err != nil {
-			return err
-		}
-
 		if err := unm.Unmarshal(buf, resp); err != nil {
 			return err
 		}
@@ -2163,15 +2742,8 @@ func (c *instanceAdminRESTClient) DeleteInstance(ctx context.Context, req *insta
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteInstance")
+		return err
 	}, opts...)
 }
 
@@ -2218,17 +2790,7 @@ func (c *instanceAdminRESTClient) SetIamPolicy(ctx context.Context, req *iampb.S
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "SetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -2288,17 +2850,7 @@ func (c *instanceAdminRESTClient) GetIamPolicy(ctx context.Context, req *iampb.G
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "GetIamPolicy")
 		if err != nil {
 			return err
 		}
@@ -2359,17 +2911,7 @@ func (c *instanceAdminRESTClient) TestIamPermissions(ctx context.Context, req *i
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "TestIamPermissions")
 		if err != nil {
 			return err
 		}
@@ -2384,6 +2926,737 @@ func (c *instanceAdminRESTClient) TestIamPermissions(ctx context.Context, req *i
 		return nil, e
 	}
 	return resp, nil
+}
+
+// GetInstancePartition gets information about a particular instance partition.
+func (c *instanceAdminRESTClient) GetInstancePartition(ctx context.Context, req *instancepb.GetInstancePartitionRequest, opts ...gax.CallOption) (*instancepb.InstancePartition, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetInstancePartition[0:len((*c.CallOptions).GetInstancePartition):len((*c.CallOptions).GetInstancePartition)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &instancepb.InstancePartition{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetInstancePartition")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// CreateInstancePartition creates an instance partition and begins preparing it to be used. The
+// returned long-running operation
+// can be used to track the progress of preparing the new instance partition.
+// The instance partition name is assigned by the caller. If the named
+// instance partition already exists, CreateInstancePartition returns
+// ALREADY_EXISTS.
+//
+// Immediately upon completion of this request:
+//
+//	The instance partition is readable via the API, with all requested
+//	attributes but no allocated resources. Its state is CREATING.
+//
+// Until completion of the returned operation:
+//
+//	Cancelling the operation renders the instance partition immediately
+//	unreadable via the API.
+//
+//	The instance partition can be deleted.
+//
+//	All other attempts to modify the instance partition are rejected.
+//
+// Upon completion of the returned operation:
+//
+//	Billing for all successfully-allocated resources begins (some types
+//	may have lower than the requested levels).
+//
+//	Databases can start using this instance partition.
+//
+//	The instance partition’s allocated resource levels are readable via the
+//	API.
+//
+//	The instance partition’s state becomes READY.
+//
+// The returned long-running operation will
+// have a name of the format
+// <instance_partition_name>/operations/<operation_id> and can be used to
+// track creation of the instance partition.  The
+// metadata field type is
+// CreateInstancePartitionMetadata.
+// The response field type is
+// InstancePartition, if
+// successful.
+func (c *instanceAdminRESTClient) CreateInstancePartition(ctx context.Context, req *instancepb.CreateInstancePartitionRequest, opts ...gax.CallOption) (*CreateInstancePartitionOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v/instancePartitions", req.GetParent())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "parent", url.QueryEscape(req.GetParent()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateInstancePartition")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &CreateInstancePartitionOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// DeleteInstancePartition deletes an existing instance partition. Requires that the
+// instance partition is not used by any database or backup and is not the
+// default instance partition of an instance.
+//
+// Authorization requires spanner.instancePartitions.delete permission on
+// the resource
+// [name][google.spanner.admin.instance.v1.InstancePartition.name (at http://google.spanner.admin.instance.v1.InstancePartition.name)].
+func (c *instanceAdminRESTClient) DeleteInstancePartition(ctx context.Context, req *instancepb.DeleteInstancePartitionRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+	if req.GetEtag() != "" {
+		params.Add("etag", fmt.Sprintf("%v", req.GetEtag()))
+	}
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteInstancePartition")
+		return err
+	}, opts...)
+}
+
+// UpdateInstancePartition updates an instance partition, and begins allocating or releasing resources
+// as requested. The returned long-running operation can be used to track the
+// progress of updating the instance partition. If the named instance
+// partition does not exist, returns NOT_FOUND.
+//
+// Immediately upon completion of this request:
+//
+//	For resource types for which a decrease in the instance partition’s
+//	allocation has been requested, billing is based on the newly-requested
+//	level.
+//
+// Until completion of the returned operation:
+//
+//	Cancelling the operation sets its metadata’s
+//	cancel_time,
+//	and begins restoring resources to their pre-request values. The
+//	operation is guaranteed to succeed at undoing all resource changes,
+//	after which point it terminates with a CANCELLED status.
+//
+//	All other attempts to modify the instance partition are rejected.
+//
+//	Reading the instance partition via the API continues to give the
+//	pre-request resource levels.
+//
+// Upon completion of the returned operation:
+//
+//	Billing begins for all successfully-allocated resources (some types
+//	may have lower than the requested levels).
+//
+//	All newly-reserved resources are available for serving the instance
+//	partition’s tables.
+//
+//	The instance partition’s new resource levels are readable via the API.
+//
+// The returned long-running operation will
+// have a name of the format
+// <instance_partition_name>/operations/<operation_id> and can be used to
+// track the instance partition modification. The
+// metadata field type is
+// UpdateInstancePartitionMetadata.
+// The response field type is
+// InstancePartition, if
+// successful.
+//
+// Authorization requires spanner.instancePartitions.update permission on
+// the resource
+// [name][google.spanner.admin.instance.v1.InstancePartition.name (at http://google.spanner.admin.instance.v1.InstancePartition.name)].
+func (c *instanceAdminRESTClient) UpdateInstancePartition(ctx context.Context, req *instancepb.UpdateInstancePartitionRequest, opts ...gax.CallOption) (*UpdateInstancePartitionOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetInstancePartition().GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "instance_partition.name", url.QueryEscape(req.GetInstancePartition().GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("PATCH", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "UpdateInstancePartition")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &UpdateInstancePartitionOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// ListInstancePartitionOperations lists instance partition long-running operations in the given instance.
+// An instance partition operation has a name of the form
+// projects/<project>/instances/<instance>/instancePartitions/<instance_partition>/operations/<operation>.
+// The long-running operation
+// metadata field type
+// metadata.type_url describes the type of the metadata. Operations returned
+// include those that have completed/failed/canceled within the last 7 days,
+// and pending operations. Operations returned are ordered by
+// operation.metadata.value.start_time in descending order starting from the
+// most recently started operation.
+//
+// Authorization requires spanner.instancePartitionOperations.list
+// permission on the resource
+// parent.
+func (c *instanceAdminRESTClient) ListInstancePartitionOperations(ctx context.Context, req *instancepb.ListInstancePartitionOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	it := &OperationIterator{}
+	req = proto.Clone(req).(*instancepb.ListInstancePartitionOperationsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*longrunningpb.Operation, string, error) {
+		resp := &instancepb.ListInstancePartitionOperationsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v/instancePartitionOperations", req.GetParent())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetInstancePartitionDeadline() != nil {
+			field, err := protojson.Marshal(req.GetInstancePartitionDeadline())
+			if err != nil {
+				return nil, "", err
+			}
+			params.Add("instancePartitionDeadline", string(field[1:len(field)-1]))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListInstancePartitionOperations")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetOperations(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
+}
+
+// MoveInstance moves an instance to the target instance configuration. You can use the
+// returned long-running operation to track
+// the progress of moving the instance.
+//
+// MoveInstance returns FAILED_PRECONDITION if the instance meets any of
+// the following criteria:
+//
+//	Is undergoing a move to a different instance configuration
+//
+//	Has backups
+//
+//	Has an ongoing update
+//
+//	Contains any CMEK-enabled databases
+//
+//	Is a free trial instance
+//
+// While the operation is pending:
+//
+//	All other attempts to modify the instance, including changes to its
+//	compute capacity, are rejected.
+//
+//	The following database and backup admin operations are rejected:
+//
+//	  DatabaseAdmin.CreateDatabase
+//
+//	  DatabaseAdmin.UpdateDatabaseDdl (disabled if default_leader is
+//	  specified in the request.)
+//
+//	  DatabaseAdmin.RestoreDatabase
+//
+//	  DatabaseAdmin.CreateBackup
+//
+//	  DatabaseAdmin.CopyBackup
+//
+//	Both the source and target instance configurations are subject to
+//	hourly compute and storage charges.
+//
+//	The instance might experience higher read-write latencies and a higher
+//	transaction abort rate. However, moving an instance doesn’t cause any
+//	downtime.
+//
+// The returned long-running operation has
+// a name of the format
+// <instance_name>/operations/<operation_id> and can be used to track
+// the move instance operation. The
+// metadata field type is
+// MoveInstanceMetadata.
+// The response field type is
+// Instance,
+// if successful.
+// Cancelling the operation sets its metadata’s
+// cancel_time.
+// Cancellation is not immediate because it involves moving any data
+// previously moved to the target instance configuration back to the original
+// instance configuration. You can use this operation to track the progress of
+// the cancellation. Upon successful completion of the cancellation, the
+// operation terminates with CANCELLED status.
+//
+// If not cancelled, upon completion of the returned operation:
+//
+//	The instance successfully moves to the target instance
+//	configuration.
+//
+//	You are billed for compute and storage in target instance
+//	configuration.
+//
+// Authorization requires the spanner.instances.update permission on
+// the resource instance.
+//
+// For more details, see
+// Move an instance (at https://cloud.google.com/spanner/docs/move-instance).
+func (c *instanceAdminRESTClient) MoveInstance(ctx context.Context, req *instancepb.MoveInstanceRequest, opts ...gax.CallOption) (*MoveInstanceOperation, error) {
+	m := protojson.MarshalOptions{AllowPartial: true, UseEnumNumbers: true}
+	jsonReq, err := m.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:move", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), bytes.NewReader(jsonReq))
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "MoveInstance")
+		if err != nil {
+			return err
+		}
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+
+	override := fmt.Sprintf("/v1/%s", resp.GetName())
+	return &MoveInstanceOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, resp),
+		pollPath: override,
+	}, nil
+}
+
+// CancelOperation is a utility method from google.longrunning.Operations.
+func (c *instanceAdminRESTClient) CancelOperation(ctx context.Context, req *longrunningpb.CancelOperationRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v:cancel", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("POST", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "CancelOperation")
+		return err
+	}, opts...)
+}
+
+// DeleteOperation is a utility method from google.longrunning.Operations.
+func (c *instanceAdminRESTClient) DeleteOperation(ctx context.Context, req *longrunningpb.DeleteOperationRequest, opts ...gax.CallOption) error {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	return gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("DELETE", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteOperation")
+		return err
+	}, opts...)
+}
+
+// GetOperation is a utility method from google.longrunning.Operations.
+func (c *instanceAdminRESTClient) GetOperation(ctx context.Context, req *longrunningpb.GetOperationRequest, opts ...gax.CallOption) (*longrunningpb.Operation, error) {
+	baseUrl, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+	params := url.Values{}
+	params.Add("$alt", "json;enum-encoding=int")
+
+	baseUrl.RawQuery = params.Encode()
+
+	// Build HTTP headers from client and context metadata.
+	hds := []string{"x-goog-request-params", fmt.Sprintf("%s=%v", "name", url.QueryEscape(req.GetName()))}
+
+	hds = append(c.xGoogHeaders, hds...)
+	hds = append(hds, "Content-Type", "application/json")
+	headers := gax.BuildHeaders(ctx, hds...)
+	opts = append((*c.CallOptions).GetOperation[0:len((*c.CallOptions).GetOperation):len((*c.CallOptions).GetOperation)], opts...)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	resp := &longrunningpb.Operation{}
+	e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		if settings.Path != "" {
+			baseUrl.Path = settings.Path
+		}
+		httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+		if err != nil {
+			return err
+		}
+		httpReq = httpReq.WithContext(ctx)
+		httpReq.Header = headers
+
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetOperation")
+		if err != nil {
+			return err
+		}
+
+		if err := unm.Unmarshal(buf, resp); err != nil {
+			return err
+		}
+
+		return nil
+	}, opts...)
+	if e != nil {
+		return nil, e
+	}
+	return resp, nil
+}
+
+// ListOperations is a utility method from google.longrunning.Operations.
+func (c *instanceAdminRESTClient) ListOperations(ctx context.Context, req *longrunningpb.ListOperationsRequest, opts ...gax.CallOption) *OperationIterator {
+	it := &OperationIterator{}
+	req = proto.Clone(req).(*longrunningpb.ListOperationsRequest)
+	unm := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*longrunningpb.Operation, string, error) {
+		resp := &longrunningpb.ListOperationsResponse{}
+		if pageToken != "" {
+			req.PageToken = pageToken
+		}
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else if pageSize != 0 {
+			req.PageSize = int32(pageSize)
+		}
+		baseUrl, err := url.Parse(c.endpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		baseUrl.Path += fmt.Sprintf("/v1/%v", req.GetName())
+
+		params := url.Values{}
+		params.Add("$alt", "json;enum-encoding=int")
+		if req.GetFilter() != "" {
+			params.Add("filter", fmt.Sprintf("%v", req.GetFilter()))
+		}
+		if req.GetPageSize() != 0 {
+			params.Add("pageSize", fmt.Sprintf("%v", req.GetPageSize()))
+		}
+		if req.GetPageToken() != "" {
+			params.Add("pageToken", fmt.Sprintf("%v", req.GetPageToken()))
+		}
+
+		baseUrl.RawQuery = params.Encode()
+
+		// Build HTTP headers from client and context metadata.
+		hds := append(c.xGoogHeaders, "Content-Type", "application/json")
+		headers := gax.BuildHeaders(ctx, hds...)
+		e := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			if settings.Path != "" {
+				baseUrl.Path = settings.Path
+			}
+			httpReq, err := http.NewRequest("GET", baseUrl.String(), nil)
+			if err != nil {
+				return err
+			}
+			httpReq.Header = headers
+
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListOperations")
+			if err != nil {
+				return err
+			}
+			if err := unm.Unmarshal(buf, resp); err != nil {
+				return err
+			}
+
+			return nil
+		}, opts...)
+		if e != nil {
+			return nil, "", e
+		}
+		it.Response = resp
+		return resp.GetOperations(), resp.GetNextPageToken(), nil
+	}
+
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.GetPageSize())
+	it.pageInfo.Token = req.GetPageToken()
+
+	return it
 }
 
 // CreateInstanceOperation returns a new CreateInstanceOperation from a given name.
@@ -2422,6 +3695,42 @@ func (c *instanceAdminRESTClient) CreateInstanceConfigOperation(name string) *Cr
 	}
 }
 
+// CreateInstancePartitionOperation returns a new CreateInstancePartitionOperation from a given name.
+// The name must be that of a previously created CreateInstancePartitionOperation, possibly from a different process.
+func (c *instanceAdminGRPCClient) CreateInstancePartitionOperation(name string) *CreateInstancePartitionOperation {
+	return &CreateInstancePartitionOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// CreateInstancePartitionOperation returns a new CreateInstancePartitionOperation from a given name.
+// The name must be that of a previously created CreateInstancePartitionOperation, possibly from a different process.
+func (c *instanceAdminRESTClient) CreateInstancePartitionOperation(name string) *CreateInstancePartitionOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &CreateInstancePartitionOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// MoveInstanceOperation returns a new MoveInstanceOperation from a given name.
+// The name must be that of a previously created MoveInstanceOperation, possibly from a different process.
+func (c *instanceAdminGRPCClient) MoveInstanceOperation(name string) *MoveInstanceOperation {
+	return &MoveInstanceOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// MoveInstanceOperation returns a new MoveInstanceOperation from a given name.
+// The name must be that of a previously created MoveInstanceOperation, possibly from a different process.
+func (c *instanceAdminRESTClient) MoveInstanceOperation(name string) *MoveInstanceOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &MoveInstanceOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
 // UpdateInstanceOperation returns a new UpdateInstanceOperation from a given name.
 // The name must be that of a previously created UpdateInstanceOperation, possibly from a different process.
 func (c *instanceAdminGRPCClient) UpdateInstanceOperation(name string) *UpdateInstanceOperation {
@@ -2453,6 +3762,24 @@ func (c *instanceAdminGRPCClient) UpdateInstanceConfigOperation(name string) *Up
 func (c *instanceAdminRESTClient) UpdateInstanceConfigOperation(name string) *UpdateInstanceConfigOperation {
 	override := fmt.Sprintf("/v1/%s", name)
 	return &UpdateInstanceConfigOperation{
+		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+		pollPath: override,
+	}
+}
+
+// UpdateInstancePartitionOperation returns a new UpdateInstancePartitionOperation from a given name.
+// The name must be that of a previously created UpdateInstancePartitionOperation, possibly from a different process.
+func (c *instanceAdminGRPCClient) UpdateInstancePartitionOperation(name string) *UpdateInstancePartitionOperation {
+	return &UpdateInstancePartitionOperation{
+		lro: longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
+	}
+}
+
+// UpdateInstancePartitionOperation returns a new UpdateInstancePartitionOperation from a given name.
+// The name must be that of a previously created UpdateInstancePartitionOperation, possibly from a different process.
+func (c *instanceAdminRESTClient) UpdateInstancePartitionOperation(name string) *UpdateInstancePartitionOperation {
+	override := fmt.Sprintf("/v1/%s", name)
+	return &UpdateInstancePartitionOperation{
 		lro:      longrunning.InternalNewOperation(*c.LROClient, &longrunningpb.Operation{Name: name}),
 		pollPath: override,
 	}

@@ -5,6 +5,70 @@
   "protoPackage": "google.cloud.run.v2",
   "libraryPackage": "cloud.google.com/go/run/apiv2",
   "services": {
+    "Builds": {
+      "clients": {
+        "grpc": {
+          "libraryClient": "BuildsClient",
+          "rpcs": {
+            "DeleteOperation": {
+              "methods": [
+                "DeleteOperation"
+              ]
+            },
+            "GetOperation": {
+              "methods": [
+                "GetOperation"
+              ]
+            },
+            "ListOperations": {
+              "methods": [
+                "ListOperations"
+              ]
+            },
+            "SubmitBuild": {
+              "methods": [
+                "SubmitBuild"
+              ]
+            },
+            "WaitOperation": {
+              "methods": [
+                "WaitOperation"
+              ]
+            }
+          }
+        },
+        "rest": {
+          "libraryClient": "BuildsClient",
+          "rpcs": {
+            "DeleteOperation": {
+              "methods": [
+                "DeleteOperation"
+              ]
+            },
+            "GetOperation": {
+              "methods": [
+                "GetOperation"
+              ]
+            },
+            "ListOperations": {
+              "methods": [
+                "ListOperations"
+              ]
+            },
+            "SubmitBuild": {
+              "methods": [
+                "SubmitBuild"
+              ]
+            },
+            "WaitOperation": {
+              "methods": [
+                "WaitOperation"
+              ]
+            }
+          }
+        }
+      }
+    },
     "Executions": {
       "clients": {
         "grpc": {
@@ -524,6 +588,140 @@
             "ListTasks": {
               "methods": [
                 "ListTasks"
+              ]
+            },
+            "WaitOperation": {
+              "methods": [
+                "WaitOperation"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "WorkerPools": {
+      "clients": {
+        "grpc": {
+          "libraryClient": "WorkerPoolsClient",
+          "rpcs": {
+            "CreateWorkerPool": {
+              "methods": [
+                "CreateWorkerPool"
+              ]
+            },
+            "DeleteOperation": {
+              "methods": [
+                "DeleteOperation"
+              ]
+            },
+            "DeleteWorkerPool": {
+              "methods": [
+                "DeleteWorkerPool"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "GetIamPolicy"
+              ]
+            },
+            "GetOperation": {
+              "methods": [
+                "GetOperation"
+              ]
+            },
+            "GetWorkerPool": {
+              "methods": [
+                "GetWorkerPool"
+              ]
+            },
+            "ListOperations": {
+              "methods": [
+                "ListOperations"
+              ]
+            },
+            "ListWorkerPools": {
+              "methods": [
+                "ListWorkerPools"
+              ]
+            },
+            "SetIamPolicy": {
+              "methods": [
+                "SetIamPolicy"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "TestIamPermissions"
+              ]
+            },
+            "UpdateWorkerPool": {
+              "methods": [
+                "UpdateWorkerPool"
+              ]
+            },
+            "WaitOperation": {
+              "methods": [
+                "WaitOperation"
+              ]
+            }
+          }
+        },
+        "rest": {
+          "libraryClient": "WorkerPoolsClient",
+          "rpcs": {
+            "CreateWorkerPool": {
+              "methods": [
+                "CreateWorkerPool"
+              ]
+            },
+            "DeleteOperation": {
+              "methods": [
+                "DeleteOperation"
+              ]
+            },
+            "DeleteWorkerPool": {
+              "methods": [
+                "DeleteWorkerPool"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "GetIamPolicy"
+              ]
+            },
+            "GetOperation": {
+              "methods": [
+                "GetOperation"
+              ]
+            },
+            "GetWorkerPool": {
+              "methods": [
+                "GetWorkerPool"
+              ]
+            },
+            "ListOperations": {
+              "methods": [
+                "ListOperations"
+              ]
+            },
+            "ListWorkerPools": {
+              "methods": [
+                "ListWorkerPools"
+              ]
+            },
+            "SetIamPolicy": {
+              "methods": [
+                "SetIamPolicy"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "TestIamPermissions"
+              ]
+            },
+            "UpdateWorkerPool": {
+              "methods": [
+                "UpdateWorkerPool"
               ]
             },
             "WaitOperation": {

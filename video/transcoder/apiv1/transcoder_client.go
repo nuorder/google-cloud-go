@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,13 +28,13 @@ import (
 
 	transcoderpb "cloud.google.com/go/video/transcoder/apiv1/transcoderpb"
 	gax "github.com/googleapis/gax-go/v2"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
 	httptransport "google.golang.org/api/transport/http"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -62,6 +62,7 @@ func defaultGRPCClientOptions() []option.ClientOption {
 		internaloption.WithDefaultAudience("https://transcoder.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
 		internaloption.EnableJwtWithScope(),
+		internaloption.EnableNewAuthLibrary(),
 		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32))),
 	}
@@ -74,9 +75,27 @@ func defaultCallOptions() *CallOptions {
 		},
 		ListJobs: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
 		},
 		GetJob: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
 		},
 		DeleteJob: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
@@ -86,9 +105,27 @@ func defaultCallOptions() *CallOptions {
 		},
 		ListJobTemplates: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
 		},
 		GetJobTemplate: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				})
+			}),
 		},
 		DeleteJobTemplate: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
@@ -103,9 +140,25 @@ func defaultRESTCallOptions() *CallOptions {
 		},
 		ListJobs: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
 		},
 		GetJob: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
 		},
 		DeleteJob: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
@@ -115,9 +168,25 @@ func defaultRESTCallOptions() *CallOptions {
 		},
 		ListJobTemplates: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
 		},
 		GetJobTemplate: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnHTTPCodes(gax.Backoff{
+					Initial:    1000 * time.Millisecond,
+					Max:        10000 * time.Millisecond,
+					Multiplier: 1.30,
+				},
+					http.StatusServiceUnavailable)
+			}),
 		},
 		DeleteJobTemplate: []gax.CallOption{
 			gax.WithTimeout(60000 * time.Millisecond),
@@ -235,6 +304,8 @@ type gRPCClient struct {
 
 	// The x-goog-* metadata to be sent with each request.
 	xGoogHeaders []string
+
+	logger *slog.Logger
 }
 
 // NewClient creates a new transcoder service client based on gRPC.
@@ -266,6 +337,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 		connPool:    connPool,
 		client:      transcoderpb.NewTranscoderServiceClient(connPool),
 		CallOptions: &client.CallOptions,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -287,8 +359,10 @@ func (c *gRPCClient) Connection() *grpc.ClientConn {
 // use by Google-written clients.
 func (c *gRPCClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "grpc", grpc.Version, "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -310,6 +384,8 @@ type restClient struct {
 
 	// Points back to the CallOptions field of the containing Client
 	CallOptions **CallOptions
+
+	logger *slog.Logger
 }
 
 // NewRESTClient creates a new transcoder service rest client.
@@ -332,6 +408,7 @@ func NewRESTClient(ctx context.Context, opts ...option.ClientOption) (*Client, e
 		endpoint:    endpoint,
 		httpClient:  httpClient,
 		CallOptions: &callOpts,
+		logger:      internaloption.GetLogger(opts),
 	}
 	c.setGoogleClientInfo()
 
@@ -346,6 +423,7 @@ func defaultRESTClientOptions() []option.ClientOption {
 		internaloption.WithDefaultUniverseDomain("googleapis.com"),
 		internaloption.WithDefaultAudience("https://transcoder.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
+		internaloption.EnableNewAuthLibrary(),
 	}
 }
 
@@ -354,8 +432,10 @@ func defaultRESTClientOptions() []option.ClientOption {
 // use by Google-written clients.
 func (c *restClient) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", gax.GoVersion}, keyval...)
-	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN")
-	c.xGoogHeaders = []string{"x-goog-api-client", gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", getVersionClient(), "gax", gax.Version, "rest", "UNKNOWN", "pb", protoVersion)
+	c.xGoogHeaders = []string{
+		"x-goog-api-client", gax.XGoogHeader(kv...),
+	}
 }
 
 // Close closes the connection to the API service. The user should invoke this when
@@ -381,7 +461,7 @@ func (c *gRPCClient) CreateJob(ctx context.Context, req *transcoderpb.CreateJobR
 	var resp *transcoderpb.Job
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateJob(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateJob, req, settings.GRPC, c.logger, "CreateJob")
 		return err
 	}, opts...)
 	if err != nil {
@@ -410,7 +490,7 @@ func (c *gRPCClient) ListJobs(ctx context.Context, req *transcoderpb.ListJobsReq
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListJobs(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListJobs, req, settings.GRPC, c.logger, "ListJobs")
 			return err
 		}, opts...)
 		if err != nil {
@@ -445,7 +525,7 @@ func (c *gRPCClient) GetJob(ctx context.Context, req *transcoderpb.GetJobRequest
 	var resp *transcoderpb.Job
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetJob(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetJob, req, settings.GRPC, c.logger, "GetJob")
 		return err
 	}, opts...)
 	if err != nil {
@@ -462,7 +542,7 @@ func (c *gRPCClient) DeleteJob(ctx context.Context, req *transcoderpb.DeleteJobR
 	opts = append((*c.CallOptions).DeleteJob[0:len((*c.CallOptions).DeleteJob):len((*c.CallOptions).DeleteJob)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteJob(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteJob, req, settings.GRPC, c.logger, "DeleteJob")
 		return err
 	}, opts...)
 	return err
@@ -477,7 +557,7 @@ func (c *gRPCClient) CreateJobTemplate(ctx context.Context, req *transcoderpb.Cr
 	var resp *transcoderpb.JobTemplate
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateJobTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.CreateJobTemplate, req, settings.GRPC, c.logger, "CreateJobTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -506,7 +586,7 @@ func (c *gRPCClient) ListJobTemplates(ctx context.Context, req *transcoderpb.Lis
 		}
 		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListJobTemplates(ctx, req, settings.GRPC...)
+			resp, err = executeRPC(ctx, c.client.ListJobTemplates, req, settings.GRPC, c.logger, "ListJobTemplates")
 			return err
 		}, opts...)
 		if err != nil {
@@ -541,7 +621,7 @@ func (c *gRPCClient) GetJobTemplate(ctx context.Context, req *transcoderpb.GetJo
 	var resp *transcoderpb.JobTemplate
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetJobTemplate(ctx, req, settings.GRPC...)
+		resp, err = executeRPC(ctx, c.client.GetJobTemplate, req, settings.GRPC, c.logger, "GetJobTemplate")
 		return err
 	}, opts...)
 	if err != nil {
@@ -558,7 +638,7 @@ func (c *gRPCClient) DeleteJobTemplate(ctx context.Context, req *transcoderpb.De
 	opts = append((*c.CallOptions).DeleteJobTemplate[0:len((*c.CallOptions).DeleteJobTemplate):len((*c.CallOptions).DeleteJobTemplate)], opts...)
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteJobTemplate(ctx, req, settings.GRPC...)
+		_, err = executeRPC(ctx, c.client.DeleteJobTemplate, req, settings.GRPC, c.logger, "DeleteJobTemplate")
 		return err
 	}, opts...)
 	return err
@@ -604,17 +684,7 @@ func (c *restClient) CreateJob(ctx context.Context, req *transcoderpb.CreateJobR
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateJob")
 		if err != nil {
 			return err
 		}
@@ -682,21 +752,10 @@ func (c *restClient) ListJobs(ctx context.Context, req *transcoderpb.ListJobsReq
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListJobs")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -759,17 +818,7 @@ func (c *restClient) GetJob(ctx context.Context, req *transcoderpb.GetJobRequest
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetJob")
 		if err != nil {
 			return err
 		}
@@ -819,15 +868,8 @@ func (c *restClient) DeleteJob(ctx context.Context, req *transcoderpb.DeleteJobR
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteJob")
+		return err
 	}, opts...)
 }
 
@@ -872,17 +914,7 @@ func (c *restClient) CreateJobTemplate(ctx context.Context, req *transcoderpb.Cr
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, jsonReq, "CreateJobTemplate")
 		if err != nil {
 			return err
 		}
@@ -950,21 +982,10 @@ func (c *restClient) ListJobTemplates(ctx context.Context, req *transcoderpb.Lis
 			}
 			httpReq.Header = headers
 
-			httpRsp, err := c.httpClient.Do(httpReq)
+			buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "ListJobTemplates")
 			if err != nil {
 				return err
 			}
-			defer httpRsp.Body.Close()
-
-			if err = googleapi.CheckResponse(httpRsp); err != nil {
-				return err
-			}
-
-			buf, err := io.ReadAll(httpRsp.Body)
-			if err != nil {
-				return err
-			}
-
 			if err := unm.Unmarshal(buf, resp); err != nil {
 				return err
 			}
@@ -1027,17 +1048,7 @@ func (c *restClient) GetJobTemplate(ctx context.Context, req *transcoderpb.GetJo
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		if err = googleapi.CheckResponse(httpRsp); err != nil {
-			return err
-		}
-
-		buf, err := io.ReadAll(httpRsp.Body)
+		buf, err := executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "GetJobTemplate")
 		if err != nil {
 			return err
 		}
@@ -1087,14 +1098,7 @@ func (c *restClient) DeleteJobTemplate(ctx context.Context, req *transcoderpb.De
 		httpReq = httpReq.WithContext(ctx)
 		httpReq.Header = headers
 
-		httpRsp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return err
-		}
-		defer httpRsp.Body.Close()
-
-		// Returns nil if there is no error, otherwise wraps
-		// the response code and body into a non-nil error
-		return googleapi.CheckResponse(httpRsp)
+		_, err = executeHTTPRequest(ctx, c.httpClient, httpReq, c.logger, nil, "DeleteJobTemplate")
+		return err
 	}, opts...)
 }

@@ -43,7 +43,7 @@ func TestFlowControllerCancel(t *testing.T) {
 	// Experiment: a context that times out should always return an error.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	defer cancel()
-	if err := fc.acquire(ctx, 6); err != context.DeadlineExceeded {
+	if err := fc.acquire(ctx, 6); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("got %v, expected DeadlineExceeded", err)
 	}
 	// Control: a context that is not done should always return nil.
@@ -78,7 +78,7 @@ func TestFlowControllerNoStarve(t *testing.T) {
 		go func() {
 			for {
 				if err := fc.acquire(ctx, 1); err != nil {
-					if err != context.Canceled {
+					if !errors.Is(err, context.Canceled) {
 						t.Error(err)
 					}
 					return
@@ -239,5 +239,36 @@ func TestFlowControllerUnboundedBytes(t *testing.T) {
 	// Fail to acquire a third message.
 	if err := fc.acquire(ctx, 3); err == nil {
 		t.Errorf("got nil, wanted %v", ErrFlowControllerMaxOutstandingMessages)
+	}
+}
+
+func TestFlowControllerIgnoreWithMetrics(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	// Initialize fc with bytes > acquire to ensure no bound restrictions occur.
+	fc := newFlowController(fcSettings(5, 50, FlowControlIgnore))
+
+	if err := fc.acquire(ctx, 5); err != nil {
+		t.Errorf("got %v, wanted no error", err)
+	}
+	if err := fc.acquire(ctx, 5); err != nil {
+		t.Errorf("got %v, wanted no error", err)
+	}
+
+	if c := fc.count(); c != 2 {
+		t.Errorf("got %d messages, want 2", c)
+	}
+
+	if s := fc.size(); s != 10 {
+		t.Errorf("got %d bytes, want 10", s)
+	}
+
+	fc.release(ctx, 5)
+
+	if c := fc.count(); c != 1 {
+		t.Errorf("got %d messages, want 1", c)
+	}
+	if s := fc.size(); s != 5 {
+		t.Errorf("got %d bytes, want 5", s)
 	}
 }

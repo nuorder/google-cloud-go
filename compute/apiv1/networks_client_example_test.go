@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -203,6 +203,12 @@ func ExampleNetworksClient_List() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*computepb.NetworkList)
 	}
 }
 
@@ -234,6 +240,12 @@ func ExampleNetworksClient_ListPeeringRoutes() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*computepb.ExchangedPeeringRoutesList)
 	}
 }
 
@@ -283,6 +295,34 @@ func ExampleNetworksClient_RemovePeering() {
 		// See https://pkg.go.dev/cloud.google.com/go/compute/apiv1/computepb#RemovePeeringNetworkRequest.
 	}
 	op, err := c.RemovePeering(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	err = op.Wait(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+}
+
+func ExampleNetworksClient_RequestRemovePeering() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := compute.NewNetworksRESTClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &computepb.RequestRemovePeeringNetworkRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/compute/apiv1/computepb#RequestRemovePeeringNetworkRequest.
+	}
+	op, err := c.RequestRemovePeering(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}

@@ -95,9 +95,24 @@
                 "GetResource"
               ]
             },
+            "GetResourceChange": {
+              "methods": [
+                "GetResourceChange"
+              ]
+            },
+            "GetResourceDrift": {
+              "methods": [
+                "GetResourceDrift"
+              ]
+            },
             "GetRevision": {
               "methods": [
                 "GetRevision"
+              ]
+            },
+            "GetTerraformVersion": {
+              "methods": [
+                "GetTerraformVersion"
               ]
             },
             "ImportStatefile": {
@@ -125,6 +140,16 @@
                 "ListPreviews"
               ]
             },
+            "ListResourceChanges": {
+              "methods": [
+                "ListResourceChanges"
+              ]
+            },
+            "ListResourceDrifts": {
+              "methods": [
+                "ListResourceDrifts"
+              ]
+            },
             "ListResources": {
               "methods": [
                 "ListResources"
@@ -133,6 +158,11 @@
             "ListRevisions": {
               "methods": [
                 "ListRevisions"
+              ]
+            },
+            "ListTerraformVersions": {
+              "methods": [
+                "ListTerraformVersions"
               ]
             },
             "LockDeployment": {
@@ -250,9 +280,24 @@
                 "GetResource"
               ]
             },
+            "GetResourceChange": {
+              "methods": [
+                "GetResourceChange"
+              ]
+            },
+            "GetResourceDrift": {
+              "methods": [
+                "GetResourceDrift"
+              ]
+            },
             "GetRevision": {
               "methods": [
                 "GetRevision"
+              ]
+            },
+            "GetTerraformVersion": {
+              "methods": [
+                "GetTerraformVersion"
               ]
             },
             "ImportStatefile": {
@@ -280,6 +325,16 @@
                 "ListPreviews"
               ]
             },
+            "ListResourceChanges": {
+              "methods": [
+                "ListResourceChanges"
+              ]
+            },
+            "ListResourceDrifts": {
+              "methods": [
+                "ListResourceDrifts"
+              ]
+            },
             "ListResources": {
               "methods": [
                 "ListResources"
@@ -288,6 +343,11 @@
             "ListRevisions": {
               "methods": [
                 "ListRevisions"
+              ]
+            },
+            "ListTerraformVersions": {
+              "methods": [
+                "ListTerraformVersions"
               ]
             },
             "LockDeployment": {

@@ -26,6 +26,42 @@ import (
 	"cloud.google.com/go/civil"
 )
 
+func TestFQProtoMsgName(t *testing.T) {
+	for _, tbl := range []struct {
+		in       string
+		expMatch bool
+	}{
+		{
+			in:       "fizzle",
+			expMatch: true,
+		},
+		{
+			in:       "fizzle.bit",
+			expMatch: true,
+		},
+		{
+			in:       "fizzle.boo1.boop333",
+			expMatch: true,
+		},
+		{
+			in:       "fizz9le.boo1.boop333",
+			expMatch: true,
+		},
+		{
+			in:       "9fizz9le",
+			expMatch: false,
+		},
+		{
+			in:       "99.999",
+			expMatch: false,
+		},
+	} {
+		if matches := fqProtoMsgName.MatchString(tbl.in); matches != tbl.expMatch {
+			t.Errorf("expected %q to match %t; got %t", tbl.in, tbl.expMatch, matches)
+		}
+	}
+}
+
 func TestParseQuery(t *testing.T) {
 	tests := []struct {
 		in   string
@@ -304,6 +340,31 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			`SELECT * FROM A WHERE EXISTS (SELECT * FROM B)`,
+			Query{
+				Select: Select{
+					List: []Expr{Star},
+					From: []SelectFrom{
+						SelectFromTable{
+							Table: "A",
+						},
+					},
+					Where: ExistsOp{
+						Subquery: Query{
+							Select: Select{
+								List: []Expr{Star},
+								From: []SelectFrom{
+									SelectFromTable{
+										Table: "B",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		got, err := ParseQuery(test.in)
@@ -408,6 +469,8 @@ func TestParseExpr(t *testing.T) {
 		// Functions
 		{`STARTS_WITH(Bar, 'B')`, Func{Name: "STARTS_WITH", Args: []Expr{ID("Bar"), StringLiteral("B")}}},
 		{`CAST(Bar AS STRING)`, Func{Name: "CAST", Args: []Expr{TypedExpr{Expr: ID("Bar"), Type: Type{Base: String}}}}},
+		{`CAST(Bar AS fizzle.bit)`, Func{Name: "CAST", Args: []Expr{TypedExpr{Expr: ID("Bar"), Type: Type{Base: Proto, ProtoRef: "fizzle.bit"}}}}},
+		{`CAST(Bar AS fizzle.bit.baz)`, Func{Name: "CAST", Args: []Expr{TypedExpr{Expr: ID("Bar"), Type: Type{Base: Proto, ProtoRef: "fizzle.bit.baz"}}}}},
 		{`SAFE_CAST(Bar AS INT64)`, Func{Name: "SAFE_CAST", Args: []Expr{TypedExpr{Expr: ID("Bar"), Type: Type{Base: Int64}}}}},
 		{`EXTRACT(DATE FROM TIMESTAMP AT TIME ZONE "America/Los_Angeles")`, Func{Name: "EXTRACT", Args: []Expr{ExtractExpr{Part: "DATE", Type: Type{Base: Date}, Expr: AtTimeZoneExpr{Expr: ID("TIMESTAMP"), Zone: "America/Los_Angeles", Type: Type{Base: Timestamp}}}}}},
 		{`EXTRACT(DAY FROM DATE)`, Func{Name: "EXTRACT", Args: []Expr{ExtractExpr{Part: "DAY", Expr: ID("DATE"), Type: Type{Base: Int64}}}}},
@@ -713,6 +776,33 @@ func TestParseDDL(t *testing.T) {
 			start_with_counter = 50
 		);
 		DROP SEQUENCE MySequence;
+
+		-- Table with a synonym.
+		CREATE TABLE TableWithSynonym (
+			Name STRING(MAX) NOT NULL,
+			SYNONYM(AnotherName),
+		) PRIMARY KEY (Name);
+
+		ALTER TABLE TableWithSynonym DROP SYNONYM AnotherName;
+		ALTER TABLE TableWithSynonym ADD SYNONYM YetAnotherName;
+
+		-- Table rename.
+		CREATE TABLE OldName (
+			Name STRING(MAX) NOT NULL,
+		) PRIMARY KEY (Name);
+
+		ALTER TABLE OldName RENAME TO NewName;
+		ALTER TABLE NewName RENAME TO OldName, ADD SYNONYM NewName;
+
+		-- Table rename chain.
+		CREATE TABLE Table1 (
+			Name STRING(MAX) NOT NULL,
+		) PRIMARY KEY (Name);
+		CREATE TABLE Table2 (
+			Name STRING(MAX) NOT NULL,
+		) PRIMARY KEY (Name);
+
+		RENAME TABLE Table1 TO temp, Table2 TO Table1, temp TO Table2;
 
 		-- Trailing comment at end of file.
 		`, &DDL{Filename: "filename", List: []DDLStmt{
@@ -1164,6 +1254,77 @@ func TestParseDDL(t *testing.T) {
 				Position: line(114),
 			},
 			&DropSequence{Name: "MySequence", Position: line(120)},
+
+			&CreateTable{
+				Name: "TableWithSynonym",
+				Columns: []ColumnDef{
+					{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(124)},
+				},
+				Synonym:    "AnotherName",
+				PrimaryKey: []KeyPart{{Column: "Name"}},
+				Position:   line(123),
+			},
+			&AlterTable{
+				Name: "TableWithSynonym",
+				Alteration: DropSynonym{
+					Name: "AnotherName",
+				},
+				Position: line(128),
+			},
+			&AlterTable{
+				Name: "TableWithSynonym",
+				Alteration: AddSynonym{
+					Name: "YetAnotherName",
+				},
+				Position: line(129),
+			},
+			&CreateTable{
+				Name: "OldName",
+				Columns: []ColumnDef{
+					{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(133)},
+				},
+				PrimaryKey: []KeyPart{{Column: "Name"}},
+				Position:   line(132),
+			},
+			&AlterTable{
+				Name: "OldName",
+				Alteration: RenameTo{
+					ToName: "NewName",
+				},
+				Position: line(136),
+			},
+			&AlterTable{
+				Name: "NewName",
+				Alteration: RenameTo{
+					ToName:  "OldName",
+					Synonym: "NewName",
+				},
+				Position: line(137),
+			},
+			&CreateTable{
+				Name: "Table1",
+				Columns: []ColumnDef{
+					{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(141)},
+				},
+				PrimaryKey: []KeyPart{{Column: "Name"}},
+				Position:   line(140),
+			},
+			&CreateTable{
+				Name: "Table2",
+				Columns: []ColumnDef{
+					{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(144)},
+				},
+				PrimaryKey: []KeyPart{{Column: "Name"}},
+				Position:   line(143),
+			},
+			&RenameTable{
+				TableRenameOps: []TableRenameOp{
+					{FromName: "Table1", ToName: "temp"},
+					{FromName: "Table2", ToName: "Table1"},
+					{FromName: "temp", ToName: "Table2"},
+				},
+				Position: line(147),
+			},
 		}, Comments: []*Comment{
 			{
 				Marker: "#", Start: line(2), End: line(2),
@@ -1197,9 +1358,12 @@ func TestParseDDL(t *testing.T) {
 			{Marker: "--", Isolated: true, Start: line(43), End: line(43), Text: []string{"Table with generated column."}},
 			{Marker: "--", Isolated: true, Start: line(49), End: line(49), Text: []string{"Table with row deletion policy."}},
 			{Marker: "--", Isolated: true, Start: line(75), End: line(75), Text: []string{"Table has a column with a default value."}},
+			{Marker: "--", Isolated: true, Start: line(122), End: line(122), Text: []string{"Table with a synonym."}},
+			{Marker: "--", Isolated: true, Start: line(131), End: line(131), Text: []string{"Table rename."}},
+			{Marker: "--", Isolated: true, Start: line(139), End: line(139), Text: []string{"Table rename chain."}},
 
 			// Comment after everything else.
-			{Marker: "--", Isolated: true, Start: line(122), End: line(122), Text: []string{"Trailing comment at end of file."}},
+			{Marker: "--", Isolated: true, Start: line(149), End: line(149), Text: []string{"Trailing comment at end of file."}},
 		}}},
 		// No trailing comma:
 		{`ALTER TABLE T ADD COLUMN C2 INT64`, &DDL{Filename: "filename", List: []DDLStmt{
@@ -1330,6 +1494,21 @@ func TestParseDDL(t *testing.T) {
 				},
 			},
 		},
+		{`ALTER TABLE products ADD COLUMN item STRING(MAX) AS (JSON_QUERY(itemDetails, '$.itemDetails')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "JSON_QUERY",
+						Args: []Expr{ID("itemDetails"), StringLiteral("$.itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
 		{`ALTER TABLE products ADD COLUMN item STRING(MAX) AS (JSON_VALUE(itemDetails, '$.itemDetails')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
 			&AlterTable{
 				Name: "products",
@@ -1340,6 +1519,203 @@ func TestParseDDL(t *testing.T) {
 					Generated: Func{
 						Name: "JSON_VALUE",
 						Args: []Expr{ID("itemDetails"), StringLiteral("$.itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (JSON_QUERY_ARRAY(itemDetails, '$.itemDetails')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "JSON_QUERY_ARRAY",
+						Args: []Expr{ID("itemDetails"), StringLiteral("$.itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (JSON_VALUE_ARRAY(itemDetails, '$.itemDetails')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "JSON_VALUE_ARRAY",
+						Args: []Expr{ID("itemDetails"), StringLiteral("$.itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_INCLUDES(itemDetails, 'value1')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_INCLUDES",
+						Args: []Expr{ID("itemDetails"), StringLiteral("value1")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item STRING(MAX) AS (ARRAY_MAX(itemDetails)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: false, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_MAX",
+						Args: []Expr{ID("itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item STRING(MAX) AS (ARRAY_MIN(itemDetails)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: false, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_MIN",
+						Args: []Expr{ID("itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_REVERSE(itemDetails)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_REVERSE",
+						Args: []Expr{ID("itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_SLICE(itemDetails, 1, 3)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_SLICE",
+						Args: []Expr{ID("itemDetails"), IntegerLiteral(1), IntegerLiteral(3)},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_TRANSFORM(itemDetails, 'value1')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_TRANSFORM",
+						Args: []Expr{ID("itemDetails"), StringLiteral("value1")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_FIRST(itemDetails)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_FIRST",
+						Args: []Expr{ID("itemDetails")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_INCLUDES(itemDetails, 'value1')) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_INCLUDES",
+						Args: []Expr{ID("itemDetails"), StringLiteral("value1")},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_INCLUDES_ALL(itemDetails, ["1", "2"])) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_INCLUDES_ALL",
+						Args: []Expr{ID("itemDetails"), Array{StringLiteral("1"), StringLiteral("2")}},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_INCLUDES_ANY(itemDetails, ["1", "2"])) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_INCLUDES_ANY",
+						Args: []Expr{ID("itemDetails"), Array{StringLiteral("1"), StringLiteral("2")}},
+					},
+				}},
+				Position: line(1),
+			},
+		}}},
+		{`ALTER TABLE products ADD COLUMN item ARRAY<STRING(MAX)> AS (ARRAY_LAST(itemDetails)) STORED`, &DDL{Filename: "filename", List: []DDLStmt{
+			&AlterTable{
+				Name: "products",
+				Alteration: AddColumn{Def: ColumnDef{
+					Name:     "item",
+					Type:     Type{Base: String, Array: true, Len: MaxLen},
+					Position: line(1),
+					Generated: Func{
+						Name: "ARRAY_LAST",
+						Args: []Expr{ID("itemDetails")},
 					},
 				}},
 				Position: line(1),
@@ -1552,6 +1928,66 @@ func TestParseDDL(t *testing.T) {
 			},
 		},
 		{
+			`CREATE TABLE IF NOT EXISTS tname (id INT64, name foo.bar.baz.ProtoName) PRIMARY KEY (id)`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateTable{
+						Name:        "tname",
+						IfNotExists: true,
+						Columns: []ColumnDef{
+							{Name: "id", Type: Type{Base: Int64}, Position: line(1)},
+							{Name: "name", Type: Type{Base: Proto, ProtoRef: "foo.bar.baz.ProtoName"}, Position: line(1)},
+						},
+						PrimaryKey: []KeyPart{
+							{Column: "id"},
+						},
+						Position: line(1),
+					},
+				},
+			},
+		},
+		{
+			"CREATE TABLE IF NOT EXISTS tname (id INT64, name `foo.bar.baz.ProtoName`) PRIMARY KEY (id)",
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateTable{
+						Name:        "tname",
+						IfNotExists: true,
+						Columns: []ColumnDef{
+							{Name: "id", Type: Type{Base: Int64}, Position: line(1)},
+							{Name: "name", Type: Type{Base: Proto, ProtoRef: "foo.bar.baz.ProtoName"}, Position: line(1)},
+						},
+						PrimaryKey: []KeyPart{
+							{Column: "id"},
+						},
+						Position: line(1),
+					},
+				},
+			},
+		},
+		{
+			"CREATE TABLE IF NOT EXISTS tname (id INT64, name `foo.bar.baz.ProtoName` NOT NULL) PRIMARY KEY (id)",
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateTable{
+						Name:        "tname",
+						IfNotExists: true,
+						Columns: []ColumnDef{
+							{Name: "id", Type: Type{Base: Int64}, Position: line(1)},
+							{Name: "name", NotNull: true, Type: Type{Base: Proto, ProtoRef: "foo.bar.baz.ProtoName"}, Position: line(1)},
+						},
+						PrimaryKey: []KeyPart{
+							{Column: "id"},
+						},
+						Position: line(1),
+					},
+				},
+			},
+		},
+		{
 			`CREATE INDEX IF NOT EXISTS iname ON tname (cname)`,
 			&DDL{
 				Filename: "filename",
@@ -1706,6 +2142,275 @@ func TestParseDDL(t *testing.T) {
 							},
 						},
 						Position: line(1),
+					},
+				},
+			},
+		},
+		{
+			`CREATE PROTO BUNDLE (foo.bar.baz.Fiddle, ` + "`foo.bar.baz.Foozle`" + `);
+			ALTER PROTO BUNDLE INSERT (a.b.c, b.d.e, k) UPDATE (foo.bar.baz.Fiddle) DELETE (foo.bar.baz.Foozle);
+			DROP PROTO BUNDLE;`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateProtoBundle{
+						Types:    []string{"foo.bar.baz.Fiddle", "foo.bar.baz.Foozle"},
+						Position: line(1),
+					},
+					&AlterProtoBundle{
+						AddTypes:    []string{"a.b.c", "b.d.e", "k"},
+						UpdateTypes: []string{"foo.bar.baz.Fiddle"},
+						DeleteTypes: []string{"foo.bar.baz.Foozle"},
+						Position:    line(2),
+					},
+					&DropProtoBundle{
+						Position: line(3),
+					},
+				},
+			},
+		},
+		{
+			`ALTER PROTO BUNDLE UPDATE (foo.bar.baz.Fiddle) INSERT (a.b.c, b.d.e, k) DELETE (foo.bar.baz.Foozle);`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&AlterProtoBundle{
+						AddTypes:    []string{"a.b.c", "b.d.e", "k"},
+						UpdateTypes: []string{"foo.bar.baz.Fiddle"},
+						DeleteTypes: []string{"foo.bar.baz.Foozle"},
+						Position:    line(1),
+					},
+				},
+			},
+		},
+		{
+			`ALTER PROTO BUNDLE DELETE (foo.bar.baz.Foozle) UPDATE (foo.bar.baz.Fiddle) INSERT (a.b.c, b.d.e, k)`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&AlterProtoBundle{
+						AddTypes:    []string{"a.b.c", "b.d.e", "k"},
+						UpdateTypes: []string{"foo.bar.baz.Fiddle"},
+						DeleteTypes: []string{"foo.bar.baz.Foozle"},
+						Position:    line(1),
+					},
+				},
+			},
+		},
+		{
+			`ALTER PROTO BUNDLE INSERT (a.b.c, b.d.e, k) DELETE (foo.bar.baz.Foozle);`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&AlterProtoBundle{
+						AddTypes:    []string{"a.b.c", "b.d.e", "k"},
+						UpdateTypes: nil,
+						DeleteTypes: []string{"foo.bar.baz.Foozle"},
+						Position:    line(1),
+					},
+				},
+			},
+		},
+		{
+			`CREATE TABLE TableTokens (
+				Name STRING(MAX) NOT NULL,
+				Name_Tokens TOKENLIST AS (TOKENIZE_FULLTEXT(Name)) HIDDEN,
+				Value INT64 NOT NULL,
+				Value_Tokens TOKENLIST AS (TOKENIZE_NUMBER(Value)) HIDDEN,
+				Values ARRAY<STRING(MAX)>,
+				Values_Tokens TOKENLIST AS (TOKEN(Values)) HIDDEN,
+				ValueTwo BOOL NOT NULL,
+				ValueTwo_Tokens TOKENLIST AS (TOKENIZE_BOOL(ValueTwo)) HIDDEN,
+				ValueThree STRING(MAX) NOT NULL,
+				ValueThree_Tokens TOKENLIST AS (TOKENIZE_NGRAMS(ValueThree)) HIDDEN,
+				ValueFour STRING(MAX) NOT NULL,
+				ValueFour_Tokens TOKENLIST AS (TOKENIZE_FULLTEXT(ValueFour || "concat")) HIDDEN,
+				ValueFive JSON NOT NULL,
+				ValueFive_Tokens TOKENLIST AS (TOKENIZE_JSON(ValueFive)) HIDDEN,
+				Combined_Tokens TOKENLIST AS (TOKENLIST_CONCAT([Name_Tokens, ValueFour_Tokens])) HIDDEN,
+				Argument_Tokens TOKENLIST AS (TOKENIZE_FULLTEXT(Name, token_category => "small")) HIDDEN,
+				ManyArgument_Tokens TOKENLIST AS (TOKENIZE_NUMBER(Value, comparison_type => "all", min => 1, max => 5)) HIDDEN,
+			) PRIMARY KEY (Name);
+
+			CREATE SEARCH INDEX TableTokensSearch
+			ON TableTokens(Name_Tokens, Value_Tokens)
+			STORING (ValueTwo)
+			PARTITION BY Value, ValueTwo
+			ORDER BY Value DESC, ValueTwo ASC,
+			INTERLEAVE IN SomeTable
+			OPTIONS (sort_order_sharding = true);`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateTable{
+						Name: "TableTokens",
+						Columns: []ColumnDef{
+							{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(2)},
+							{
+								Name: "Name_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_FULLTEXT", Args: []Expr{ID("Name")}},
+								Hidden:    true,
+								Position:  line(3),
+							},
+							{Name: "Value", Type: Type{Base: Int64}, NotNull: true, Position: line(4)},
+							{
+								Name: "Value_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_NUMBER", Args: []Expr{ID("Value")}},
+								Hidden:    true,
+								Position:  line(5),
+							},
+							{Name: "Values", Type: Type{Array: true, Base: String, Len: MaxLen}, NotNull: false, Position: line(6)},
+							{
+								Name: "Values_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKEN", Args: []Expr{ID("Values")}},
+								Hidden:    true,
+								Position:  line(7),
+							},
+							{Name: "ValueTwo", Type: Type{Base: Bool}, NotNull: true, Position: line(8)},
+							{
+								Name: "ValueTwo_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_BOOL", Args: []Expr{ID("ValueTwo")}},
+								Hidden:    true,
+								Position:  line(9),
+							},
+							{Name: "ValueThree", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(10)},
+							{
+								Name: "ValueThree_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_NGRAMS", Args: []Expr{ID("ValueThree")}},
+								Hidden:    true,
+								Position:  line(11),
+							},
+							{Name: "ValueFour", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(12)},
+							{
+								Name: "ValueFour_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_FULLTEXT", Args: []Expr{ArithOp{Op: 5, LHS: ID("ValueFour"), RHS: StringLiteral("concat")}}},
+								Hidden:    true,
+								Position:  line(13),
+							},
+							{Name: "ValueFive", Type: Type{Base: JSON}, NotNull: true, Position: line(14)},
+							{
+								Name: "ValueFive_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_JSON", Args: []Expr{ID("ValueFive")}},
+								Hidden:    true,
+								Position:  line(15),
+							},
+							{
+								Name: "Combined_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENLIST_CONCAT", Args: []Expr{Array{ID("Name_Tokens"), ID("ValueFour_Tokens")}}},
+								Hidden:    true,
+								Position:  line(16),
+							},
+							{
+								Name: "Argument_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_FULLTEXT", Args: []Expr{ID("Name"), DefinitionExpr{
+									Key:   "token_category",
+									Value: StringLiteral("small"),
+								}}},
+								Hidden:   true,
+								Position: line(17),
+							},
+							{
+								Name: "ManyArgument_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_NUMBER", Args: []Expr{
+									ID("Value"),
+									DefinitionExpr{
+										Key:   "comparison_type",
+										Value: StringLiteral("all"),
+									},
+									DefinitionExpr{
+										Key:   "min",
+										Value: IntegerLiteral(1),
+									},
+									DefinitionExpr{
+										Key:   "max",
+										Value: IntegerLiteral(5),
+									},
+								}},
+								Hidden:   true,
+								Position: line(18),
+							},
+						},
+						PrimaryKey: []KeyPart{{Column: "Name"}},
+						Position:   line(1),
+					},
+					&CreateSearchIndex{
+						Name:  "TableTokensSearch",
+						Table: "TableTokens",
+						Columns: []KeyPart{
+							{Column: "Name_Tokens"},
+							{Column: "Value_Tokens"},
+						},
+						Storing:     []ID{"ValueTwo"},
+						PartitionBy: []ID{"Value", "ValueTwo"},
+						OrderBy:     []Order{{Expr: ID("Value"), Desc: true}, {Expr: ID("ValueTwo"), Desc: false}},
+						Position:    line(21),
+						Interleave:  ID("SomeTable"),
+						Options:     SearchIndexOptions{SortOrderSharding: func(b bool) *bool { return &b }(true)},
+					},
+				},
+			},
+		},
+		{
+			`CREATE TABLE TableTokens (
+				Name STRING(MAX) NOT NULL,
+				Name_Tokens TOKENLIST AS (TOKENIZE_FULLTEXT(Name)) HIDDEN,
+				Value INT64 NOT NULL,
+				Value_Tokens TOKENLIST AS (TOKENIZE_NUMBER(Value)) HIDDEN,
+			) PRIMARY KEY (Name);
+
+			CREATE SEARCH INDEX TableTokensSearch
+			ON TableTokens(Name_Tokens, Value_Tokens);
+
+			ALTER SEARCH INDEX TableTokensSearch ADD STORED COLUMN Value_Tokens;
+			ALTER SEARCH INDEX TableTokensSearch DROP STORED COLUMN Value_Tokens;
+			DROP SEARCH INDEX IF EXISTS TableTokensSearch;`,
+			&DDL{
+				Filename: "filename",
+				List: []DDLStmt{
+					&CreateTable{
+						Name: "TableTokens",
+						Columns: []ColumnDef{
+							{Name: "Name", Type: Type{Base: String, Len: MaxLen}, NotNull: true, Position: line(2)},
+							{
+								Name: "Name_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_FULLTEXT", Args: []Expr{ID("Name")}},
+								Hidden:    true,
+								Position:  line(3),
+							},
+							{Name: "Value", Type: Type{Base: Int64}, NotNull: true, Position: line(4)},
+							{
+								Name: "Value_Tokens", Type: Type{Base: Tokenlist},
+								Generated: Func{Name: "TOKENIZE_NUMBER", Args: []Expr{ID("Value")}},
+								Hidden:    true,
+								Position:  line(5),
+							},
+						},
+						PrimaryKey: []KeyPart{{Column: "Name"}},
+						Position:   line(1),
+					},
+					&CreateSearchIndex{
+						Name:  "TableTokensSearch",
+						Table: "TableTokens",
+						Columns: []KeyPart{
+							{Column: "Name_Tokens"},
+							{Column: "Value_Tokens"},
+						},
+						Position: line(8),
+					},
+					&AlterSearchIndex{
+						Name:       "TableTokensSearch",
+						Alteration: AddStoredColumn{Name: "Value_Tokens"},
+						Position:   line(11),
+					},
+					&AlterSearchIndex{
+						Name:       "TableTokensSearch",
+						Alteration: DropStoredColumn{Name: "Value_Tokens"},
+						Position:   line(12),
+					},
+					&DropSearchIndex{
+						Name:     "TableTokensSearch",
+						IfExists: true,
+						Position: line(13),
 					},
 				},
 			},

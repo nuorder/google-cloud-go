@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package aiplatform_test
 
 import (
 	"context"
+	"io"
 
 	aiplatform "cloud.google.com/go/aiplatform/apiv1"
 	aiplatformpb "cloud.google.com/go/aiplatform/apiv1/aiplatformpb"
@@ -44,6 +45,46 @@ func ExampleNewFeatureOnlineStoreClient() {
 	_ = c
 }
 
+func ExampleFeatureOnlineStoreClient_FeatureViewDirectWrite() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := aiplatform.NewFeatureOnlineStoreClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+	stream, err := c.FeatureViewDirectWrite(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	go func() {
+		reqs := []*aiplatformpb.FeatureViewDirectWriteRequest{
+			// TODO: Create requests.
+		}
+		for _, req := range reqs {
+			if err := stream.Send(req); err != nil {
+				// TODO: Handle error.
+			}
+		}
+		stream.CloseSend()
+	}()
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// TODO: handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+	}
+}
+
 func ExampleFeatureOnlineStoreClient_FetchFeatureValues() {
 	ctx := context.Background()
 	// This snippet has been automatically generated and should be regarded as a code template only.
@@ -62,6 +103,31 @@ func ExampleFeatureOnlineStoreClient_FetchFeatureValues() {
 		// See https://pkg.go.dev/cloud.google.com/go/aiplatform/apiv1/aiplatformpb#FetchFeatureValuesRequest.
 	}
 	resp, err := c.FetchFeatureValues(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleFeatureOnlineStoreClient_SearchNearestEntities() {
+	ctx := context.Background()
+	// This snippet has been automatically generated and should be regarded as a code template only.
+	// It will require modifications to work:
+	// - It may require correct/in-range values for request initialization.
+	// - It may require specifying regional endpoints when creating the service client as shown in:
+	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
+	c, err := aiplatform.NewFeatureOnlineStoreClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	defer c.Close()
+
+	req := &aiplatformpb.SearchNearestEntitiesRequest{
+		// TODO: Fill request struct fields.
+		// See https://pkg.go.dev/cloud.google.com/go/aiplatform/apiv1/aiplatformpb#SearchNearestEntitiesRequest.
+	}
+	resp, err := c.SearchNearestEntities(ctx, req)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -122,6 +188,12 @@ func ExampleFeatureOnlineStoreClient_ListLocations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*locationpb.ListLocationsResponse)
 	}
 }
 
@@ -299,6 +371,12 @@ func ExampleFeatureOnlineStoreClient_ListOperations() {
 		}
 		// TODO: Use resp.
 		_ = resp
+
+		// If you need to access the underlying RPC response,
+		// you can do so by casting the `Response` as below.
+		// Otherwise, remove this line. Only populated after
+		// first call to Next(). Not safe for concurrent access.
+		_ = it.Response.(*longrunningpb.ListOperationsResponse)
 	}
 }
 

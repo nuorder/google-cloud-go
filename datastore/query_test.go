@@ -20,13 +20,16 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
+	"time"
 
+	pb "cloud.google.com/go/datastore/apiv1/datastorepb"
 	"cloud.google.com/go/internal/testutil"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	pb "google.golang.org/genproto/googleapis/datastore/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -722,15 +725,28 @@ func TestNamespaceQuery(t *testing.T) {
 	}
 }
 
-func TestReadOptions(t *testing.T) {
+func TestToRunQueryRequest(t *testing.T) {
+	clientReadTime := time.Now()
 	tid := []byte{1}
 	for _, test := range []struct {
 		q    *Query
+		crs  *readSettings
 		want *pb.ReadOptions
 	}{
 		{
 			q:    NewQuery(""),
 			want: nil,
+		},
+		{
+			q: NewQuery(""),
+			crs: &readSettings{
+				readTime: clientReadTime,
+			},
+			want: &pb.ReadOptions{
+				ConsistencyType: &pb.ReadOptions_ReadTime{
+					ReadTime: timestamppb.New(clientReadTime),
+				},
+			},
 		},
 		{
 			q:    NewQuery("").Transaction(nil),
@@ -754,21 +770,8 @@ func TestReadOptions(t *testing.T) {
 		},
 	} {
 		req := &pb.RunQueryRequest{}
-		if err := test.q.toRunQueryRequest(req); err != nil {
+		if err := test.q.toRunQueryRequest(req, test.crs); err != nil {
 			t.Fatalf("%+v: got %v, want no error", test.q, err)
-		}
-		if got := req.ReadOptions; !proto.Equal(got, test.want) {
-			t.Errorf("%+v:\ngot  %+v\nwant %+v", test.q, got, test.want)
-		}
-	}
-	// Test errors.
-	for _, q := range []*Query{
-		NewQuery("").Transaction(&Transaction{id: nil}),
-		NewQuery("").Transaction(&Transaction{id: tid}).EventualConsistency(),
-	} {
-		req := &pb.RunQueryRequest{}
-		if err := q.toRunQueryRequest(req); err == nil {
-			t.Errorf("%+v: got nil, wanted error", q)
 		}
 	}
 }
@@ -794,6 +797,35 @@ func TestInvalidFilters(t *testing.T) {
 			t.Errorf("%+v: got nil, wanted error", q)
 		}
 	}
+}
+
+func TestRunErr(t *testing.T) {
+	client := &Client{
+		client: &fakeClient{
+			queryFn: func(req *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
+				fmt.Printf("received next request")
+				return fakeRunQuery(req)
+			},
+		},
+	}
+
+	type Gopher struct {
+		A int
+	}
+
+	ctx := context.Background()
+	q := NewQuery("Gopher").Filter("", 2)
+	it := client.Run(ctx, q)
+
+	var g1 Gopher
+	it.Next(&g1)
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Cursor panic")
+		}
+	}()
+	it.Cursor()
 }
 
 func TestAggregationQuery(t *testing.T) {
@@ -856,5 +888,160 @@ func TestAggregationQueryIsNil(t *testing.T) {
 	_, err = client.RunAggregationQuery(context.Background(), aq3)
 	if err == nil {
 		t.Fatal(err)
+	}
+}
+
+func TestExplainOptionsApply(t *testing.T) {
+	pbExplainOptions := pb.ExplainOptions{
+		Analyze: true,
+	}
+	for _, testcase := range []struct {
+		desc            string
+		existingOptions *pb.ExplainOptions
+		newOptions      ExplainOptions
+		wantErrMsg      string
+	}{
+		{
+			desc:            "ExplainOptions specified multiple times",
+			existingOptions: &pbExplainOptions,
+			newOptions: ExplainOptions{
+				Analyze: true,
+			},
+			wantErrMsg: "ExplainOptions can be specified only once",
+		},
+		{
+			desc:            "ExplainOptions specified once",
+			existingOptions: nil,
+			newOptions: ExplainOptions{
+				Analyze: true,
+			},
+		},
+	} {
+		gotErr := testcase.newOptions.apply(&runQuerySettings{explainOptions: testcase.existingOptions})
+		if (gotErr == nil && testcase.wantErrMsg != "") ||
+			(gotErr != nil && !strings.Contains(gotErr.Error(), testcase.wantErrMsg)) {
+			t.Errorf("%v: apply got: %v want: %v", testcase.desc, gotErr.Error(), testcase.wantErrMsg)
+		}
+	}
+}
+
+func TestNewRunQuerySettings(t *testing.T) {
+	for _, testcase := range []struct {
+		desc       string
+		opts       []RunOption
+		wantErrMsg string
+	}{
+		{
+			desc:       "nil RunOption",
+			opts:       []RunOption{ExplainOptions{Analyze: true}, nil},
+			wantErrMsg: "cannot be nil",
+		},
+		{
+			desc: "success RunOption",
+			opts: []RunOption{ExplainOptions{Analyze: true}},
+		},
+		{
+			desc:       "ExplainOptions specified multiple times",
+			opts:       []RunOption{ExplainOptions{Analyze: true}, ExplainOptions{Analyze: false}, ExplainOptions{Analyze: true}},
+			wantErrMsg: "ExplainOptions can be specified only once",
+		},
+	} {
+		_, gotErr := newRunQuerySettings(testcase.opts)
+		if (gotErr == nil && testcase.wantErrMsg != "") ||
+			(gotErr != nil && !strings.Contains(gotErr.Error(), testcase.wantErrMsg)) {
+			t.Errorf("%v: newRunQuerySettings got: %v want: %v", testcase.desc, gotErr, testcase.wantErrMsg)
+		}
+	}
+}
+
+func TestValidateReadOptions(t *testing.T) {
+	eventualInTxnErr := errEventualConsistencyTransaction
+
+	for _, test := range []struct {
+		desc     string
+		eventual bool
+		trans    *Transaction
+		crs      *readSettings
+		wantErr  error
+	}{
+		{
+			desc:     "EventualConsistency query in a transaction",
+			eventual: true,
+			trans: &Transaction{
+				id:    []byte("test id"),
+				state: transactionStateInProgress,
+			},
+			wantErr: eventualInTxnErr,
+		},
+		{
+			desc: "Expired transaction in non-eventual query",
+			trans: &Transaction{
+				id:    nil,
+				state: transactionStateExpired,
+			},
+			wantErr: errExpiredTransaction,
+		},
+		{
+			desc: "Expired transaction in eventual query",
+			trans: &Transaction{
+				id:    nil,
+				state: transactionStateExpired,
+			},
+			eventual: true,
+			wantErr:  eventualInTxnErr,
+		},
+		{
+			desc: "No transaction in non-eventual query",
+		},
+		{
+			desc:     "No transaction in eventual query",
+			eventual: true,
+		},
+		{
+			desc:     "Eventual query with client read time",
+			eventual: true,
+			crs: &readSettings{
+				readTime: time.Now(),
+			},
+			wantErr: errEventualConsistencyTxnClientReadTime,
+		},
+		{
+			desc:     "Eventual query and transaction with client read time",
+			eventual: true,
+			crs: &readSettings{
+				readTime: time.Now(),
+			},
+			trans: &Transaction{
+				id:    []byte("test id"),
+				state: transactionStateInProgress,
+			},
+			wantErr: errEventualConsistencyTxnClientReadTime,
+		},
+		{
+			desc: "Transaction with client read time",
+			crs: &readSettings{
+				readTime: time.Now(),
+			},
+			trans: &Transaction{
+				id:    []byte("test id"),
+				state: transactionStateInProgress,
+			},
+			wantErr: errEventualConsistencyTxnClientReadTime,
+		},
+	} {
+		gotErr := validateReadOptions(test.eventual, test.trans, test.crs)
+		gotErrMsg := ""
+		if gotErr != nil {
+			gotErrMsg = gotErr.Error()
+		}
+
+		wantErrMsg := ""
+		if test.wantErr != nil {
+			wantErrMsg = test.wantErr.Error()
+		}
+
+		if gotErrMsg != wantErrMsg {
+			t.Errorf("%q: got: %v, want: %v", test.desc, gotErr, test.wantErr)
+		}
 	}
 }
